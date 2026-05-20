@@ -4,6 +4,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { formatEUR, formatDate } from "@/lib/utils";
 import { AddReservation } from "@/components/departures/add-reservation";
+import { ImportReservationFromEmail } from "@/components/departures/import-reservation-from-email";
 
 export async function ReservasTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
@@ -18,7 +19,8 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <ImportReservationFromEmail departureId={departureId} providers={providers ?? []} />
         <AddReservation departureId={departureId} providers={providers ?? []} />
       </div>
       <Card>
