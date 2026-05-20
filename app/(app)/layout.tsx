@@ -10,11 +10,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   const supabase = createClient();
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (!profile) {
+    const { data: created } = await supabase
+      .from("profiles")
+      .insert({ id: user.id, email: user.email })
+      .select()
+      .maybeSingle();
+    profile = created;
+  }
 
   const role = profile?.app_role ?? "nico";
   const displayName = profile?.full_name ?? user.email ?? "Usuario";
