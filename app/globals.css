@@ -2,26 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 42 60% 97%;
+    --foreground: 24 10% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 12%;
+
+    --primary: 24 10% 12%;
+    --primary-foreground: 42 60% 97%;
+
+    --secondary: 42 50% 92%;
+    --secondary-foreground: 24 10% 12%;
+
+    --muted: 42 30% 94%;
+    --muted-foreground: 24 8% 40%;
+
+    --accent: 47 92% 53%;
+    --accent-foreground: 24 10% 12%;
+
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 20% 86%;
+    --input: 36 20% 86%;
+    --ring: 47 92% 53%;
+
+    --radius: 0.5rem;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  .brand-yellow-bar {
+    @apply h-1 w-12 bg-camino-yellow rounded-full;
   }
 }
