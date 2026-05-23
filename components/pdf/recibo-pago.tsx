@@ -76,7 +76,6 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
           <View style={styles.row}><Text style={styles.rowLabel}>Nombre</Text><Text style={styles.rowValue}>{data.pilgrim_name}</Text></View>
           {data.pilgrim_email && <View style={styles.row}><Text style={styles.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
           <View style={styles.row}><Text style={styles.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
-          {data.departure_start_date && <View style={styles.row}><Text style={styles.rowLabel}>Fecha de salida</Text><Text>{fmt.date(data.departure_start_date)}</Text></View>}
         </View>
 
         <View style={styles.box}>
@@ -108,7 +107,7 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
               </Text>
             ) : (
               <Text>
-                El saldo pendiente en pesos colombianos se recalcula con la tasa de cambio del día 1 mes antes de la fecha de salida ({fmt.date(data.departure_start_date)}). El monto final en COP puede variar respecto al estimado actual.
+                El saldo pendiente en pesos colombianos se recalcula con la tasa de cambio del día 1 mes antes de la fecha de salida. El monto final en COP puede variar respecto al estimado actual.
               </Text>
             )}
           </View>

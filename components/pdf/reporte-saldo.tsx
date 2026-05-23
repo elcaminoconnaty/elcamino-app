@@ -13,13 +13,13 @@ const styles = StyleSheet.create({
   rowLabel: { color: "#6b6b6b" },
   rowValue: { fontFamily: "Helvetica-Bold" },
   table: { borderWidth: 0.5, borderColor: "#e6dcc2", borderRadius: 3, marginVertical: 8 },
-  tableHead: { flexDirection: "row", backgroundColor: "#faf3e3", padding: 6, fontSize: 9, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 0.8, borderBottomWidth: 0.5, borderBottomColor: "#e6dcc2" },
+  tableHead: { flexDirection: "row", backgroundColor: "#faf3e3", padding: 6, fontSize: 8.5, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 0.8, borderBottomWidth: 0.5, borderBottomColor: "#e6dcc2" },
   tableRow: { flexDirection: "row", padding: 6, borderBottomWidth: 0.5, borderBottomColor: "#f0e7cf", fontSize: 9.5 },
-  col1: { flex: 1.3 },
-  col2: { flex: 1, textAlign: "right" },
-  col3: { flex: 1, textAlign: "right" },
-  col4: { flex: 1, textAlign: "right" },
-  col5: { flex: 1.2 },
+  col1: { flex: 1.2, paddingRight: 4 },
+  col2: { flex: 1.1, textAlign: "right", paddingRight: 6 },
+  col3: { flex: 0.9, textAlign: "right", paddingRight: 6 },
+  col4: { flex: 1.1, textAlign: "right", paddingRight: 8 },
+  col5: { flex: 1.2, textAlign: "left" },
   bigAmount: { fontSize: 24, fontFamily: "Helvetica-Bold", marginTop: 8 },
   yellowBox: { backgroundColor: "#fef3c7", padding: 12, borderRadius: 4, fontSize: 9.5, color: "#7c5e10", marginTop: 16 },
   footer: { position: "absolute", bottom: 32, left: 48, right: 48, fontSize: 8, color: "#9a9a9a", textAlign: "center", borderTopWidth: 0.5, borderTopColor: "#e6dcc2", paddingTop: 8 },
@@ -77,7 +77,6 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
           <View style={styles.row}><Text style={styles.rowLabel}>Nombre</Text><Text style={styles.rowValue}>{data.pilgrim_name}</Text></View>
           {data.pilgrim_email && <View style={styles.row}><Text style={styles.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
           <View style={styles.row}><Text style={styles.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
-          {data.departure_start_date && <View style={styles.row}><Text style={styles.rowLabel}>Fecha de salida</Text><Text>{fmt.date(data.departure_start_date)}</Text></View>}
         </View>
 
         <View style={styles.section}>
@@ -85,10 +84,10 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
           <View style={styles.table}>
             <View style={styles.tableHead}>
               <Text style={styles.col1}>Fecha</Text>
-              <Text style={styles.col2}>Monto</Text>
+              <Text style={styles.col2}>Monto orig.</Text>
               <Text style={styles.col3}>TRM</Text>
-              <Text style={styles.col4}>EUR</Text>
-              <Text style={styles.col5}>Método</Text>
+              <Text style={styles.col4}>Equiv. EUR</Text>
+              <Text style={styles.col5}>Método pago</Text>
             </View>
             {data.payments.length === 0 ? (
               <View style={styles.tableRow}><Text>Sin pagos registrados.</Text></View>
@@ -128,7 +127,7 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
               </Text>
             ) : (
               <Text>
-                El saldo en pesos colombianos mostrado es una referencia con la TRM actual ({fmt.num(data.current_trm)} COP/EUR). El monto final se recalcula con la tasa del día 1 mes antes de la fecha de salida ({fmt.date(data.departure_start_date)}). Esto significa que el monto final en COP puede variar respecto al actual.
+                El saldo en pesos colombianos mostrado es una referencia con la TRM actual ({fmt.num(data.current_trm)} COP/EUR). El monto final se recalcula con la tasa del día 1 mes antes de la fecha de salida. Esto significa que el monto final en COP puede variar respecto al actual.
               </Text>
             )}
           </View>
