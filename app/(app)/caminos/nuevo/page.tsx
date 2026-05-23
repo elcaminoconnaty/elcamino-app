@@ -19,7 +19,7 @@ export default async function NewDeparturePage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <Link href="/caminos" className="text-sm text-muted-foreground hover:underline">← Volver</Link>
-        <h1 className="font-display text-3xl text-camino-ink mt-2">Nuevo camino</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink mt-2">Nuevo camino</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
 

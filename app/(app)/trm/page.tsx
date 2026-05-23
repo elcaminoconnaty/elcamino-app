@@ -14,7 +14,7 @@ export default async function TrmPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl text-camino-ink">TRM EUR/COP</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">TRM EUR/COP</h1>
         <p className="text-sm text-muted-foreground">Carga manual de la tasa de cambio</p>
         <div className="brand-yellow-bar mt-2" />
       </div>

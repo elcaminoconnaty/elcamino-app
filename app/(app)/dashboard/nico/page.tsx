@@ -27,7 +27,7 @@ export default async function NicoDashboard() {
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase tracking-wider text-camino-deepYellow font-medium">Dashboard de Nico</p>
-        <h1 className="font-display text-3xl text-camino-ink">Logística y operación</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Logística y operación</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
 

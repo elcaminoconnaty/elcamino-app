@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { formatEUR } from "@/lib/utils";
+import { formatEUR, formatDate, daysUntil } from "@/lib/utils";
 import type { FinancialGlobal, DepartureSummary } from "@/types/db";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,15 @@ export const dynamic = "force-dynamic";
 
 export default async function NatyDashboard() {
   const supabase = createClient();
-  const [{ data: g }, { data: dps }] = await Promise.all([
+  const [{ data: g }, { data: dps }, { data: upcoming }] = await Promise.all([
     supabase.from("v_financial_global").select("*").maybeSingle(),
     supabase.from("v_departure_summary").select("*").order("start_date", { ascending: true }),
+    supabase.from("v_upcoming_installments").select("*").limit(15),
   ]);
   const global = (g as FinancialGlobal) ?? null;
   const departures = (dps as DepartureSummary[]) ?? [];
+  const upcomingInstallments = upcoming ?? [];
+  const totalUpcoming = upcomingInstallments.reduce((s: number, i: any) => s + Number(i.amount_eur || 0), 0);
 
   return (
     <div className="space-y-8">
@@ -35,6 +38,46 @@ export default async function NatyDashboard() {
         <KPI label="Cobrado" value={formatEUR(global?.collected_eur)} small />
         <KPI label="Pagado a proveedores" value={formatEUR(global?.paid_providers_eur)} small />
         <KPI label="Gastos operativos" value={formatEUR(global?.operational_expenses_eur)} small />
+      </section>
+
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="font-display text-xl text-camino-ink">Próximos cobros</h2>
+            <p className="text-sm text-muted-foreground">Cuotas pendientes de peregrinos — total {formatEUR(totalUpcoming)}</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            {upcomingInstallments.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No hay cuotas pendientes registradas. Definí planes de pago en cada inscripción.</div>
+            ) : (
+              <div className="divide-y">
+                {upcomingInstallments.map((i: any) => {
+                  const days = daysUntil(i.due_date);
+                  const isOverdue = days < 0;
+                  const isSoon = days >= 0 && days <= 7;
+                  return (
+                    <Link key={i.id} href={`/peregrinos/${i.pilgrim_id}`} className="flex items-center justify-between px-4 py-3 hover:bg-cream-50">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{i.pilgrim_name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{i.departure_name} · {i.label ?? "Cuota"}</div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <div className="text-sm font-medium">{formatEUR(i.amount_eur)}</div>
+                          <div className={`text-xs ${isOverdue ? "text-red-700 font-medium" : isSoon ? "text-amber-700" : "text-muted-foreground"}`}>
+                            {formatDate(i.due_date)}{isOverdue ? ` · ${-days}d vencida` : days === 0 ? " · hoy" : ` · en ${days}d`}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       <section>

@@ -10,9 +10,10 @@ import { parseReservationEmail, type ParsedReservation } from "@/lib/actions/par
 import { createReservation, createProvider } from "@/lib/actions/reservations";
 import { PROVIDER_TYPES, RESERVATION_STATUSES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
-import { Sparkles, Mail } from "lucide-react";
+import { Sparkles, Mail, CheckCircle2, PlusCircle } from "lucide-react";
 
 type Provider = { id: string; name: string; type: string };
+type ProviderMode = "new" | "existing";
 
 export function ImportReservationFromEmail({ departureId, providers }: { departureId: string; providers: Provider[] }) {
   const [open, setOpen] = useState(false);
@@ -20,7 +21,10 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<ParsedReservation | null>(null);
   const [saving, setSaving] = useState(false);
+  const [providerMode, setProviderMode] = useState<ProviderMode>("new");
   const [providerId, setProviderId] = useState("");
+  const [newProviderName, setNewProviderName] = useState("");
+  const [newProviderEmail, setNewProviderEmail] = useState("");
   const router = useRouter();
 
   async function onParse() {
@@ -32,7 +36,15 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
     try {
       const r = await parseReservationEmail(emailText, departureId);
       setParsed(r);
-      setProviderId(r.provider_id ?? "");
+      if (r.provider_id) {
+        setProviderMode("existing");
+        setProviderId(r.provider_id);
+      } else {
+        setProviderMode("new");
+        setProviderId("");
+        setNewProviderName(r.provider_name_suggested ?? "");
+        setNewProviderEmail(r.provider_email_suggested ?? "");
+      }
     } catch (e: any) {
       toast({ title: "Error al parsear", description: e.message, variant: "destructive" });
     }
@@ -43,12 +55,13 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
     setSaving(true);
     try {
       let pid = providerId;
-      if (!pid && parsed?.provider_name_suggested) {
+      if (providerMode === "new") {
+        if (!newProviderName.trim()) throw new Error("Falta el nombre del nuevo proveedor");
         const newProv = new FormData();
-        newProv.set("name", parsed.provider_name_suggested);
-        newProv.set("type", parsed.type);
-        if (parsed.provider_email_suggested) newProv.set("email", parsed.provider_email_suggested);
-        if (parsed.location) newProv.set("city", parsed.location);
+        newProv.set("name", newProviderName.trim());
+        newProv.set("type", (fd.get("type")?.toString() || parsed?.type || "otro"));
+        if (newProviderEmail.trim()) newProv.set("email", newProviderEmail.trim());
+        if (parsed?.location) newProv.set("city", parsed.location);
         const created = await createProvider(newProv);
         pid = (created as any).id;
       }
@@ -61,6 +74,8 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
       setEmailText("");
       setParsed(null);
       setProviderId("");
+      setNewProviderName("");
+      setNewProviderEmail("");
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -72,6 +87,9 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
     setEmailText("");
     setParsed(null);
     setProviderId("");
+    setNewProviderName("");
+    setNewProviderEmail("");
+    setProviderMode("new");
   }
 
   return (
@@ -114,24 +132,56 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
               <button type="button" onClick={reset} className="text-camino-deepYellow hover:underline">← Pegar otro correo</button>
             </div>
 
-            <div className="grid gap-2">
+            <div className="space-y-2">
               <Label>Proveedor</Label>
-              <select
-                value={providerId}
-                onChange={(e) => setProviderId(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">
-                  {parsed.provider_name_suggested
-                    ? `+ Crear nuevo: ${parsed.provider_name_suggested}${parsed.provider_email_suggested ? ` (${parsed.provider_email_suggested})` : ""}`
-                    : "— Seleccionar —"}
-                </option>
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
-                ))}
-              </select>
-              {parsed.provider_id && providerId === parsed.provider_id && (
-                <p className="text-xs text-green-700">✓ Match automático con proveedor existente</p>
+              {providerMode === "existing" ? (
+                <div className="rounded-md border-2 border-green-200 bg-green-50 p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-green-900">Proveedor existente</div>
+                      <div className="text-sm">{providers.find((p) => p.id === providerId)?.name ?? "(seleccioná)"}</div>
+                    </div>
+                  </div>
+                  <select
+                    value={providerId}
+                    onChange={(e) => setProviderId(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">— Cambiar proveedor —</option>
+                    {providers.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => { setProviderMode("new"); setProviderId(""); }} className="text-xs text-camino-deepYellow hover:underline">
+                    O crear uno nuevo en lugar de este
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-md border-2 border-camino-yellow bg-camino-yellow/10 p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <PlusCircle className="h-5 w-5 text-camino-deepYellow mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">Se creará un proveedor nuevo al guardar</div>
+                      <div className="text-xs text-muted-foreground">Confirmá nombre y email</div>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-xs">Nombre *</Label>
+                      <Input value={newProviderName} onChange={(e) => setNewProviderName(e.target.value)} placeholder="Albergue Casa Susi" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Email</Label>
+                      <Input type="email" value={newProviderEmail} onChange={(e) => setNewProviderEmail(e.target.value)} placeholder="info@albergue.com" />
+                    </div>
+                  </div>
+                  {providers.length > 0 && (
+                    <button type="button" onClick={() => { setProviderMode("existing"); setProviderId(""); }} className="text-xs text-camino-deepYellow hover:underline">
+                      O elegir uno existente en lugar de crear nuevo
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 

@@ -19,9 +19,9 @@ export default async function CaminosListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl text-camino-ink">Caminos</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Caminos</h1>
           <p className="text-sm text-muted-foreground">Salidas grupales con fecha</p>
           <div className="brand-yellow-bar mt-2" />
         </div>
@@ -30,9 +30,9 @@ export default async function CaminosListPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {departures.length === 0 && (
-          <Card className="md:col-span-2 xl:col-span-3">
+          <Card className="sm:col-span-2 xl:col-span-3">
             <CardContent className="py-12 text-center text-muted-foreground">
               Aún no hay caminos creados.
             </CardContent>

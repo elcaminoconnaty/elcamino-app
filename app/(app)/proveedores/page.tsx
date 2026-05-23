@@ -14,9 +14,9 @@ export default async function ProvidersListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl text-camino-ink">Proveedores</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Proveedores</h1>
           <p className="text-sm text-muted-foreground">{providers?.length ?? 0} en total</p>
           <div className="brand-yellow-bar mt-2" />
         </div>

@@ -17,8 +17,8 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
   if (!provider) notFound();
 
   const [{ data: reservations }, { data: payments }, { data: departures }] = await Promise.all([
-    supabase.from("reservations").select("*, departures(name)").eq("provider_id", params.id).order("created_at", { ascending: false }),
-    supabase.from("provider_payments").select("*, departures(name), reservations(type, location)").eq("provider_id", params.id).order("paid_at", { ascending: false }),
+    supabase.from("reservations").select("*, departures(name)").eq("provider_id", params.id).order("check_in", { ascending: true, nullsFirst: false }),
+    supabase.from("provider_payments").select("*, departures(name), reservations(type, location)").eq("provider_id", params.id).order("paid_at", { ascending: true }),
     supabase.from("departures").select("id, name").order("start_date"),
   ]);
 
@@ -28,14 +28,14 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
     <div className="space-y-6">
       <div>
         <Link href="/proveedores" className="text-sm text-muted-foreground hover:underline">← Proveedores</Link>
-        <h1 className="font-display text-3xl text-camino-ink mt-2">{provider.name}</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink mt-2 break-words">{provider.name}</h1>
         <div className="text-sm text-muted-foreground mt-1">
           {PROVIDER_TYPES.find((t) => t.value === provider.type)?.label} · {[provider.city, provider.country].filter(Boolean).join(", ")}
         </div>
         <div className="brand-yellow-bar mt-2" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader><CardTitle>Reservas</CardTitle></CardHeader>
@@ -71,7 +71,7 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
 
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <CardTitle>Pagos a este proveedor</CardTitle>
                 <NewProviderPaymentDialog providerId={provider.id} reservations={reservations ?? []} departures={departures ?? []} />
               </div>
