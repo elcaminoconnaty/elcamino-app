@@ -9,6 +9,7 @@ export async function createPilgrimPayment(input: {
   currency: "EUR" | "COP" | "USD";
   trm_eur_cop: number | null;
   method: string | null;
+  account?: string | null;
   reference: string | null;
   notes: string | null;
 }) {
@@ -20,7 +21,33 @@ export async function createPilgrimPayment(input: {
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/peregrinos");
+  revalidatePath("/dashboard/naty");
   return data;
+}
+
+export async function updatePilgrimPayment(id: string, input: {
+  paid_at?: string;
+  amount?: number;
+  currency?: "EUR" | "COP" | "USD";
+  trm_eur_cop?: number | null;
+  method?: string | null;
+  account?: string | null;
+  reference?: string | null;
+  notes?: string | null;
+}) {
+  const supabase = createClient();
+  const { error } = await supabase.from("pilgrim_payments").update(input).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/peregrinos");
+  revalidatePath("/dashboard/naty");
+}
+
+export async function deletePilgrimPayment(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("pilgrim_payments").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/peregrinos");
+  revalidatePath("/dashboard/naty");
 }
 
 export async function getTrmForDate(date: string): Promise<number | null> {

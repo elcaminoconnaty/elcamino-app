@@ -2,7 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { NewPilgrimDialog } from "@/components/pilgrims/new-pilgrim-dialog";
+import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +17,20 @@ export default async function PilgrimsListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl text-camino-ink">Peregrinos</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Peregrinos</h1>
           <p className="text-sm text-muted-foreground">{pilgrims?.length ?? 0} en total</p>
           <div className="brand-yellow-bar mt-2" />
         </div>
-        <NewPilgrimDialog />
+        <div className="flex gap-2 flex-wrap">
+          <Button asChild variant="outline">
+            <a href="/api/export/peregrinos" download>
+              <Download className="h-4 w-4" /> Excel
+            </a>
+          </Button>
+          <NewPilgrimDialog />
+        </div>
       </div>
 
       <Card>
