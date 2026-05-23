@@ -16,7 +16,9 @@ export async function createBudgetItem(formData: FormData) {
       ? Number(formData.get("confirmed_unit_cost_eur"))
       : null,
     provider_id: formData.get("provider_id")?.toString() || null,
-    status: formData.get("status")?.toString() || "estimado",
+    status: formData.get("status")?.toString() || "presupuestado",
+    scaling: formData.get("scaling")?.toString() || "por_inscrito",
+    item_date: formData.get("item_date")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
   const { error } = await supabase.from("budget_items").insert(payload);
