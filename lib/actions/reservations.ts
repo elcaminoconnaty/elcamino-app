@@ -19,11 +19,19 @@ export async function createReservation(formData: FormData) {
     confirmed_cost_eur: formData.get("confirmed_cost_eur") ? Number(formData.get("confirmed_cost_eur")) : null,
     status: formData.get("status")?.toString() || "presupuestado",
     confirmation_ref: formData.get("confirmation_ref")?.toString() || null,
+    meal_kind: formData.get("meal_kind")?.toString() || null,
+    meal_persons: formData.get("meal_persons") ? Number(formData.get("meal_persons")) : null,
+    meal_price_per_person_eur: formData.get("meal_price_per_person_eur") ? Number(formData.get("meal_price_per_person_eur")) : null,
+    pricing_mode: formData.get("pricing_mode")?.toString() || "total",
+    service_persons: formData.get("service_persons") ? Number(formData.get("service_persons")) : null,
+    service_price_per_person_eur: formData.get("service_price_per_person_eur") ? Number(formData.get("service_price_per_person_eur")) : null,
+    tourist_tax_per_person_eur: formData.get("tourist_tax_per_person_eur") ? Number(formData.get("tourist_tax_per_person_eur")) : 0,
     notes: formData.get("notes")?.toString() || null,
   };
-  const { error } = await supabase.from("reservations").insert(payload);
+  const { data, error } = await supabase.from("reservations").insert(payload).select("id").single();
   if (error) throw new Error(error.message);
   revalidatePath(`/caminos/${departure_id}`);
+  return data;
 }
 
 export async function updateReservation(id: string, payload: any, departure_id?: string) {
@@ -31,6 +39,27 @@ export async function updateReservation(id: string, payload: any, departure_id?:
   const { error } = await supabase.from("reservations").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   if (departure_id) revalidatePath(`/caminos/${departure_id}`);
+}
+
+export async function deleteReservation(id: string, departure_id?: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("reservations").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  if (departure_id) revalidatePath(`/caminos/${departure_id}`);
+}
+
+export async function updateProviderPayment(id: string, payload: any) {
+  const supabase = createClient();
+  const { error } = await supabase.from("provider_payments").update(payload).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/proveedores");
+}
+
+export async function deleteProviderPayment(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("provider_payments").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/proveedores");
 }
 
 export async function createProvider(formData: FormData) {
@@ -70,22 +99,47 @@ export async function updateProvider(id: string, formData: FormData) {
   revalidatePath("/proveedores");
 }
 
+function computeAmountEur(amount: number, currency: string, trm: number | null): number {
+  if (currency === "EUR") return amount;
+  if (currency === "COP" && trm && trm > 0) return amount / trm;
+  if (currency === "USD") return amount * 0.92;
+  return amount;
+}
+
 export async function createProviderPayment(formData: FormData) {
   const supabase = createClient();
+  const amount = Number(formData.get("amount") || 0);
+  const currency = (formData.get("currency")?.toString() || "EUR") as "EUR" | "COP" | "USD";
+  const trm = formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null;
   const payload = {
     provider_id: formData.get("provider_id")?.toString() || "",
     reservation_id: formData.get("reservation_id")?.toString() || null,
     departure_id: formData.get("departure_id")?.toString() || null,
     paid_at: formData.get("paid_at")?.toString() || new Date().toISOString().slice(0, 10),
-    amount: Number(formData.get("amount") || 0),
-    currency: (formData.get("currency")?.toString() || "EUR") as "EUR" | "COP" | "USD",
-    trm_eur_cop: formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null,
+    amount,
+    currency,
+    trm_eur_cop: trm,
+    amount_eur: computeAmountEur(amount, currency, trm),
     method: formData.get("method")?.toString() || null,
+    account: formData.get("account")?.toString() || null,
     reference: formData.get("reference")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
   const { error } = await supabase.from("provider_payments").insert(payload);
   if (error) throw new Error(error.message);
+
+  if (payload.reservation_id) {
+    const { data: res } = await supabase
+      .from("v_reservation_payments")
+      .select("paid_pct")
+      .eq("reservation_id", payload.reservation_id)
+      .maybeSingle();
+    if (res && Number(res.paid_pct) >= 100) {
+      await supabase.from("reservations").update({ status: "pagado" }).eq("id", payload.reservation_id);
+    }
+  }
+
   revalidatePath(`/proveedores/${payload.provider_id}`);
+  revalidatePath("/gastos");
   if (payload.departure_id) revalidatePath(`/caminos/${payload.departure_id}`);
 }
