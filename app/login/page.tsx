@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,24 +10,43 @@ import { toast } from "@/components/ui/toaster";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [sentReset, setSentReset] = useState(false);
+  const router = useRouter();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "No pude entrar", description: error.message, variant: "destructive" });
+      return;
+    }
+    router.push("/");
+    router.refresh();
+  }
+
+  async function onForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
     });
     setLoading(false);
     if (error) {
       toast({ title: "No pude enviar el link", description: error.message, variant: "destructive" });
       return;
     }
-    setSent(true);
-    toast({ title: "Revisá tu correo", description: "Te llegó un enlace para entrar.", variant: "success" });
+    setSentReset(true);
+    toast({ title: "Revisá tu correo", description: "Te llegó un enlace para definir contraseña.", variant: "success" });
   }
 
   return (
@@ -42,39 +62,97 @@ export default function LoginPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Entrar</CardTitle>
-            <CardDescription>Te enviamos un enlace mágico a tu correo.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sent ? (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>Listo. Revisá <strong>{email}</strong>.</p>
-                <p>Tocá el enlace que te llegó para entrar.</p>
-                <Button variant="ghost" onClick={() => setSent(false)} className="mt-3">
-                  Usar otro correo
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    placeholder="tu@correo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                  />
-                </div>
-                <Button type="submit" variant="accent" className="w-full" disabled={loading || !email}>
-                  {loading ? "Enviando..." : "Enviarme enlace"}
-                </Button>
-              </form>
-            )}
-          </CardContent>
+          {mode === "login" ? (
+            <>
+              <CardHeader>
+                <CardTitle className="text-xl">Entrar</CardTitle>
+                <CardDescription>Ingresá con tu correo y contraseña.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={onLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Correo</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      placeholder="tu@correo.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Contraseña</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <Button type="submit" variant="accent" className="w-full" disabled={loading || !email || !password}>
+                    {loading ? "Entrando..." : "Entrar"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => { setMode("forgot"); setSentReset(false); }}
+                    className="block w-full text-center text-xs text-camino-deepYellow hover:underline mt-2"
+                  >
+                    ¿Olvidaste tu contraseña? / ¿Primera vez?
+                  </button>
+                </form>
+              </CardContent>
+            </>
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle className="text-xl">Definir contraseña</CardTitle>
+                <CardDescription>
+                  Te enviamos un enlace para crear o restablecer tu contraseña.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {sentReset ? (
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>Listo. Revisá <strong>{email}</strong>.</p>
+                    <p>Tocá el enlace, definí una contraseña y volvés a entrar acá.</p>
+                    <Button variant="ghost" onClick={() => { setMode("login"); setSentReset(false); }} className="mt-3">
+                      Volver a entrar
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={onForgot} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email2">Correo</Label>
+                      <Input
+                        id="email2"
+                        type="email"
+                        required
+                        placeholder="tu@correo.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                      />
+                    </div>
+                    <Button type="submit" variant="accent" className="w-full" disabled={loading || !email}>
+                      {loading ? "Enviando..." : "Enviarme enlace"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("login")}
+                      className="block w-full text-center text-xs text-camino-deepYellow hover:underline mt-2"
+                    >
+                      Volver a entrar con contraseña
+                    </button>
+                  </form>
+                )}
+              </CardContent>
+            </>
+          )}
         </Card>
       </div>
     </div>
