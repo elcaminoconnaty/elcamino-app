@@ -23,28 +23,39 @@ export function formatCOP(n: number | null | undefined) {
   }).format(Number(n));
 }
 
+/**
+ * Parsea una fecha. Si viene como 'YYYY-MM-DD' (input type=date), la trata
+ * como fecha LOCAL (no UTC) para evitar que se reste un día por zona horaria.
+ */
+function parseLocalDate(d: string | Date): Date {
+  if (d instanceof Date) return d;
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Date(y, m - 1, day, 12, 0, 0); // mediodía local para evitar DST edge
+  }
+  return new Date(d);
+}
+
 export function formatDate(d: string | Date | null | undefined) {
   if (!d) return "—";
-  const date = typeof d === "string" ? new Date(d) : d;
   return new Intl.DateTimeFormat("es-CO", {
     year: "numeric",
     month: "short",
     day: "2-digit",
-  }).format(date);
+  }).format(parseLocalDate(d));
 }
 
 export function formatDateLong(d: string | Date | null | undefined) {
   if (!d) return "—";
-  const date = typeof d === "string" ? new Date(d) : d;
   return new Intl.DateTimeFormat("es-CO", {
     year: "numeric",
     month: "long",
     day: "numeric",
-  }).format(date);
+  }).format(parseLocalDate(d));
 }
 
 export function daysUntil(date: string | Date) {
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = parseLocalDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   d.setHours(0, 0, 0, 0);

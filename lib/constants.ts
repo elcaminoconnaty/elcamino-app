@@ -1,6 +1,17 @@
 export const PAYMENT_METHODS = ["Wise", "Bancolombia", "Nequi", "Efectivo", "PayPal", "Transferencia", "Otro"];
 export const CURRENCIES = ["EUR", "COP", "USD"] as const;
 
+export const ACCOUNTS = [
+  "Efectivo",
+  "Bancolombia Naty",
+  "Bancolombia Camino",
+  "Santander España",
+  "Wise",
+  "PayPal",
+  "Nequi",
+  "Otro",
+];
+
 export const PROVIDER_TYPES = [
   { value: "alojamiento", label: "Alojamiento" },
   { value: "transporte", label: "Transporte" },
@@ -14,9 +25,16 @@ export const PROVIDER_TYPES = [
 
 export const RESERVATION_STATUSES = [
   { value: "presupuestado", label: "Presupuestado" },
-  { value: "contactado", label: "Contactado" },
+  { value: "enviado", label: "Enviado (esperando respuesta)" },
+  { value: "reservado", label: "Reservado / Confirmado" },
+  { value: "pagado", label: "Pagado" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
+export const BUDGET_STATUSES = [
+  { value: "presupuestado", label: "Presupuestado" },
+  { value: "enviado", label: "Enviado" },
   { value: "reservado", label: "Reservado" },
-  { value: "confirmado", label: "Confirmado" },
   { value: "pagado", label: "Pagado" },
   { value: "cancelado", label: "Cancelado" },
 ];
