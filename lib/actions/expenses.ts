@@ -14,6 +14,7 @@ export async function createExpense(formData: FormData) {
     trm_eur_cop: formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null,
     departure_id: formData.get("departure_id")?.toString() || null,
     payment_method: formData.get("payment_method")?.toString() || null,
+    account: formData.get("account")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
   const { error } = await supabase.from("expenses").insert(payload);
@@ -26,6 +27,14 @@ export async function createExpense(formData: FormData) {
 export async function deleteExpense(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("expenses").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/gastos");
+  revalidatePath("/dashboard/naty");
+}
+
+export async function updateExpense(id: string, payload: any) {
+  const supabase = createClient();
+  const { error } = await supabase.from("expenses").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/gastos");
   revalidatePath("/dashboard/naty");

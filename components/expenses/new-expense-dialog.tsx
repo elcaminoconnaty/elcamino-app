@@ -10,6 +10,7 @@ import { createExpense } from "@/lib/actions/expenses";
 import { getTrmForDate } from "@/lib/actions/payments";
 import {
   PAYMENT_METHODS,
+  ACCOUNTS,
   EXPENSE_KINDS,
   EXPENSE_CATEGORIES_OPERATIVO,
   EXPENSE_CATEGORIES_PERSONAL,
@@ -87,10 +88,17 @@ export function NewExpenseDialog({ departures, defaultDepartureId }: { departure
               </select>
             </div>
           )}
-          <div className="grid gap-2"><Label>Método de pago</Label>
-            <select name="payment_method" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-              {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2"><Label>Método de pago</Label>
+              <select name="payment_method" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2"><Label>Cuenta / de dónde sale</Label>
+              <select name="account" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
           </div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>

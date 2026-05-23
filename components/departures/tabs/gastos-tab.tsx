@@ -12,7 +12,7 @@ export async function GastosTab({ departureId }: { departureId: string }) {
     .from("expenses")
     .select("*")
     .eq("departure_id", departureId)
-    .order("expense_date", { ascending: false });
+    .order("expense_date", { ascending: true });
 
   const total = (rows ?? []).reduce((s: number, r: any) => s + Number(r.amount_eur || 0), 0);
 

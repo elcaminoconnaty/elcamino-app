@@ -19,6 +19,7 @@ export function ExpensesFilters({ departures }: { departures: any[] }) {
     <div className="flex flex-wrap gap-2 items-center">
       <span className="text-sm text-muted-foreground">Filtros:</span>
       <Button size="sm" variant={kind === "" ? "default" : "outline"} onClick={() => setParam("kind", "")}>Todos</Button>
+      <Button size="sm" variant={kind === "pago_proveedor" ? "default" : "outline"} onClick={() => setParam("kind", "pago_proveedor")}>Pagos proveedores</Button>
       <Button size="sm" variant={kind === "operativo" ? "default" : "outline"} onClick={() => setParam("kind", "operativo")}>Operativo</Button>
       <Button size="sm" variant={kind === "personal" ? "default" : "outline"} onClick={() => setParam("kind", "personal")}>Personal</Button>
       <select
