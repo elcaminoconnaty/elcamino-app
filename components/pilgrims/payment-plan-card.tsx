@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { setPaymentPlan, getInstallments, markInstallmentPaid, type InstallmentInput } from "@/lib/actions/payment-plans";
+import { setPaymentPlan, type InstallmentInput } from "@/lib/actions/payment-plans";
 import { createClient } from "@/lib/supabase/client";
-import { formatEUR, formatDate, daysUntil } from "@/lib/utils";
+import { formatEUR, formatDate } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
 import { CalendarClock, Plus, X, Check } from "lucide-react";
 
@@ -21,17 +21,17 @@ type Inst = {
 export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }: { registrationId: string; totalEur: number; departureStartDate: string | null }) {
   const [installments, setInstallments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     (async () => {
       const supabase = createClient();
       const { data } = await supabase
-        .from("payment_plan_installments")
+        .from("v_installment_status")
         .select("*")
         .eq("registration_id", registrationId)
         .order("position", { ascending: true });
-      setInstallments(data ?? []);
+      // amount_eur = monto programado, para compatibilidad con el editor del plan
+      setInstallments((data ?? []).map((r: any) => ({ ...r, amount_eur: r.scheduled_amount_eur })));
       setLoading(false);
     })();
   }, [registrationId]);
@@ -70,36 +70,26 @@ export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }
           trigger={<button className="text-camino-deepYellow hover:underline">Editar</button>}
         />
       </div>
-      <div className="text-xs text-muted-foreground">{paidCount}/{installments.length} cuotas · {formatEUR(totalPlan)}</div>
+      <div className="text-xs text-muted-foreground">{paidCount}/{installments.length} cuotas pagadas · {formatEUR(totalPlan)}</div>
       <div className="space-y-1">
         {installments.map((i) => {
-          const days = daysUntil(i.due_date);
-          const isOverdue = days < 0 && i.status === "pendiente";
+          const isPaid = i.status === "pagada";
+          const isOverdue = i.status === "vencida";
+          const isPartial = !isPaid && Number(i.remaining_eur) < Number(i.scheduled_amount_eur) - 0.005;
           return (
             <div key={i.id} className="flex items-center justify-between text-xs gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
-                {i.status === "pagada" ? (
+                {isPaid ? (
                   <Check className="h-3.5 w-3.5 text-green-700 shrink-0" />
                 ) : (
                   <div className={`h-2 w-2 rounded-full shrink-0 ${isOverdue ? "bg-red-500" : "bg-camino-yellow"}`} />
                 )}
-                <span className="truncate">{i.label || `Cuota ${i.position}`} · {formatDate(i.due_date)}</span>
+                <span className="truncate">
+                  {i.label || `Cuota ${i.position}`} · {formatDate(i.due_date)}
+                  {isPartial && <span className="text-muted-foreground"> · faltan {formatEUR(i.remaining_eur)}</span>}
+                </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={i.status === "pagada" ? "line-through text-muted-foreground" : isOverdue ? "text-red-700 font-medium" : ""}>{formatEUR(i.amount_eur)}</span>
-                {i.status !== "pagada" && (
-                  <button
-                    onClick={async () => {
-                      await markInstallmentPaid(i.id);
-                      toast({ title: "Cuota marcada como pagada", variant: "success" });
-                      router.refresh();
-                    }}
-                    className="text-camino-deepYellow hover:underline"
-                  >
-                    Marcar
-                  </button>
-                )}
-              </div>
+              <span className={isPaid ? "line-through text-muted-foreground shrink-0" : isOverdue ? "text-red-700 font-medium shrink-0" : "shrink-0"}>{formatEUR(i.amount_eur)}</span>
             </div>
           );
         })}

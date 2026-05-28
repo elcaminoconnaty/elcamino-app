@@ -11,12 +11,14 @@ import {
   Wallet,
   TrendingUp,
   Settings,
+  CalendarClock,
 } from "lucide-react";
 
 const items = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/caminos", label: "Caminos", icon: Map },
   { href: "/peregrinos", label: "Peregrinos", icon: Users },
+  { href: "/pagos", label: "Pagos", icon: CalendarClock },
   { href: "/proveedores", label: "Proveedores", icon: Building2 },
   { href: "/gastos", label: "Gastos", icon: Wallet },
   { href: "/trm", label: "TRM", icon: TrendingUp },

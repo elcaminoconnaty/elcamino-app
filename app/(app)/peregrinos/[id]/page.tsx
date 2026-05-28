@@ -12,7 +12,9 @@ import { EditPaymentDialog } from "@/components/pilgrims/edit-payment-dialog";
 import { PaymentPlanCard } from "@/components/pilgrims/payment-plan-card";
 import { PassportUpload } from "@/components/pilgrims/passport-upload";
 import { PaymentSummary } from "@/components/pilgrims/payment-summary";
+import { UpcomingPaymentsCard } from "@/components/pilgrims/upcoming-payments-card";
 import { EurCop } from "@/components/ui/eur-cop";
+import type { UpcomingInstallment } from "@/types/db";
 import { FileText, Download, Mail, Phone, MapPin, Heart, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,13 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
         .in("registration_id", regIds)
         .order("paid_at", { ascending: true })
     : { data: [] };
+
+  const { data: upcoming } = await supabase
+    .from("v_upcoming_installments")
+    .select("*")
+    .eq("pilgrim_id", params.id)
+    .order("due_date", { ascending: true });
+  const upcomingInstallments = (upcoming as UpcomingInstallment[]) ?? [];
 
   return (
     <div className="space-y-6">
@@ -85,6 +94,8 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
           </CardContent>
         </Card>
       </div>
+
+      <UpcomingPaymentsCard installments={upcomingInstallments} />
 
       <section>
         <h2 className="font-display text-xl text-camino-ink mb-3">Inscripciones</h2>

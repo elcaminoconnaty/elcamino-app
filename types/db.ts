@@ -167,6 +167,22 @@ export type PilgrimBalance = {
   status: string;
 };
 
+export type UpcomingInstallment = {
+  id: string;
+  registration_id: string;
+  due_date: string;
+  amount_eur: number;
+  label: string | null;
+  status: "pendiente" | "vencida";
+  pilgrim_id: string;
+  pilgrim_name: string;
+  departure_id: string;
+  departure_name: string;
+  departure_start_date: string | null;
+  days_until_due: number;
+  scheduled_amount_eur: number;
+};
+
 export type DepartureSummary = {
   departure_id: string;
   name: string;
