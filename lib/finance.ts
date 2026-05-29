@@ -34,6 +34,27 @@ export type Scenario = {
   utilidad_por_pagante_eur: number | null;
 };
 
+// Costo efectivo de un budget_item según su escala. Única fórmula compartida por
+// el presupuesto, el resumen y los prorrateos — debe coincidir con v_departure_finance.
+export function effectiveLineTotal(
+  item: { scaling?: string | null; confirmed_unit_cost_eur?: number | null; estimated_unit_cost_eur?: number | null; quantity?: number | null },
+  pagantes: number,
+  team: number
+): number {
+  const unit = Number(item.confirmed_unit_cost_eur ?? item.estimated_unit_cost_eur ?? 0);
+  const qty = Number(item.quantity ?? 1);
+  switch (item.scaling) {
+    case "por_inscrito":
+      return unit * (pagantes + team);
+    case "por_pagante":
+      return unit * pagantes;
+    case "fijo_grupo":
+    case "viatico_team":
+    default:
+      return unit * qty;
+  }
+}
+
 export function computeBreakEven(f: DepartureFinance): { n: number | null; reachable: boolean } {
   const price = f.precio_promedio_pagante_eur ?? 0;
   if (price <= 0) return { n: null, reachable: false };

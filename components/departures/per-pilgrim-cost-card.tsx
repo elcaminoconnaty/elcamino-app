@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { EurCop } from "@/components/ui/eur-cop";
 import { formatEUR } from "@/lib/utils";
+import { simulateScenario, type DepartureFinance } from "@/lib/finance";
 import { PerPilgrimCostBreakdown, type NetoCategory, type NetoLineItem } from "@/components/departures/per-pilgrim-cost-breakdown";
 
 export async function PerPilgrimCostCard({ departureId }: { departureId: string }) {
@@ -17,11 +18,12 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
       .select("id, type, location, check_in, beds_count, estimated_cost_eur, confirmed_cost_eur, pricing_mode, provider_id")
       .eq("departure_id", departureId),
     supabase.from("providers").select("id, name"),
-    supabase.from("v_departure_finance").select("pagantes_count, team_count").eq("departure_id", departureId).maybeSingle(),
+    supabase.from("v_departure_finance").select("*").eq("departure_id", departureId).maybeSingle(),
   ]);
 
-  const pagantes = Number((finance as any)?.pagantes_count ?? 0);
-  const team = Number((finance as any)?.team_count ?? 0);
+  const f = (finance as DepartureFinance) ?? null;
+  const pagantes = Number(f?.pagantes_count ?? 0);
+  const team = Number(f?.team_count ?? 0);
 
   const reservationById = new Map<string, any>();
   (reservations ?? []).forEach((r: any) => reservationById.set(r.id, r));
@@ -109,26 +111,15 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
     .map(([category, v]) => ({ category, total: v.total, items: v.items, duplicatesIgnored: v.dups }))
     .sort((a, b) => b.total - a.total);
 
-  // 2) COSTO TOTAL DEL CAMINO (fijo) — lo que la agencia paga, comprometido.
-  let totalFijoCamino = 0;
-  let totalViaticoTeam = 0;
+  // 2) COSTO TOTAL DEL CAMINO — fuente única: v_departure_finance (mismo modelo que el wizard).
+  //    costo_total = fijo_grupo + por_inscrito×inscritos + por_pagante×pagantes + viatico_team.
+  const totalFijoCamino = Number(f?.fijo_grupo_eur ?? 0);
+  const totalPorInscrito = Number(f?.costo_por_inscrito_eur ?? 0); // por_inscrito_unit × (pagantes + team)
+  const totalPorPagantes = Number(f?.costo_por_pagante_total_eur ?? 0); // por_pagante_unit × pagantes
+  const totalViaticoTeam = Number(f?.viatico_team_eur ?? 0);
 
-  (items ?? []).forEach((b: any) => {
-    const total = Number(b.confirmed_unit_cost_eur ?? b.estimated_unit_cost_eur ?? 0) * Number(b.quantity);
-    if (b.scaling === "fijo_grupo") {
-      totalFijoCamino += total;
-    } else if (b.scaling === "viatico_team") {
-      totalViaticoTeam += total;
-    }
-  });
-
-  // Items por_pagante × pagantes (lo que la agencia paga en items individuales)
-  const totalPorPagantes = (items ?? [])
-    .filter((b: any) => b.scaling === "por_pagante")
-    .reduce((s: number, b: any) => s + Number(b.confirmed_unit_cost_eur ?? b.estimated_unit_cost_eur ?? 0), 0) * pagantes;
-
-  const costoTotalCamino = totalFijoCamino + totalViaticoTeam + totalPorPagantes;
-  const costoPorPaganteProrrateado = pagantes > 0 ? costoTotalCamino / pagantes : 0;
+  const costoTotalCamino = Number(f?.costo_total_eur ?? 0);
+  const costoPorPaganteProrrateado = Number(f?.costo_por_pagante_unitario_eur ?? 0);
 
   // Desperdicio: diferencia entre lo que paga la agencia (total fijo) y lo que realmente consumen los inscritos
   // Aproximación: por cada reserva, desperdicio = (beds_count - inscritos) × precio_por_cama (si beds > inscritos)
@@ -146,10 +137,8 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
     }
   });
 
-  // Proyección con +5 pagantes
-  const proyectadoPlus5 = pagantes + 5 > 0
-    ? (totalFijoCamino + totalViaticoTeam + ((items ?? []).filter((b: any) => b.scaling === "por_pagante").reduce((s: number, b: any) => s + Number(b.confirmed_unit_cost_eur ?? b.estimated_unit_cost_eur ?? 0), 0) * (pagantes + 5))) / (pagantes + 5)
-    : 0;
+  // Proyección con +5 pagantes (mismo modelo del wizard vía simulateScenario)
+  const proyectadoPlus5 = f ? Number(simulateScenario(f, pagantes + 5).costo_por_pagante_eur ?? 0) : 0;
 
   return (
     <div className="space-y-4">
@@ -181,16 +170,20 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
               <span><EurCop value={costoTotalCamino} /></span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pl-3">
-              <span>Alojamientos / cenas / transportes (fijo)</span>
+              <span>Fijo grupo</span>
               <span><EurCop value={totalFijoCamino} /></span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground pl-3">
+              <span>Camas / cenas / transporte × {pagantes + team} inscritos</span>
+              <span><EurCop value={totalPorInscrito} /></span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground pl-3">
+              <span>Items por pagante × {pagantes}</span>
+              <span><EurCop value={totalPorPagantes} /></span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pl-3">
               <span>Viáticos equipo</span>
               <span><EurCop value={totalViaticoTeam} /></span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground pl-3">
-              <span>Items por peregrino × {pagantes}</span>
-              <span><EurCop value={totalPorPagantes} /></span>
             </div>
             {totalDesperdicio > 0 && (
               <div className="flex justify-between text-xs text-red-700 pl-3 mt-1">

@@ -5,7 +5,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatEUR, formatDate, cn } from "@/lib/utils";
-import { SCALING_LABELS } from "@/lib/finance";
+import { SCALING_LABELS, effectiveLineTotal } from "@/lib/finance";
 import { CostDonut } from "@/components/departures/cost-donut";
 import { AddBudgetItem } from "@/components/departures/add-budget-item";
 import { EditBudgetItemDialog } from "@/components/departures/edit-budget-item-dialog";
@@ -29,14 +29,9 @@ export function BudgetByCategory({
   team: number;
 }) {
   const [active, setActive] = React.useState("Todo");
-  const inscritos = pagantes + team;
 
   function effectiveTotal(b: Item): number {
-    const unitCost = Number(b.confirmed_unit_cost_eur ?? b.estimated_unit_cost_eur ?? 0);
-    if (b.scaling === "fijo_grupo") return unitCost * Number(b.quantity);
-    if (b.scaling === "por_inscrito") return unitCost * inscritos;
-    if (b.scaling === "por_pagante") return unitCost * pagantes;
-    return unitCost * Number(b.quantity);
+    return effectiveLineTotal(b, pagantes, team);
   }
 
   // Categorías presentes
