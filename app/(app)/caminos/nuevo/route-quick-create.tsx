@@ -1,4 +1,5 @@
 "use client";
+// Crear ruta rápida desde el alta de camino.
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
