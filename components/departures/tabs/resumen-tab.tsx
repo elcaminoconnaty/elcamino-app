@@ -33,7 +33,7 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <KPI label="Pagantes inscritos" value={`${f.pagantes_count}${f.capacity ? ` / ${f.capacity}` : ""}`} hint={`+ ${f.team_count} equipo`} accent />
         <KPI label="Ingresos esperados" value={<EurCop value={f.expected_revenue_eur} />} hint={<>Cobrado <EurCop value={f.collected_revenue_eur} /></>} />
-        <KPI label="Costo total proyectado" value={<EurCop value={f.costo_total_eur} />} hint={<><EurCop value={f.costo_por_pagante_unitario_eur} /> por pagante</>} />
+        <KPI label="Costo total proyectado" value={<EurCop value={f.costo_total_eur} />} hint={<><EurCop value={f.costo_por_pagante_unitario_eur} /> por pagante{Number(f.variable_buffer_pct) > 0 ? ` · incluye +${f.variable_buffer_pct}% contingencia` : ""}</>} />
         <KPI
           label="Utilidad proyectada"
           value={<EurCop value={f.utilidad_total_eur} />}

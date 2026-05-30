@@ -24,6 +24,7 @@ export type DepartureFinance = {
   utilidad_por_pagante_eur: number | null;
   costo_peregrinos_eur: number;
   costo_equipo_eur: number;
+  variable_buffer_pct: number;
 };
 
 export type Scenario = {
@@ -60,11 +61,12 @@ export function effectiveLineTotal(
 export function computeBreakEven(f: DepartureFinance): { n: number | null; reachable: boolean } {
   const price = f.precio_promedio_pagante_eur ?? 0;
   if (price <= 0) return { n: null, reachable: false };
-  const costoMarginalPorPagante = f.por_inscrito_unit_eur + f.por_pagante_unit_eur;
+  const factor = 1 + Number(f.variable_buffer_pct ?? 0) / 100; // % de contingencia sobre variables por persona
+  const costoMarginalPorPagante = (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * factor;
   const margenContribucion = price - costoMarginalPorPagante;
   if (margenContribucion <= 0) return { n: null, reachable: false };
-  // Costos fijos = fijo grupo + viáticos + costo per-persona del equipo (camas + ítems por-peregrino)
-  const costosFijosTotal = f.fijo_grupo_eur + f.viatico_team_eur + (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * f.team_count;
+  // Costos fijos = fijo grupo + viáticos + costo per-persona del equipo (camas + ítems por-peregrino, con %)
+  const costosFijosTotal = f.fijo_grupo_eur + f.viatico_team_eur + (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * f.team_count * factor;
   const n = Math.ceil(costosFijosTotal / margenContribucion);
   const reachable = f.capacity == null || n <= f.capacity;
   return { n, reachable };
@@ -79,8 +81,9 @@ export function simulateScenario(f: DepartureFinance, nPagantes: number): Scenar
   const viatico = Number(f.viatico_team_eur);
   const price = Number(f.precio_promedio_pagante_eur ?? 0);
 
-  // por_pagante también lo consume el equipo → se multiplica por inscritos (pagantes + equipo)
-  const costoTotal = fijo + inscritoUnit * inscritos + pagUnit * inscritos + viatico;
+  // por_pagante también lo consume el equipo → × inscritos. El % de contingencia aplica a las variables por persona.
+  const factor = 1 + Number(f.variable_buffer_pct ?? 0) / 100;
+  const costoTotal = fijo + (inscritoUnit + pagUnit) * inscritos * factor + viatico;
   const ingreso = price * nPagantes;
   const utilidad = ingreso - costoTotal;
 

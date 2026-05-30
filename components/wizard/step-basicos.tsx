@@ -31,6 +31,7 @@ export function StepBasicos({
   const [endDate, setEndDate] = useState(departure.end_date ?? "");
   const [capacity, setCapacity] = useState(String(departure.capacity ?? ""));
   const [basePrice, setBasePrice] = useState(String(departure.base_price_eur ?? ""));
+  const [bufferPct, setBufferPct] = useState(String(departure.variable_buffer_pct ?? ""));
   const [applying, setApplying] = useState(false);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -44,6 +45,7 @@ export function StepBasicos({
     if (endDate) fd.set("end_date", endDate);
     if (capacity) fd.set("capacity", capacity);
     fd.set("base_price_eur", basePrice || "0");
+    fd.set("variable_buffer_pct", bufferPct || "0");
     fd.set("status", departure.status);
     try {
       await updateDeparture(departure.id, fd);
@@ -128,6 +130,14 @@ export function StepBasicos({
               <Label>Precio base / peregrino (EUR)</Label>
               <Input type="number" step="0.01" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} />
             </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>% de contingencia sobre costos variables por persona</Label>
+            <Input type="number" step="0.5" min={0} value={bufferPct} onChange={(e) => setBufferPct(e.target.value)} placeholder="0" />
+            <p className="text-xs text-muted-foreground">
+              Sube un % los costos que escalan por persona (camas, cenas, materiales, seguros…). No toca el fijo de grupo ni los viáticos del equipo.
+              Es tu colchón sobre el costo por peregrino. Solo se edita acá, en el wizard.
+            </p>
           </div>
           <Button variant="accent" onClick={saveBasics} disabled={saving}>{saving ? "Guardando..." : "Guardar datos básicos"}</Button>
         </CardContent>

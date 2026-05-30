@@ -13,6 +13,6 @@ export default async function HomePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.app_role === "naty") redirect("/dashboard/naty");
+  if (profile?.app_role === "naty" || profile?.app_role === "admin") redirect("/dashboard/naty");
   redirect("/dashboard/nico");
 }

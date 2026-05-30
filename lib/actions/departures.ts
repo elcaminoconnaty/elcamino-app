@@ -36,6 +36,10 @@ export async function updateDeparture(id: string, formData: FormData) {
     notes: formData.get("notes")?.toString() || null,
     route_id: formData.get("route_id")?.toString() || null,
   };
+  // El % de contingencia solo se edita desde el wizard; otros formularios no lo tocan.
+  if (formData.has("variable_buffer_pct")) {
+    payload.variable_buffer_pct = Number(formData.get("variable_buffer_pct") || 0) || 0;
+  }
   const { error } = await supabase.from("departures").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/caminos/${id}`);
