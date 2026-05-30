@@ -112,11 +112,10 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
     .sort((a, b) => b.total - a.total);
 
   // 2) COSTO TOTAL DEL CAMINO — fuente única: v_departure_finance (mismo modelo que el wizard).
-  //    costo_total = fijo_grupo + por_inscrito×inscritos + por_pagante×pagantes + viatico_team.
+  //    costo_total = costo_peregrinos + costo_equipo + fijo_grupo.
+  const costoPeregrinos = Number(f?.costo_peregrinos_eur ?? 0); // (camas + ítems por-peregrino) × pagantes
+  const costoEquipo = Number(f?.costo_equipo_eur ?? 0);         // viáticos + (camas + ítems por-peregrino) × equipo
   const totalFijoCamino = Number(f?.fijo_grupo_eur ?? 0);
-  const totalPorInscrito = Number(f?.costo_por_inscrito_eur ?? 0); // por_inscrito_unit × (pagantes + team)
-  const totalPorPagantes = Number(f?.costo_por_pagante_total_eur ?? 0); // por_pagante_unit × pagantes
-  const totalViaticoTeam = Number(f?.viatico_team_eur ?? 0);
 
   const costoTotalCamino = Number(f?.costo_total_eur ?? 0);
   const costoPorPaganteProrrateado = Number(f?.costo_por_pagante_unitario_eur ?? 0);
@@ -170,20 +169,16 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
               <span><EurCop value={costoTotalCamino} /></span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pl-3">
+              <span>Peregrinos ({pagantes}) — camas, cenas, materiales…</span>
+              <span><EurCop value={costoPeregrinos} /></span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground pl-3">
+              <span>Equipo ({team}) — viáticos + camas + materiales</span>
+              <span><EurCop value={costoEquipo} /></span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground pl-3">
               <span>Fijo grupo</span>
               <span><EurCop value={totalFijoCamino} /></span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground pl-3">
-              <span>Camas / cenas / transporte × {pagantes + team} inscritos</span>
-              <span><EurCop value={totalPorInscrito} /></span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground pl-3">
-              <span>Items por pagante × {pagantes}</span>
-              <span><EurCop value={totalPorPagantes} /></span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground pl-3">
-              <span>Viáticos equipo</span>
-              <span><EurCop value={totalViaticoTeam} /></span>
             </div>
             {totalDesperdicio > 0 && (
               <div className="flex justify-between text-xs text-red-700 pl-3 mt-1">

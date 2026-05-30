@@ -22,6 +22,8 @@ export type DepartureFinance = {
   precio_promedio_pagante_eur: number | null;
   utilidad_total_eur: number;
   utilidad_por_pagante_eur: number | null;
+  costo_peregrinos_eur: number;
+  costo_equipo_eur: number;
 };
 
 export type Scenario = {
@@ -45,9 +47,9 @@ export function effectiveLineTotal(
   const qty = Number(item.quantity ?? 1);
   switch (item.scaling) {
     case "por_inscrito":
-      return unit * (pagantes + team);
     case "por_pagante":
-      return unit * pagantes;
+      // Tanto camas como ítems por-peregrino los consumen TODOS los inscritos (pagantes + equipo).
+      return unit * (pagantes + team);
     case "fijo_grupo":
     case "viatico_team":
     default:
@@ -61,7 +63,8 @@ export function computeBreakEven(f: DepartureFinance): { n: number | null; reach
   const costoMarginalPorPagante = f.por_inscrito_unit_eur + f.por_pagante_unit_eur;
   const margenContribucion = price - costoMarginalPorPagante;
   if (margenContribucion <= 0) return { n: null, reachable: false };
-  const costosFijosTotal = f.fijo_grupo_eur + f.viatico_team_eur + f.por_inscrito_unit_eur * f.team_count;
+  // Costos fijos = fijo grupo + viáticos + costo per-persona del equipo (camas + ítems por-peregrino)
+  const costosFijosTotal = f.fijo_grupo_eur + f.viatico_team_eur + (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * f.team_count;
   const n = Math.ceil(costosFijosTotal / margenContribucion);
   const reachable = f.capacity == null || n <= f.capacity;
   return { n, reachable };
@@ -76,7 +79,8 @@ export function simulateScenario(f: DepartureFinance, nPagantes: number): Scenar
   const viatico = Number(f.viatico_team_eur);
   const price = Number(f.precio_promedio_pagante_eur ?? 0);
 
-  const costoTotal = fijo + inscritoUnit * inscritos + pagUnit * nPagantes + viatico;
+  // por_pagante también lo consume el equipo → se multiplica por inscritos (pagantes + equipo)
+  const costoTotal = fijo + inscritoUnit * inscritos + pagUnit * inscritos + viatico;
   const ingreso = price * nPagantes;
   const utilidad = ingreso - costoTotal;
 
@@ -105,7 +109,7 @@ export const SCALING_LABELS: Record<string, { label: string; color: string; desc
   por_pagante: {
     label: "Por pagante",
     color: "bg-green-100 text-green-900",
-    description: "Solo escala con peregrinos pagantes (ej. credenciales, seguros, materiales)",
+    description: "Ítems por persona (credenciales, seguros, materiales). Los consumen todos los inscritos, incluido el equipo",
   },
   viatico_team: {
     label: "Viático equipo",

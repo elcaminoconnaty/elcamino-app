@@ -6,7 +6,7 @@ import { ScenariosCard } from "@/components/departures/scenarios-card";
 import { BreakEvenCard } from "@/components/departures/break-even-card";
 import { CostBreakdownCard } from "@/components/departures/cost-breakdown-card";
 import { PerPilgrimCostCard } from "@/components/departures/per-pilgrim-cost-card";
-import type { DepartureFinance } from "@/lib/finance";
+import { effectiveLineTotal, type DepartureFinance } from "@/lib/finance";
 
 export async function ResumenTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
@@ -18,17 +18,11 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
   if (!finance) return <p className="text-muted-foreground">Sin datos aún.</p>;
   const f = finance as DepartureFinance;
 
-  const inscritos = f.inscritos_total;
   const pagantes = f.pagantes_count;
+  const team = f.team_count;
   const byCategory = new Map<string, number>();
   (items ?? []).forEach((b: any) => {
-    const unitCost = Number(b.confirmed_unit_cost_eur ?? b.estimated_unit_cost_eur ?? 0);
-    let total = 0;
-    if (b.scaling === "fijo_grupo") total = unitCost * Number(b.quantity);
-    else if (b.scaling === "por_inscrito") total = unitCost * inscritos;
-    else if (b.scaling === "por_pagante") total = unitCost * pagantes;
-    else if (b.scaling === "viatico_team") total = unitCost * Number(b.quantity);
-    byCategory.set(b.category, (byCategory.get(b.category) ?? 0) + total);
+    byCategory.set(b.category, (byCategory.get(b.category) ?? 0) + effectiveLineTotal(b, pagantes, team));
   });
   const donutData = Array.from(byCategory.entries())
     .map(([name, value]) => ({ name, value }))

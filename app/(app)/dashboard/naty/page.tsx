@@ -9,15 +9,23 @@ export const dynamic = "force-dynamic";
 
 export default async function NatyDashboard() {
   const supabase = createClient();
-  const [{ data: g }, { data: dps }, { data: upcoming }] = await Promise.all([
+  const [{ data: g }, { data: dps }, { data: upcoming }, { data: fin }] = await Promise.all([
     supabase.from("v_financial_global").select("*").maybeSingle(),
     supabase.from("v_departure_summary").select("*").order("start_date", { ascending: true }),
     supabase.from("v_upcoming_installments").select("*").limit(15),
+    supabase.from("v_departure_finance").select("departure_id, name, costo_peregrinos_eur, costo_equipo_eur, fijo_grupo_eur, costo_total_eur").order("start_date", { ascending: true }),
   ]);
   const global = (g as FinancialGlobal) ?? null;
   const departures = (dps as DepartureSummary[]) ?? [];
   const upcomingInstallments = upcoming ?? [];
   const totalUpcoming = upcomingInstallments.reduce((s: number, i: any) => s + Number(i.amount_eur || 0), 0);
+
+  const finRows = (fin ?? []) as any[];
+  const costoPeregrinosGlobal = finRows.reduce((s, r) => s + Number(r.costo_peregrinos_eur || 0), 0);
+  const costoEquipoGlobal = finRows.reduce((s, r) => s + Number(r.costo_equipo_eur || 0), 0);
+  const costoFijoGlobal = finRows.reduce((s, r) => s + Number(r.fijo_grupo_eur || 0), 0);
+  const costoTotalGlobal = costoPeregrinosGlobal + costoEquipoGlobal + costoFijoGlobal;
+  const caminosConCosto = finRows.filter((r) => Number(r.costo_total_eur || 0) > 0);
 
   return (
     <div className="space-y-8">
@@ -38,6 +46,50 @@ export default async function NatyDashboard() {
         <KPI label="Cobrado" value={formatEUR(global?.collected_eur)} small />
         <KPI label="Pagado a proveedores" value={formatEUR(global?.paid_providers_eur)} small />
         <KPI label="Gastos operativos" value={formatEUR(global?.operational_expenses_eur)} small />
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <h2 className="font-display text-xl text-camino-ink">Costo: equipo vs peregrinos</h2>
+          <p className="text-sm text-muted-foreground">Lo que cuesta el equipo (Naty + Nico) discriminado del costo de los peregrinos</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3 mb-4">
+          <KPI label="Costo peregrinos" value={formatEUR(costoPeregrinosGlobal)} hint="Camas, cenas, materiales, seguros — solo pagantes" />
+          <KPI label="Costo equipo (Naty + Nico)" value={formatEUR(costoEquipoGlobal)} hint="Viáticos + sus camas/cenas + sus materiales y seguros" accent />
+          <KPI label="Fijo de grupo" value={formatEUR(costoFijoGlobal)} hint="Costos del grupo que no escalan por persona" />
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            {caminosConCosto.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Aún no hay costos cargados en ningún camino.</div>
+            ) : (
+              <div className="divide-y">
+                {caminosConCosto.map((r) => {
+                  const total = Number(r.costo_total_eur || 0);
+                  const eq = Number(r.costo_equipo_eur || 0);
+                  const per = Number(r.costo_peregrinos_eur || 0);
+                  const pctEquipo = total > 0 ? Math.round((eq / total) * 100) : 0;
+                  return (
+                    <Link key={r.departure_id} href={`/caminos/${r.departure_id}`} className="block px-4 py-3 hover:bg-cream-50">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-medium truncate">{r.name}</div>
+                        <div className="text-xs text-muted-foreground shrink-0">{pctEquipo}% equipo</div>
+                      </div>
+                      <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded-full bg-cream-100">
+                        <div className="h-full bg-camino-yellow" style={{ width: `${total > 0 ? (per / total) * 100 : 0}%` }} title="Peregrinos" />
+                        <div className="h-full bg-camino-deepYellow" style={{ width: `${pctEquipo}%` }} title="Equipo" />
+                      </div>
+                      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                        <span>Peregrinos {formatEUR(per)}</span>
+                        <span>Equipo {formatEUR(eq)}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       <section>
