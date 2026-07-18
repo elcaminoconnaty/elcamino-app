@@ -13,6 +13,7 @@ export default async function PilgrimsListPage() {
   const { data: pilgrims } = await supabase
     .from("pilgrims")
     .select("*, registrations:registrations(id, departure_id, status, departures(name))")
+    .is("deleted_at", null)
     .order("full_name");
 
   return (

@@ -8,6 +8,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { formatEUR, formatCOP, formatDate } from "@/lib/utils";
 import { NewPaymentDialog } from "@/components/pilgrims/new-payment-dialog";
 import { EditPilgrimDialog } from "@/components/pilgrims/edit-pilgrim-form";
+import { DeletePilgrimDialog } from "@/components/pilgrims/delete-pilgrim-dialog";
+import { EditRegistrationDialog } from "@/components/pilgrims/edit-registration-dialog";
 import { EditPaymentDialog } from "@/components/pilgrims/edit-payment-dialog";
 import { PaymentPlanCard } from "@/components/pilgrims/payment-plan-card";
 import { PassportUpload } from "@/components/pilgrims/passport-upload";
@@ -47,20 +49,45 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
     .order("due_date", { ascending: true });
   const upcomingInstallments = (upcoming as UpcomingInstallment[]) ?? [];
 
+  const [{ data: departures }, { data: regNotes }] = await Promise.all([
+    supabase
+      .from("departures")
+      .select("id, name, start_date, status")
+      .neq("status", "cancelled")
+      .order("start_date", { ascending: false }),
+    regIds.length
+      ? supabase.from("registrations").select("id, notes").in("id", regIds)
+      : Promise.resolve({ data: [] as { id: string; notes: string | null }[] }),
+  ]);
+  const notesByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r.notes]));
+
+  const paidEur = (payments ?? []).reduce((s: number, p: any) => s + Number(p.amount_eur || 0), 0);
+
   return (
     <div className="space-y-6">
       <div>
         <Link href="/peregrinos" className="text-sm text-muted-foreground hover:underline">← Peregrinos</Link>
         <div className="flex items-start justify-between mt-2 gap-3 flex-wrap">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl text-camino-ink break-words">{pilgrim.full_name}</h1>
+            <h1 className="font-display text-2xl sm:text-3xl text-camino-ink break-words">
+              {pilgrim.full_name}
+              {pilgrim.deleted_at && <Badge variant="muted" className="ml-2 align-middle">Eliminado — abonos retenidos</Badge>}
+            </h1>
             <div className="text-sm text-muted-foreground mt-1">
               {pilgrim.country ? pilgrim.country : ""}
               {pilgrim.document_id ? ` · ${pilgrim.document_id}` : ""}
             </div>
             <div className="brand-yellow-bar mt-2" />
           </div>
-          <EditPilgrimDialog pilgrim={pilgrim} />
+          <div className="flex gap-2 flex-wrap">
+            <EditPilgrimDialog pilgrim={pilgrim} />
+            <DeletePilgrimDialog
+              pilgrimId={pilgrim.id}
+              pilgrimName={pilgrim.full_name}
+              paymentsCount={payments?.length ?? 0}
+              paidEur={paidEur}
+            />
+          </div>
         </div>
       </div>
 
@@ -121,6 +148,18 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                 </div>
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} />
+                  <EditRegistrationDialog
+                    registration={{
+                      registration_id: r.registration_id,
+                      departure_id: r.departure_id,
+                      total_eur: Number(r.total_eur ?? r.net_total_eur ?? 0),
+                      discount_eur: Number(r.discount_eur ?? 0),
+                      status: r.status,
+                      paid_in_cop_originally: r.paid_in_cop_originally,
+                      notes: notesByReg.get(r.registration_id) ?? null,
+                    }}
+                    departures={departures ?? []}
+                  />
                   <Button asChild variant="outline" size="sm">
                     <a href={`/api/pdf/reporte/${r.registration_id}`} target="_blank">
                       <FileText className="h-4 w-4" /> Reporte

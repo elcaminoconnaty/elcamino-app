@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const supabase = createClient();
-  const { data: pilgrims } = await supabase.from("pilgrims").select("*").order("full_name");
-  const { data: balances } = await supabase.from("v_pilgrim_balance").select("*");
+  const { data: pilgrims } = await supabase.from("pilgrims").select("*").is("deleted_at", null).order("full_name");
+  const { data: balances } = await supabase.from("v_pilgrim_balance").select("*").neq("status", "cancelado");
 
   const balancesByPilgrim = new Map<string, any[]>();
   (balances ?? []).forEach((b: any) => {

@@ -20,6 +20,12 @@ export default async function NatyDashboard() {
   const upcomingInstallments = upcoming ?? [];
   const totalUpcoming = upcomingInstallments.reduce((s: number, i: any) => s + Number(i.amount_eur || 0), 0);
 
+  // Lo que falta por pagar del costo de cada camino (costo confirmado/estimado − ya pagado a proveedores)
+  const faltaPorPagar = departures.reduce(
+    (s, d) => s + Math.max(0, Number(d.confirmed_or_estimated_cost_eur || 0) - Number(d.paid_to_providers_eur || 0)),
+    0
+  );
+
   const finRows = (fin ?? []) as any[];
   const costoPeregrinosGlobal = finRows.reduce((s, r) => s + Number(r.costo_peregrinos_eur || 0), 0);
   const costoEquipoGlobal = finRows.reduce((s, r) => s + Number(r.costo_equipo_eur || 0), 0);
@@ -39,13 +45,14 @@ export default async function NatyDashboard() {
         <KPI label="Plata disponible" value={formatEUR(global?.cash_available_eur)} hint="Cobrado − pagado prov. − operativo − personal" accent />
         <KPI label="Utilidad proyectada" value={formatEUR(global?.projected_profit_eur)} hint="Ingresos esperados − costo estimado" />
         <KPI label="Pendiente por entrar" value={formatEUR(global?.pending_revenue_eur)} hint="De peregrinos inscritos" />
-        <KPI label="Retiros personales" value={formatEUR(global?.personal_withdrawals_eur)} hint="Acumulado histórico" />
+        <KPI label="Falta por pagar" value={formatEUR(faltaPorPagar)} hint="Costo de los caminos − ya pagado a proveedores" />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPI label="Cobrado" value={formatEUR(global?.collected_eur)} small />
         <KPI label="Pagado a proveedores" value={formatEUR(global?.paid_providers_eur)} small />
         <KPI label="Gastos operativos" value={formatEUR(global?.operational_expenses_eur)} small />
+        <KPI label="Retiros personales" value={formatEUR(global?.personal_withdrawals_eur)} small />
       </section>
 
       <section>
@@ -173,6 +180,7 @@ export default async function NatyDashboard() {
                       <div className="h-full bg-camino-yellow" style={{ width: `${collectedPct}%` }} />
                     </div>
                     <Row label="Costo (estimado/confirmado)" value={formatEUR(d.confirmed_or_estimated_cost_eur)} />
+                    <Row label="Falta por pagar" value={formatEUR(Math.max(0, (d.confirmed_or_estimated_cost_eur || 0) - (d.paid_to_providers_eur || 0)))} />
                     <Row label="Utilidad proyectada" value={formatEUR(projectedProfit)} bold />
                   </CardContent>
                 </Card>

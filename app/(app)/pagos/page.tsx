@@ -32,7 +32,8 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
     supabase.from("v_upcoming_installments").select("*").order("due_date", { ascending: true }),
   ]);
 
-  const balances = (balancesData as PilgrimBalance[]) ?? [];
+  // Las inscripciones canceladas (retirados) no deben aparecer como deuda pendiente.
+  const balances = ((balancesData as PilgrimBalance[]) ?? []).filter((b) => b.status !== "cancelado");
   const upcoming = (upcomingData as UpcomingInstallment[]) ?? [];
 
   // Agrupar cuotas pendientes/vencidas por inscripción (ya vienen ordenadas por due_date asc)

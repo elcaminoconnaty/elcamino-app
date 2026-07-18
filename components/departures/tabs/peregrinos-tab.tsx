@@ -14,8 +14,11 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
       .select("*")
       .eq("departure_id", departureId)
       .order("pilgrim_name", { ascending: true }),
-    supabase.from("pilgrims").select("id, full_name, email, phone").order("full_name"),
+    supabase.from("pilgrims").select("id, full_name, email, phone").is("deleted_at", null).order("full_name"),
   ]);
+
+  const activos = (rows ?? []).filter((r: any) => r.status !== "cancelado");
+  const retirados = (rows ?? []).filter((r: any) => r.status === "cancelado");
 
   return (
     <div className="space-y-4">
@@ -24,7 +27,7 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
       </div>
       <Card>
         <CardContent className="p-0">
-          {(!rows || rows.length === 0) ? (
+          {activos.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Aún no hay peregrinos en este camino.</div>
           ) : (
             <Table>
@@ -39,7 +42,7 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r: any) => (
+                {activos.map((r: any) => (
                   <TableRow key={r.registration_id}>
                     <TableCell>
                       <Link href={`/peregrinos/${r.pilgrim_id}`} className="hover:underline font-medium">{r.pilgrim_name}</Link>
@@ -56,6 +59,28 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {retirados.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium mb-2">Retirados (abonos retenidos)</div>
+            <div className="space-y-1">
+              {retirados.map((r: any) => (
+                <div key={r.registration_id} className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    {r.pilgrim_name}
+                    {r.refund_status === "sin_reembolso" && <Badge variant="muted" className="ml-2">sin reembolso</Badge>}
+                  </span>
+                  <span>abonó {formatEUR(r.paid_eur)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Estos abonos siguen contando como ingreso del camino aunque el peregrino ya no viaja.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
