@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProviderPayment } from "@/lib/actions/reservations";
-import { PAYMENT_METHODS } from "@/lib/constants";
+import { PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
 
 export function NewProviderPaymentDialog({ providerId, reservations, departures }: { providerId: string; reservations: any[]; departures: any[] }) {
   const [open, setOpen] = useState(false);
+  const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">("EUR");
   const router = useRouter();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -46,14 +47,24 @@ export function NewProviderPaymentDialog({ providerId, reservations, departures 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2 sm:col-span-2"><Label>Monto *</Label><Input name="amount" type="number" step="0.01" required /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
-              <select name="currency" defaultValue="EUR" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="EUR">EUR</option>
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
               </select>
             </div>
           </div>
-          <div className="grid gap-2"><Label>TRM (si no es EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" /></div>
+          {currency === "COP" && (
+            <div className="grid gap-2"><Label>TRM (COP por EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" placeholder="Se autocompleta con la TRM del día si lo dejás vacío" /></div>
+          )}
+          {currency === "USD" && (
+            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input name="usd_eur_rate" type="number" step="0.0001" placeholder="Ej. 0.92" required /></div>
+          )}
+          <div className="grid gap-2"><Label>Cuenta / de dónde sale</Label>
+            <select name="account" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
           <div className="grid gap-2"><Label>Camino</Label>
             <select name="departure_id" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
               <option value="">(General)</option>

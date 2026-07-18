@@ -80,6 +80,9 @@ export function NewExpenseDialog({ departures, defaultDepartureId }: { departure
           {currency === "COP" && (
             <div className="grid gap-2"><Label>TRM (autocompletado)</Label><Input name="trm_eur_cop" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
           )}
+          {currency === "USD" && (
+            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input name="usd_eur_rate" type="number" step="0.0001" placeholder="Ej. 0.92" required /></div>
+          )}
           {kind === "operativo" && (
             <div className="grid gap-2"><Label>Camino (opcional)</Label>
               <select name="departure_id" defaultValue={defaultDepartureId ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">

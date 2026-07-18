@@ -59,6 +59,7 @@ export type PilgrimPayment = {
   amount: number;
   currency: "EUR" | "COP" | "USD";
   trm_eur_cop: number | null;
+  usd_eur_rate: number | null;
   amount_eur: number | null;
   method: string | null;
   reference: string | null;
@@ -107,6 +108,7 @@ export type ProviderPayment = {
   amount: number;
   currency: "EUR" | "COP" | "USD";
   trm_eur_cop: number | null;
+  usd_eur_rate: number | null;
   amount_eur: number | null;
   method: string | null;
   reference: string | null;
@@ -141,6 +143,7 @@ export type Expense = {
   amount: number;
   currency: "EUR" | "COP" | "USD";
   trm_eur_cop: number | null;
+  usd_eur_rate: number | null;
   amount_eur: number | null;
   departure_id: string | null;
   payment_method: string | null;

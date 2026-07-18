@@ -17,6 +17,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
   const [amount, setAmount] = useState(String(payment.amount));
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(payment.currency);
   const [trm, setTrm] = useState(payment.trm_eur_cop != null ? String(payment.trm_eur_cop) : "");
+  const [usdRate, setUsdRate] = useState(payment.usd_eur_rate != null ? String(payment.usd_eur_rate) : "");
   const [method, setMethod] = useState(payment.method ?? PAYMENT_METHODS[0]);
   const [account, setAccount] = useState(payment.account ?? ACCOUNTS[0]);
   const [reference, setReference] = useState(payment.reference ?? "");
@@ -35,6 +36,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
         amount: a,
         currency,
         trm_eur_cop: currency === "COP" ? Number(trm) || null : null,
+        usd_eur_rate: currency === "USD" ? Number(usdRate) || null : null,
         method,
         account,
         reference: reference || null,
@@ -94,6 +96,9 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
           </div>
           {currency === "COP" && (
             <div className="grid gap-2"><Label>TRM EUR/COP</Label><Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
+          )}
+          {currency === "USD" && (
+            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input type="number" step="0.0001" value={usdRate} onChange={(e) => setUsdRate(e.target.value)} placeholder="Ej. 0.92" /></div>
           )}
           <div className="grid gap-2">
             <Label>Cuenta / dónde entró la plata</Label>

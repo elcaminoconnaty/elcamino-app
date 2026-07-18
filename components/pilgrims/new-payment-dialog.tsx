@@ -25,6 +25,7 @@ export function NewPaymentDialog({
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(pilgrimPaysInCop ? "COP" : "EUR");
   const [trm, setTrm] = useState("");
+  const [usdRate, setUsdRate] = useState("");
   const [method, setMethod] = useState(PAYMENT_METHODS[0]);
   const [account, setAccount] = useState(ACCOUNTS[0]);
   const [reference, setReference] = useState("");
@@ -51,6 +52,7 @@ export function NewPaymentDialog({
         amount: a,
         currency,
         trm_eur_cop: currency === "COP" ? Number(trm) || null : null,
+        usd_eur_rate: currency === "USD" ? Number(usdRate) || null : null,
         method,
         account,
         reference: reference || null,
@@ -99,6 +101,12 @@ export function NewPaymentDialog({
               <Label>TRM EUR/COP (autocompletado desde TRM del día)</Label>
               <Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} placeholder="4500.00" />
               {!trm && <p className="text-xs text-amber-700">No hay TRM cargada para {paidAt}. Ingresá una manual o cargá una en /trm.</p>}
+            </div>
+          )}
+          {currency === "USD" && (
+            <div className="grid gap-2">
+              <Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label>
+              <Input type="number" step="0.0001" value={usdRate} onChange={(e) => setUsdRate(e.target.value)} placeholder="Ej. 0.92" />
             </div>
           )}
           <div className="grid gap-2">

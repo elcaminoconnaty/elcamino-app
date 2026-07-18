@@ -6,16 +6,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { updateReservation, deleteReservation } from "@/lib/actions/reservations";
+import { updateReservation, deleteReservation, createProviderPayment } from "@/lib/actions/reservations";
+import { getReservationPayments } from "@/lib/actions/provider-payments";
 import { setReservationRooms, getReservationRooms } from "@/lib/actions/reservation-rooms";
 import { getReservationSchedule, setReservationSchedule } from "@/lib/actions/reservation-schedule";
 import type { RoomInput } from "@/lib/data/rooms";
 import { RoomsEditor } from "@/components/departures/rooms-editor";
 import { ReservationPaymentScheduleEditor, type ScheduleItem } from "@/components/departures/reservation-payment-schedule-editor";
-import { RESERVATION_STATUSES, PROVIDER_TYPES } from "@/lib/constants";
+import { RESERVATION_STATUSES, PROVIDER_TYPES, PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { formatEUR } from "@/lib/utils";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, CreditCard } from "lucide-react";
 
 export function EditReservationDialog({ reservation, providers, departureId, triggerLabel }: { reservation: any; providers: any[]; departureId: string; triggerLabel?: string }) {
   const [open, setOpen] = useState(false);
@@ -44,6 +45,18 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
   const [checkOut, setCheckOut] = useState(reservation.check_out ?? "");
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [scheduleInitial, setScheduleInitial] = useState<ScheduleItem[] | null>(null);
+
+  // Estado + registro del pago real al marcar la reserva como pagada
+  const [status, setStatus] = useState<string>(reservation.status);
+  const [paidTotal, setPaidTotal] = useState<number | null>(null);
+  const [registrarPago, setRegistrarPago] = useState(true);
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payAmount, setPayAmount] = useState("");
+  const [payCurrency, setPayCurrency] = useState<"EUR" | "COP" | "USD">("EUR");
+  const [payTrm, setPayTrm] = useState("");
+  const [payUsdRate, setPayUsdRate] = useState("");
+  const [payMethod, setPayMethod] = useState(PAYMENT_METHODS[0]);
+  const [payAccount, setPayAccount] = useState(ACCOUNTS[0]);
 
   const router = useRouter();
   const isMeal = type === "cenas";
@@ -85,13 +98,21 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
         setSchedule(items);
       });
     }
+    if (open && paidTotal === null) {
+      getReservationPayments(reservation.id).then((data) =>
+        setPaidTotal((data ?? []).reduce((s: number, p: any) => s + Number(p.amount_eur || 0), 0))
+      );
+    }
     if (!open) {
       setRoomsInitial(null);
       setRooms([]);
       setScheduleInitial(null);
       setSchedule([]);
+      setPaidTotal(null);
+      setStatus(reservation.status);
+      setPayAmount("");
     }
-  }, [open, reservation.id, roomsInitial, scheduleInitial]);
+  }, [open, reservation.id, reservation.status, roomsInitial, scheduleInitial, paidTotal]);
 
   const currentCost = (() => {
     if (isMeal) return mealTotal;
@@ -99,6 +120,14 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
     if (rooms.length > 0) return roomTotals.cost;
     return Number(reservation.confirmed_cost_eur ?? reservation.estimated_cost_eur ?? 0);
   })();
+
+  const saldoReserva = Math.max(0, currentCost - (paidTotal ?? 0));
+  const goingToPaid = status === "pagado" && reservation.status !== "pagado";
+  const mostrarBloquePago = goingToPaid && paidTotal !== null && saldoReserva > 0.01;
+
+  useEffect(() => {
+    if (mostrarBloquePago && payAmount === "") setPayAmount(saldoReserva.toFixed(2));
+  }, [mostrarBloquePago, saldoReserva, payAmount]);
 
   async function onDelete() {
     if (!confirm("¿Eliminar esta reserva?")) return;
@@ -127,6 +156,17 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
         <DialogHeader><DialogTitle>Editar reserva</DialogTitle></DialogHeader>
         <form
           action={async (fd) => {
+            const registraElPago = mostrarBloquePago && registrarPago;
+            if (registraElPago) {
+              if (!Number(payAmount) || Number(payAmount) <= 0) {
+                toast({ title: "Monto del pago inválido", variant: "destructive" });
+                return;
+              }
+              if (payCurrency === "USD" && (!Number(payUsdRate) || Number(payUsdRate) <= 0)) {
+                toast({ title: "Falta la tasa USD→EUR", variant: "destructive" });
+                return;
+              }
+            }
             setSaving(true);
             try {
               const useRoomsTotals = isLodging && rooms.length > 0;
@@ -197,7 +237,24 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 provider_payment_id: s.provider_payment_id,
                 position: i,
               })), departureId);
-              toast({ title: "Guardado", variant: "success" });
+              if (registraElPago) {
+                const pfd = new FormData();
+                pfd.set("provider_id", fd.get("provider_id")?.toString() || reservation.provider_id);
+                pfd.set("reservation_id", reservation.id);
+                pfd.set("departure_id", departureId);
+                pfd.set("paid_at", payDate);
+                pfd.set("amount", payAmount);
+                pfd.set("currency", payCurrency);
+                if (payCurrency === "COP" && payTrm) pfd.set("trm_eur_cop", payTrm);
+                if (payCurrency === "USD") pfd.set("usd_eur_rate", payUsdRate);
+                pfd.set("method", payMethod);
+                pfd.set("account", payAccount);
+                pfd.set("notes", "Registrado al marcar la reserva como pagada");
+                await createProviderPayment(pfd);
+                toast({ title: "Guardado y pago registrado en gastos", variant: "success" });
+              } else {
+                toast({ title: "Guardado", variant: "success" });
+              }
               setOpen(false);
               router.refresh();
             } catch (e: any) {
@@ -316,12 +373,64 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Estado</Label>
-              <select name="status" defaultValue={reservation.status} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 {RESERVATION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div className="grid gap-2"><Label>Ref. confirmación</Label><Input name="confirmation_ref" defaultValue={reservation.confirmation_ref ?? ""} /></div>
           </div>
+
+          {goingToPaid && paidTotal !== null && saldoReserva <= 0.01 && (
+            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-xs text-green-900">
+              Esta reserva ya tiene el 100% pagado registrado ({formatEUR(paidTotal)}). Solo se actualiza el estado.
+            </div>
+          )}
+
+          {mostrarBloquePago && (
+            <div className="rounded-md border border-green-200 bg-green-50/60 p-3 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input type="checkbox" checked={registrarPago} onChange={(e) => setRegistrarPago(e.target.checked)} />
+                  <CreditCard className="h-4 w-4" /> Registrar el pago del saldo en gastos
+                </label>
+                <span className="text-xs text-muted-foreground">Saldo: <strong className="text-foreground">{formatEUR(saldoReserva)}</strong> (pagado {formatEUR(paidTotal ?? 0)})</span>
+              </div>
+              {registrarPago ? (
+                <>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="grid gap-1.5"><Label className="text-xs">Fecha</Label><Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} /></div>
+                    <div className="grid gap-1.5"><Label className="text-xs">Monto</Label><Input type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} /></div>
+                    <div className="grid gap-1.5"><Label className="text-xs">Divisa</Label>
+                      <select value={payCurrency} onChange={(e) => setPayCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                        <option value="EUR">EUR</option><option value="COP">COP</option><option value="USD">USD</option>
+                      </select>
+                    </div>
+                  </div>
+                  {payCurrency === "COP" && (
+                    <div className="grid gap-1.5"><Label className="text-xs">TRM (COP por EUR)</Label><Input type="number" step="0.01" value={payTrm} onChange={(e) => setPayTrm(e.target.value)} placeholder="Vacío = TRM del día" /></div>
+                  )}
+                  {payCurrency === "USD" && (
+                    <div className="grid gap-1.5"><Label className="text-xs">Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input type="number" step="0.0001" value={payUsdRate} onChange={(e) => setPayUsdRate(e.target.value)} placeholder="Ej. 0.92" /></div>
+                  )}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-1.5"><Label className="text-xs">Método</Label>
+                      <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                        {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div className="grid gap-1.5"><Label className="text-xs">Cuenta (de dónde sale)</Label>
+                      <select value={payAccount} onChange={(e) => setPayAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                        {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Queda como pago al proveedor, conectado a gastos, saldos por cuenta y dashboard.</p>
+                </>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Solo se marca el estado, sin registrar plata (usalo si el pago ya está cargado).</p>
+              )}
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-md bg-amber-50 border border-amber-200">
             <input type="checkbox" checked={isCritical} onChange={(e) => setIsCritical(e.target.checked)} />
             <AlertTriangle className="h-4 w-4 text-amber-700" />

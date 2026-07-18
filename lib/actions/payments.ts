@@ -8,11 +8,15 @@ export async function createPilgrimPayment(input: {
   amount: number;
   currency: "EUR" | "COP" | "USD";
   trm_eur_cop: number | null;
+  usd_eur_rate?: number | null;
   method: string | null;
   account?: string | null;
   reference: string | null;
   notes: string | null;
 }) {
+  if (input.currency === "USD" && (!input.usd_eur_rate || input.usd_eur_rate <= 0)) {
+    throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
+  }
   const supabase = createClient();
   const { data, error } = await supabase
     .from("pilgrim_payments")
@@ -30,11 +34,15 @@ export async function updatePilgrimPayment(id: string, input: {
   amount?: number;
   currency?: "EUR" | "COP" | "USD";
   trm_eur_cop?: number | null;
+  usd_eur_rate?: number | null;
   method?: string | null;
   account?: string | null;
   reference?: string | null;
   notes?: string | null;
 }) {
+  if (input.currency === "USD" && (!input.usd_eur_rate || input.usd_eur_rate <= 0)) {
+    throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
+  }
   const supabase = createClient();
   const { error } = await supabase.from("pilgrim_payments").update(input).eq("id", id);
   if (error) throw new Error(error.message);

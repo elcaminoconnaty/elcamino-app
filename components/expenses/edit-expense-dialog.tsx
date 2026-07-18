@@ -22,6 +22,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [kind, setKind] = useState<"operativo" | "personal">(expense.kind);
+  const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(expense.currency ?? "COP");
   const router = useRouter();
   const cats = kind === "operativo" ? EXPENSE_CATEGORIES_OPERATIVO : EXPENSE_CATEGORIES_PERSONAL;
 
@@ -58,6 +59,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
                 amount: Number(fd.get("amount") || 0),
                 currency: fd.get("currency"),
                 trm_eur_cop: fd.get("trm_eur_cop") ? Number(fd.get("trm_eur_cop")) : null,
+                usd_eur_rate: fd.get("usd_eur_rate") ? Number(fd.get("usd_eur_rate")) : null,
                 departure_id: fd.get("departure_id")?.toString() || null,
                 payment_method: fd.get("payment_method")?.toString() || null,
                 account: fd.get("account")?.toString() || null,
@@ -91,12 +93,17 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2 sm:col-span-2"><Label>Monto</Label><Input name="amount" type="number" step="0.01" defaultValue={expense.amount} /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
-              <select name="currency" defaultValue={expense.currency} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="COP">COP</option><option value="EUR">EUR</option><option value="USD">USD</option>
               </select>
             </div>
           </div>
-          <div className="grid gap-2"><Label>TRM</Label><Input name="trm_eur_cop" type="number" step="0.01" defaultValue={expense.trm_eur_cop ?? ""} /></div>
+          {currency === "COP" && (
+            <div className="grid gap-2"><Label>TRM (COP por EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" defaultValue={expense.trm_eur_cop ?? ""} /></div>
+          )}
+          {currency === "USD" && (
+            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input name="usd_eur_rate" type="number" step="0.0001" defaultValue={expense.usd_eur_rate ?? ""} placeholder="Ej. 0.92" required /></div>
+          )}
           {kind === "operativo" && (
             <div className="grid gap-2"><Label>Camino</Label>
               <select name="departure_id" defaultValue={expense.departure_id ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">

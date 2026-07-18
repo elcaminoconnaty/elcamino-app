@@ -99,18 +99,16 @@ export async function updateProvider(id: string, formData: FormData) {
   revalidatePath("/proveedores");
 }
 
-function computeAmountEur(amount: number, currency: string, trm: number | null): number {
-  if (currency === "EUR") return amount;
-  if (currency === "COP" && trm && trm > 0) return amount / trm;
-  if (currency === "USD") return amount * 0.92;
-  return amount;
-}
-
 export async function createProviderPayment(formData: FormData) {
   const supabase = createClient();
   const amount = Number(formData.get("amount") || 0);
   const currency = (formData.get("currency")?.toString() || "EUR") as "EUR" | "COP" | "USD";
   const trm = formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null;
+  const usdRate = formData.get("usd_eur_rate") ? Number(formData.get("usd_eur_rate")) : null;
+  if (currency === "USD" && (!usdRate || usdRate <= 0)) {
+    throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
+  }
+  // amount_eur lo calcula el trigger de la BD (fuente única de conversión)
   const payload = {
     provider_id: formData.get("provider_id")?.toString() || "",
     reservation_id: formData.get("reservation_id")?.toString() || null,
@@ -119,7 +117,7 @@ export async function createProviderPayment(formData: FormData) {
     amount,
     currency,
     trm_eur_cop: trm,
-    amount_eur: computeAmountEur(amount, currency, trm),
+    usd_eur_rate: usdRate,
     method: formData.get("method")?.toString() || null,
     account: formData.get("account")?.toString() || null,
     reference: formData.get("reference")?.toString() || null,
@@ -141,5 +139,6 @@ export async function createProviderPayment(formData: FormData) {
 
   revalidatePath(`/proveedores/${payload.provider_id}`);
   revalidatePath("/gastos");
+  revalidatePath("/dashboard/naty");
   if (payload.departure_id) revalidatePath(`/caminos/${payload.departure_id}`);
 }

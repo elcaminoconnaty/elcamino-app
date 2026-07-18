@@ -203,7 +203,13 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
             </div>
           </div>
           {currency === "COP" && (
-            <div className="grid gap-1.5"><Label className="text-xs">TRM</Label><Input name="trm_eur_cop" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
+            <div className="grid gap-1.5"><Label className="text-xs">TRM (COP por EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
+          )}
+          {currency === "USD" && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Tasa USD→EUR (cuántos EUR vale 1 USD)</Label>
+              <Input name="usd_eur_rate" type="number" step="0.0001" placeholder="Ej. 0.92" required />
+            </div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5"><Label className="text-xs">Método</Label>

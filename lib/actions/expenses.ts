@@ -4,14 +4,20 @@ import { revalidatePath } from "next/cache";
 
 export async function createExpense(formData: FormData) {
   const supabase = createClient();
+  const currency = (formData.get("currency")?.toString() || "COP") as "EUR" | "COP" | "USD";
+  const usdRate = formData.get("usd_eur_rate") ? Number(formData.get("usd_eur_rate")) : null;
+  if (currency === "USD" && (!usdRate || usdRate <= 0)) {
+    throw new Error("Para gastos en USD indicá la tasa USD→EUR (ej. 0.92).");
+  }
   const payload = {
     expense_date: formData.get("expense_date")?.toString() || new Date().toISOString().slice(0, 10),
     kind: (formData.get("kind")?.toString() || "operativo") as "operativo" | "personal",
     category: formData.get("category")?.toString() || "Otro",
     description: formData.get("description")?.toString() || null,
     amount: Number(formData.get("amount") || 0),
-    currency: (formData.get("currency")?.toString() || "COP") as "EUR" | "COP" | "USD",
+    currency,
     trm_eur_cop: formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null,
+    usd_eur_rate: usdRate,
     departure_id: formData.get("departure_id")?.toString() || null,
     payment_method: formData.get("payment_method")?.toString() || null,
     account: formData.get("account")?.toString() || null,
