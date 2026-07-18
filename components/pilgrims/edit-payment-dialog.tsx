@@ -90,15 +90,11 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
               <select value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="EUR">EUR</option>
                 <option value="COP">COP</option>
-                <option value="USD">USD</option>
               </select>
             </div>
           </div>
           {currency === "COP" && (
             <div className="grid gap-2"><Label>TRM EUR/COP</Label><Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
-          )}
-          {currency === "USD" && (
-            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input type="number" step="0.0001" value={usdRate} onChange={(e) => setUsdRate(e.target.value)} placeholder="Ej. 0.92" /></div>
           )}
           <div className="grid gap-2">
             <Label>Cuenta / dónde entró la plata</Label>

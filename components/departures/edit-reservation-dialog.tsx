@@ -402,15 +402,12 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                     <div className="grid gap-1.5"><Label className="text-xs">Monto</Label><Input type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} /></div>
                     <div className="grid gap-1.5"><Label className="text-xs">Divisa</Label>
                       <select value={payCurrency} onChange={(e) => setPayCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                        <option value="EUR">EUR</option><option value="COP">COP</option><option value="USD">USD</option>
+                        <option value="EUR">EUR</option><option value="COP">COP</option>
                       </select>
                     </div>
                   </div>
                   {payCurrency === "COP" && (
                     <div className="grid gap-1.5"><Label className="text-xs">TRM (COP por EUR)</Label><Input type="number" step="0.01" value={payTrm} onChange={(e) => setPayTrm(e.target.value)} placeholder="Vacío = TRM del día" /></div>
-                  )}
-                  {payCurrency === "USD" && (
-                    <div className="grid gap-1.5"><Label className="text-xs">Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input type="number" step="0.0001" value={payUsdRate} onChange={(e) => setPayUsdRate(e.target.value)} placeholder="Ej. 0.92" /></div>
                   )}
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div className="grid gap-1.5"><Label className="text-xs">Método</Label>

@@ -21,7 +21,7 @@ import { Plus } from "lucide-react";
 export function NewExpenseDialog({ departures, defaultDepartureId }: { departures: any[]; defaultDepartureId?: string }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"operativo" | "personal">("operativo");
-  const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">("COP");
+  const [currency, setCurrency] = useState<"EUR" | "COP">("COP");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [trm, setTrm] = useState("");
   const router = useRouter();
@@ -73,15 +73,11 @@ export function NewExpenseDialog({ departures, defaultDepartureId }: { departure
               <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="COP">COP</option>
                 <option value="EUR">EUR</option>
-                <option value="USD">USD</option>
               </select>
             </div>
           </div>
           {currency === "COP" && (
             <div className="grid gap-2"><Label>TRM (autocompletado)</Label><Input name="trm_eur_cop" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
-          )}
-          {currency === "USD" && (
-            <div className="grid gap-2"><Label>Tasa USD→EUR (cuántos EUR vale 1 USD)</Label><Input name="usd_eur_rate" type="number" step="0.0001" placeholder="Ej. 0.92" required /></div>
           )}
           {kind === "operativo" && (
             <div className="grid gap-2"><Label>Camino (opcional)</Label>
