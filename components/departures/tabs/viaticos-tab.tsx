@@ -8,7 +8,7 @@ import { EditBudgetItemDialog } from "@/components/departures/edit-budget-item-d
 
 export async function ViaticosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: items }, { data: providers }, { data: finance }] = await Promise.all([
+  const [{ data: items }, { data: providers }, { data: finance }, { data: payableRows }] = await Promise.all([
     supabase
       .from("budget_items")
       .select("*")
@@ -18,10 +18,17 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
       .order("category"),
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
     supabase.from("v_departure_finance").select("pagantes_count").eq("departure_id", departureId).maybeSingle(),
+    supabase.from("v_budget_payable").select("budget_item_id, paid_eur, saldo_eur").eq("departure_id", departureId),
   ]);
+
+  // Pagado / saldo real por ítem (vínculo pago↔presupuesto)
+  const payById = new Map<string, { paid: number; saldo: number }>();
+  (payableRows ?? []).forEach((p: any) => payById.set(p.budget_item_id, { paid: Number(p.paid_eur || 0), saldo: Number(p.saldo_eur || 0) }));
 
   const total = (items ?? []).reduce((s: number, i: any) =>
     s + Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0) * Number(i.quantity), 0);
+  const totalPagado = (items ?? []).reduce((s: number, i: any) => s + (payById.get(i.id)?.paid ?? 0), 0);
+  const totalSaldo = (items ?? []).reduce((s: number, i: any) => s + (payById.get(i.id)?.saldo ?? 0), 0);
   const pagantes = Number((finance as any)?.pagantes_count ?? 0);
   const perPagante = pagantes > 0 ? total / pagantes : null;
   const perTeam = total / 2;
@@ -46,11 +53,23 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
         <strong>Viáticos del equipo</strong> — gastos personales de Natalia y Nicolás (vuelos, hoteles Madrid antes/después, comidas, transporte). Se reparten entre los peregrinos pagantes al calcular la utilidad.
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardContent className="p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total viáticos</div>
             <div className="font-display text-xl mt-1"><EurCop value={total} /></div>
+          </CardContent>
+        </Card>
+        <Card className="border-green-200">
+          <CardContent className="p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagado</div>
+            <div className="font-display text-xl mt-1 text-green-700"><EurCop value={totalPagado} /></div>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200">
+          <CardContent className="p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Falta por pagar</div>
+            <div className="font-display text-xl mt-1 text-amber-800"><EurCop value={totalSaldo} /></div>
           </CardContent>
         </Card>
         <Card>
@@ -113,6 +132,15 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
                           {i.quantity > 1 && (
                             <div className="text-xs text-muted-foreground">{i.quantity} {i.unit ?? "uni"} × {formatEUR(unitCost)}</div>
                           )}
+                          {(() => {
+                            const pay = payById.get(i.id);
+                            if (!pay || pay.paid <= 0) return null;
+                            return (
+                              <div className="text-xs text-green-700 mt-0.5">
+                                Pagado {formatEUR(pay.paid)}{pay.saldo > 0.01 ? ` · falta ${formatEUR(pay.saldo)}` : " · saldado"}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="text-right shrink-0 flex items-start gap-1">
                           <div><EurCop value={t} /></div>

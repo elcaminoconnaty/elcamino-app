@@ -63,16 +63,21 @@ export async function payBudgetItem(itemId: string, pago: {
 
   const { data: item, error: itemErr } = await supabase
     .from("budget_items")
-    .select("id, departure_id, category, description, provider_id, reservation_id, status")
+    .select("id, departure_id, category, description, provider_id, reservation_id, status, quantity")
     .eq("id", itemId)
     .single();
   if (itemErr) throw new Error(itemErr.message);
 
+  // amount_eur lo calcula el trigger compute_payment_eur al insertar; lo recuperamos
+  // para poder fijar el costo confirmado real del item.
+  let paidEur: number | null = null;
+
   if (item.provider_id) {
-    const { error } = await supabase.from("provider_payments").insert({
+    const { data, error } = await supabase.from("provider_payments").insert({
       provider_id: item.provider_id,
       reservation_id: item.reservation_id ?? null,
       departure_id: item.departure_id,
+      budget_item_id: item.id,
       paid_at: pago.paid_at,
       amount: pago.amount,
       currency: pago.currency,
@@ -81,10 +86,11 @@ export async function payBudgetItem(itemId: string, pago: {
       method: pago.method,
       account: pago.account,
       notes: pago.notes ?? `Presupuesto: ${item.description}`,
-    });
+    }).select("amount_eur").single();
     if (error) throw new Error(error.message);
+    paidEur = data?.amount_eur ?? null;
   } else {
-    const { error } = await supabase.from("expenses").insert({
+    const { data, error } = await supabase.from("expenses").insert({
       expense_date: pago.paid_at,
       kind: "operativo",
       category: item.category,
@@ -94,14 +100,23 @@ export async function payBudgetItem(itemId: string, pago: {
       trm_eur_cop: pago.trm_eur_cop,
       usd_eur_rate: pago.usd_eur_rate,
       departure_id: item.departure_id,
+      budget_item_id: item.id,
       payment_method: pago.method,
       account: pago.account,
       notes: pago.notes,
-    });
+    }).select("amount_eur").single();
     if (error) throw new Error(error.message);
+    paidEur = data?.amount_eur ?? null;
   }
 
-  const { error: updErr } = await supabase.from("budget_items").update({ status: "pagado" }).eq("id", itemId);
+  // Para items sin reserva, el pago liquida el item completo: reflejamos el costo
+  // real como costo confirmado. Los items ligados a una reserva toman su costo
+  // confirmado de la reserva, no de un abono individual.
+  const update: Record<string, any> = { status: "pagado" };
+  if (!item.reservation_id && paidEur && item.quantity > 0) {
+    update.confirmed_unit_cost_eur = Number((paidEur / item.quantity).toFixed(2));
+  }
+  const { error: updErr } = await supabase.from("budget_items").update(update).eq("id", itemId);
   if (updErr) throw new Error(updErr.message);
 
   revalidatePath(`/caminos/${item.departure_id}`);

@@ -10,23 +10,26 @@ import { MealCoverageBanner } from "@/components/departures/meal-coverage-banner
 import { DeletePassportsButton } from "@/components/departures/delete-passports-button";
 import { ResumenTab } from "@/components/departures/tabs/resumen-tab";
 import { PeregrinosTab } from "@/components/departures/tabs/peregrinos-tab";
+import { PagosTab } from "@/components/departures/tabs/pagos-tab";
 import { PresupuestoTab } from "@/components/departures/tabs/presupuesto-tab";
 import { ViaticosTab } from "@/components/departures/tabs/viaticos-tab";
 import { ReservasTab } from "@/components/departures/tabs/reservas-tab";
 import { GastosTab } from "@/components/departures/tabs/gastos-tab";
-import { computeBreakEven, type DepartureFinance } from "@/lib/finance";
-import { TrmProvider, TrmSelector, EurCop } from "@/components/ui/eur-cop";
+import { MoneyPanorama } from "@/components/departures/money-panorama";
+import { type DepartureFinance } from "@/lib/finance";
+import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
 import type { Departure } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
 const TABS = [
   { value: "resumen", label: "Resumen" },
+  { value: "pagos", label: "Pagos" },
   { value: "peregrinos", label: "Peregrinos" },
   { value: "presupuesto", label: "Presupuesto" },
   { value: "viaticos", label: "Viáticos equipo" },
   { value: "reservas", label: "Reservas" },
-  { value: "gastos", label: "Gastos" },
+  { value: "gastos", label: "Otros gastos" },
 ];
 
 export default async function DepartureDetailPage({
@@ -45,8 +48,9 @@ export default async function DepartureDetailPage({
   if (!departure) notFound();
   const d = departure as Departure;
 
-  const [{ data: finance }, { data: latestTrm }] = await Promise.all([
+  const [{ data: finance }, { data: payable }, { data: latestTrm }] = await Promise.all([
     supabase.from("v_departure_finance").select("*").eq("departure_id", params.id).maybeSingle(),
+    supabase.from("v_departure_payable").select("*").eq("departure_id", params.id).maybeSingle(),
     supabase.from("trm_rates").select("eur_cop").order("date", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
@@ -55,12 +59,6 @@ export default async function DepartureDetailPage({
   const days = d.start_date ? daysUntil(d.start_date) : null;
   const needsFreeze = days !== null && days <= 30 && days >= -7 && !d.trm_frozen_at_date;
   const activeTab = searchParams.tab ?? "resumen";
-
-  const be = f ? computeBreakEven(f) : null;
-  const utilPositive = f && Number(f.utilidad_total_eur) >= 0;
-  const capacityProgress = f && d.capacity && d.capacity > 0
-    ? Math.min(100, Math.round((f.pagantes_count / d.capacity) * 100))
-    : 0;
 
   return (
     <TrmProvider defaultTrm={defaultTrm}>
@@ -88,75 +86,7 @@ export default async function DepartureDetailPage({
       </div>
 
       {f && (
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-          <Card className="border-camino-yellow border-2">
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Peregrinos inscritos</div>
-              <div className="text-xl sm:text-2xl font-display font-semibold mt-1">
-                {f.pagantes_count}{d.capacity ? <span className="text-muted-foreground text-base"> / {d.capacity}</span> : null}
-              </div>
-              <div className="text-xs text-muted-foreground">+ {f.team_count} equipo</div>
-              {d.capacity ? (
-                <div className="mt-2 h-1.5 bg-cream-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-camino-yellow" style={{ width: `${capacityProgress}%` }} />
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Viáticos equipo</div>
-              <div className="text-xl sm:text-2xl font-display font-semibold mt-1">
-                <EurCop value={f.viatico_team_eur} />
-              </div>
-              <div className="text-xs text-muted-foreground">
-                ÷ {f.pagantes_count || "?"} = <EurCop value={f.pagantes_count > 0 ? Number(f.viatico_team_eur) / f.pagantes_count : 0} /> /peregrino
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className={utilPositive ? "border-green-200 border-2" : "border-red-200 border-2"}>
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilidad proyectada</div>
-              <div className={`text-xl sm:text-2xl font-display font-semibold mt-1 ${utilPositive ? "text-green-700" : "text-red-700"}`}>
-                <EurCop value={f.utilidad_total_eur} />
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <EurCop value={f.utilidad_por_pagante_eur} /> por peregrino
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Costo por pagante</div>
-              <div className="text-xl sm:text-2xl font-display font-semibold mt-1">
-                <EurCop value={f.costo_por_pagante_unitario_eur} />
-              </div>
-              <div className="text-xs text-muted-foreground">vs <EurCop value={f.precio_promedio_pagante_eur} /> promedio</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Punto de equilibrio</div>
-              {be && be.reachable && be.n != null ? (
-                <>
-                  <div className="text-xl sm:text-2xl font-display font-semibold mt-1">{be.n} <span className="text-base text-muted-foreground">pagantes</span></div>
-                  <div className="text-xs text-muted-foreground">
-                    {f.pagantes_count >= be.n ? "✓ Alcanzado" : `Faltan ${be.n - f.pagantes_count}`}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-xl sm:text-2xl font-display font-semibold mt-1 text-red-700">No alcanza</div>
-                  <div className="text-xs text-muted-foreground">Revisá precio o viáticos</div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
       )}
 
       <CriticalAlertsBanner departureId={d.id} inscritosTotal={f?.inscritos_total ?? 0} />
@@ -191,6 +121,7 @@ export default async function DepartureDetailPage({
 
       <div>
         {activeTab === "resumen" && <ResumenTab departureId={d.id} />}
+        {activeTab === "pagos" && <PagosTab departureId={d.id} />}
         {activeTab === "peregrinos" && <PeregrinosTab departureId={d.id} />}
         {activeTab === "presupuesto" && <PresupuestoTab departureId={d.id} />}
         {activeTab === "viaticos" && <ViaticosTab departureId={d.id} />}
