@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPilgrimPayment, getTrmForDate } from "@/lib/actions/payments";
-import { PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
+import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
+import { Global66Fields } from "@/components/ui/global66-fields";
+import { global66Rate } from "@/lib/global66";
 import { toast } from "@/components/ui/toaster";
 import { CreditCard } from "lucide-react";
 
@@ -28,10 +30,16 @@ export function NewPaymentDialog({
   const [usdRate, setUsdRate] = useState("");
   const [method, setMethod] = useState(PAYMENT_METHODS[0]);
   const [account, setAccount] = useState(ACCOUNTS[0]);
+  const [eurReceived, setEurReceived] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const router = useRouter();
+
+  // Global 66: la peregrina paga en COP y a la cuenta entran euros a la tasa de
+  // Global 66. La cuenta destino es la propia Global 66.
+  const esGlobal66 = method === GLOBAL66;
+  const conversionGlobal66 = esGlobal66 && currency === "COP";
 
   useEffect(() => {
     if (currency === "COP" && open) {
@@ -41,17 +49,29 @@ export function NewPaymentDialog({
     }
   }, [currency, paidAt, open]);
 
+  function onMethodChange(m: string) {
+    setMethod(m);
+    if (m === GLOBAL66) {
+      setAccount(GLOBAL66);
+      setCurrency("COP");
+    }
+  }
+
   async function submit() {
     setSaving(true);
     try {
       const a = Number(amount);
       if (!a || a <= 0) throw new Error("Monto inválido");
+      const tasaGlobal66 = conversionGlobal66 ? global66Rate(a, Number(eurReceived)) : null;
+      if (conversionGlobal66 && !tasaGlobal66) {
+        throw new Error(`Indicá los euros que entraron a ${GLOBAL66}.`);
+      }
       await createPilgrimPayment({
         registration_id: registrationId,
         paid_at: paidAt,
         amount: a,
         currency,
-        trm_eur_cop: currency === "COP" ? Number(trm) || null : null,
+        trm_eur_cop: conversionGlobal66 ? tasaGlobal66 : currency === "COP" ? Number(trm) || null : null,
         usd_eur_rate: currency === "USD" ? Number(usdRate) || null : null,
         method,
         account,
@@ -81,7 +101,7 @@ export function NewPaymentDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Fecha *</Label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
             <div className="grid gap-2"><Label>Método</Label>
-              <select value={method} onChange={(e) => setMethod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
@@ -95,7 +115,16 @@ export function NewPaymentDialog({
               </select>
             </div>
           </div>
-          {currency === "COP" && (
+          {conversionGlobal66 && (
+            <Global66Fields
+              amountCop={Number(amount)}
+              eur={eurReceived}
+              onEurChange={setEurReceived}
+              marketTrm={Number(trm) || null}
+              direction="in"
+            />
+          )}
+          {currency === "COP" && !conversionGlobal66 && (
             <div className="grid gap-2">
               <Label>TRM EUR/COP (autocompletado desde TRM del día)</Label>
               <Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} placeholder="4500.00" />

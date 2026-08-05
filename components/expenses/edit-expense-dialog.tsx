@@ -10,10 +10,12 @@ import { updateExpense, deleteExpense } from "@/lib/actions/expenses";
 import {
   PAYMENT_METHODS,
   ACCOUNTS,
+  GLOBAL66,
   EXPENSE_KINDS,
   EXPENSE_CATEGORIES_OPERATIVO,
   EXPENSE_CATEGORIES_PERSONAL,
 } from "@/lib/constants";
+import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -23,8 +25,20 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
   const [deleting, setDeleting] = useState(false);
   const [kind, setKind] = useState<"operativo" | "personal">(expense.kind);
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(expense.currency ?? "COP");
+  const [amount, setAmount] = useState(String(expense.amount ?? ""));
+  const [method, setMethod] = useState(expense.payment_method ?? "");
+  const [account, setAccount] = useState(expense.account ?? "");
+  const [eurSent, setEurSent] = useState(expense.amount_eur != null ? String(expense.amount_eur) : "");
   const router = useRouter();
   const cats = kind === "operativo" ? EXPENSE_CATEGORIES_OPERATIVO : EXPENSE_CATEGORIES_PERSONAL;
+
+  // Con Global 66 se debita COP y sale en euros a la tasa de Global 66.
+  const conversionGlobal66 = method === GLOBAL66 && currency === "COP";
+
+  function onMethodChange(m: string) {
+    setMethod(m);
+    if (m === GLOBAL66) setAccount(GLOBAL66);
+  }
 
   async function onDelete() {
     if (!confirm("¿Eliminar este gasto?")) return;
@@ -91,14 +105,24 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           </div>
           <div className="grid gap-2"><Label>Descripción</Label><Input name="description" defaultValue={expense.description ?? ""} /></div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-2 sm:col-span-2"><Label>Monto</Label><Input name="amount" type="number" step="0.01" defaultValue={expense.amount} /></div>
+            <div className="grid gap-2 sm:col-span-2"><Label>Monto</Label><Input name="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
               <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="COP">COP</option><option value="EUR">EUR</option>
               </select>
             </div>
           </div>
-          {currency === "COP" && (
+          {conversionGlobal66 && (
+            <Global66Fields
+              amountCop={Number(amount)}
+              eur={eurSent}
+              onEurChange={setEurSent}
+              marketTrm={null}
+              direction="out"
+              trmInputName="trm_eur_cop"
+            />
+          )}
+          {currency === "COP" && !conversionGlobal66 && (
             <div className="grid gap-2"><Label>TRM (COP por EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" defaultValue={expense.trm_eur_cop ?? ""} /></div>
           )}
           {kind === "operativo" && (
@@ -111,13 +135,13 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Método</Label>
-              <select name="payment_method" defaultValue={expense.payment_method ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="payment_method" value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">—</option>
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div className="grid gap-2"><Label>Cuenta / dónde está la plata</Label>
-              <select name="account" defaultValue={expense.account ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">—</option>
                 {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>

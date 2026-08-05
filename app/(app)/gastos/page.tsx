@@ -7,8 +7,10 @@ import { formatDate, formatEUR } from "@/lib/utils";
 import { NewExpenseDialog } from "@/components/expenses/new-expense-dialog";
 import { EditExpenseDialog } from "@/components/expenses/edit-expense-dialog";
 import { ExpensesFilters } from "@/components/expenses/expenses-filters";
+import { AccountBalancesCard } from "@/components/finance/account-balances-card";
 import { TrendingUp, TrendingDown, Wallet, ExternalLink, AlertCircle } from "lucide-react";
 import { EurCop, TrmSelector } from "@/components/ui/eur-cop";
+import type { AccountBalance, AccountCurrencyBreakdown } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -44,26 +46,54 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
     .order("check_in", { ascending: true, nullsFirst: false });
   if (departure_id) pq = pq.eq("departure_id", departure_id);
 
+  // Pendientes del presupuesto SIN reserva (viáticos, tiquetes, materiales…): lo que
+  // el listado de reservas no muestra. Junto con `pq` cubren el total "por pagar".
+  let bpq = supabase
+    .from("v_budget_payable")
+    .select("*")
+    .is("reservation_id", null)
+    .gt("saldo_eur", 0.01)
+    .order("item_date", { ascending: true, nullsFirst: false });
+  if (departure_id) bpq = bpq.eq("departure_id", departure_id);
+
+  let payq = supabase.from("v_departure_payable").select("*");
+  if (departure_id) payq = payq.eq("departure_id", departure_id);
+
   const [
     { data: movements },
     { data: departures },
     { data: providers },
+    { data: reservations },
+    { data: budgetItems },
     { data: accounts },
     { data: global },
+    { data: accountsByCurrency },
     { data: pending },
+    { data: budgetPending },
+    { data: payable },
   ] = await Promise.all([
     mq,
     supabase.from("departures").select("id, name").order("start_date"),
-    supabase.from("providers").select("id, name"),
+    supabase.from("providers").select("id, name, type, active"),
+    supabase.from("reservations").select("id, departure_id, provider_id, type, location, status").neq("status", "cancelado"),
+    supabase.from("budget_items").select("id, departure_id, description, scaling, status").neq("status", "cancelado").order("position"),
     supabase.from("v_account_balances").select("*"),
     supabase.from("v_financial_global").select("*").maybeSingle(),
+    supabase.from("v_account_currency_breakdown").select("*"),
     pq,
+    bpq,
+    payq,
   ]);
 
   const depByid = new Map<string, string>();
   (departures ?? []).forEach((d: any) => depByid.set(d.id, d.name));
   const provByid = new Map<string, string>();
   (providers ?? []).forEach((p: any) => provByid.set(p.id, p.name));
+  const activeProviders = (providers ?? []).filter((p: any) => p.active !== false);
+
+  // "Por pagar" total = saldo del modelo completo por ítem (incluye viáticos y tiquetes)
+  const totalPorPagar = (payable ?? []).reduce((s: number, r: any) => s + Number(r.falta_por_pagar_eur || 0), 0);
+  const budgetPendingTotal = (budgetPending ?? []).reduce((s: number, r: any) => s + Number(r.saldo_eur || 0), 0);
 
   const totalEur = (movements ?? []).reduce((s: number, r: any) => s + Number(r.amount_eur || 0), 0);
   const totalOp = (movements ?? []).filter((r: any) => r.kind === "operativo").reduce((s: number, r: any) => s + Number(r.amount_eur || 0), 0);
@@ -78,9 +108,6 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
   const realizedProfit = Number(g.realized_operational_profit_eur ?? 0);
   const cashAvailable = Number(g.cash_available_eur ?? 0);
 
-  const sortedAccounts = (accounts ?? []).slice().sort((a: any, b: any) => Number(b.saldo_eur) - Number(a.saldo_eur));
-  const totalSaldo = sortedAccounts.reduce((s: number, a: any) => s + Number(a.saldo_eur ?? 0), 0);
-
   const totalPending = (pending ?? []).reduce((s: number, p: any) => s + Number(p.saldo_eur || 0), 0);
 
   return (
@@ -93,7 +120,13 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <TrmSelector />
-          <NewExpenseDialog departures={departures ?? []} defaultDepartureId={departure_id} />
+          <NewExpenseDialog
+            departures={departures ?? []}
+            providers={activeProviders}
+            reservations={reservations ?? []}
+            budgetItems={budgetItems ?? []}
+            defaultDepartureId={departure_id}
+          />
         </div>
       </div>
 
@@ -121,8 +154,8 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-900">
               <AlertCircle className="h-3 w-3" /> Pendiente por pagar
             </div>
-            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-amber-900"><EurCop value={totalPending} /></div>
-            <div className="text-[11px] sm:text-xs text-muted-foreground">{pending?.length ?? 0} reservas con saldo</div>
+            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-amber-900"><EurCop value={totalPorPagar} /></div>
+            <div className="text-[11px] sm:text-xs text-muted-foreground">reservas + viáticos + tiquetes del presupuesto</div>
           </CardContent>
         </Card>
         <Card className={realizedProfit >= 0 ? "border-green-200 border-2" : "border-red-200 border-2"}>
@@ -143,47 +176,10 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
-            <span>Saldo por cuenta</span>
-            <span className="text-sm text-muted-foreground">Total: <strong className="text-foreground"><EurCop value={totalSaldo} /></strong></span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {sortedAccounts.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">Sin movimientos cargados con cuenta.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cuenta</TableHead>
-                  <TableHead className="text-right">Ingresos</TableHead>
-                  <TableHead className="text-right">Pagos proveedores</TableHead>
-                  <TableHead className="text-right">Operativos</TableHead>
-                  <TableHead className="text-right">Personales</TableHead>
-                  <TableHead className="text-right">Saldo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedAccounts.map((a: any) => {
-                  const saldo = Number(a.saldo_eur ?? 0);
-                  return (
-                    <TableRow key={a.account}>
-                      <TableCell className="font-medium">{a.account}</TableCell>
-                      <TableCell className="text-right text-green-700"><EurCop value={a.ingresos_eur} /></TableCell>
-                      <TableCell className="text-right"><EurCop value={a.egresos_proveedores_eur} /></TableCell>
-                      <TableCell className="text-right"><EurCop value={a.egresos_operativos_eur} /></TableCell>
-                      <TableCell className="text-right text-muted-foreground"><EurCop value={a.egresos_personales_eur} /></TableCell>
-                      <TableCell className={`text-right font-semibold ${saldo < 0 ? "text-red-700" : "text-foreground"}`}><EurCop value={saldo} /></TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <AccountBalancesCard
+        accounts={(accounts as AccountBalance[]) ?? []}
+        breakdown={(accountsByCurrency as AccountCurrencyBreakdown[]) ?? []}
+      />
 
       <Card className="border-amber-300 border-2">
         <CardHeader>
@@ -257,6 +253,49 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                     </TableRow>
                   );
                 })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-amber-200 border">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
+            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-amber-700" /> Pendiente del presupuesto (viáticos, tiquetes, materiales…)</span>
+            <span className="text-sm text-muted-foreground">Total: <strong className="text-amber-900"><EurCop value={budgetPendingTotal} /></strong></span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {(!budgetPending || budgetPending.length === 0) ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Sin ítems de presupuesto pendientes (fuera de reservas).</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Ítem</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Camino</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Costo modelo</TableHead>
+                  <TableHead className="text-right">Pagado</TableHead>
+                  <TableHead className="text-right">Saldo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {budgetPending.map((b: any) => (
+                  <TableRow key={b.budget_item_id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{b.item_date ? formatDate(b.item_date) : "—"}</TableCell>
+                    <TableCell className="font-medium">{b.description}</TableCell>
+                    <TableCell className="text-sm">{b.category}</TableCell>
+                    <TableCell className="text-sm">{depByid.get(b.departure_id) ?? "—"}</TableCell>
+                    <TableCell>{b.scaling === "viatico_team" ? <Badge variant="warning">Viático equipo</Badge> : <Badge variant="muted">{b.scaling}</Badge>}</TableCell>
+                    <TableCell className="text-right text-sm"><EurCop value={b.line_total_eur} /></TableCell>
+                    <TableCell className="text-right text-sm">{Number(b.paid_eur) > 0 ? <span className="text-green-700"><EurCop value={b.paid_eur} hideZeroCop /></span> : <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-right font-semibold text-amber-900"><EurCop value={b.saldo_eur} /></TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}

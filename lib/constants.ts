@@ -1,4 +1,20 @@
-export const PAYMENT_METHODS = ["Wise", "Bancolombia", "Nequi", "Efectivo", "PayPal", "Transferencia", "Otro"];
+/**
+ * Global 66: se paga en COP y la plata entra/sale en EUR con la tasa propia de
+ * Global 66 (no la TRM del día). Por eso los diálogos de pago piden los euros
+ * reales y calculan la tasa efectiva. Es a la vez método y cuenta.
+ */
+export const GLOBAL66 = "Global 66";
+
+export const PAYMENT_METHODS = [
+  "Wise",
+  GLOBAL66,
+  "Bancolombia",
+  "Nequi",
+  "Efectivo",
+  "PayPal",
+  "Transferencia",
+  "Otro",
+];
 export const CURRENCIES = ["EUR", "COP", "USD"] as const;
 
 export const ACCOUNTS = [
@@ -7,6 +23,7 @@ export const ACCOUNTS = [
   "Bancolombia Camino",
   "Santander España",
   "Wise",
+  GLOBAL66,
   "PayPal",
   "Nequi",
   "Otro",

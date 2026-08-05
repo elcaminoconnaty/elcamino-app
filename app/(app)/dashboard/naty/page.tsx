@@ -1,30 +1,42 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatEUR, formatDate, daysUntil } from "@/lib/utils";
-import type { FinancialGlobal, DepartureSummary } from "@/types/db";
+import type { FinancialGlobal, DepartureSummary, AccountBalance, AccountCurrencyBreakdown } from "@/types/db";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { AccountBalancesCard } from "@/components/finance/account-balances-card";
 
 export const dynamic = "force-dynamic";
 
 export default async function NatyDashboard() {
   const supabase = createClient();
-  const [{ data: g }, { data: dps }, { data: upcoming }, { data: fin }] = await Promise.all([
+  const [
+    { data: g },
+    { data: dps },
+    { data: upcoming },
+    { data: fin },
+    { data: payable },
+    { data: accounts },
+    { data: accountsByCurrency },
+  ] = await Promise.all([
     supabase.from("v_financial_global").select("*").maybeSingle(),
     supabase.from("v_departure_summary").select("*").order("start_date", { ascending: true }),
     supabase.from("v_upcoming_installments").select("*").limit(15),
     supabase.from("v_departure_finance").select("departure_id, name, costo_peregrinos_eur, costo_equipo_eur, fijo_grupo_eur, costo_total_eur").order("start_date", { ascending: true }),
+    supabase.from("v_departure_payable").select("*"),
+    supabase.from("v_account_balances").select("*"),
+    supabase.from("v_account_currency_breakdown").select("*"),
   ]);
   const global = (g as FinancialGlobal) ?? null;
   const departures = (dps as DepartureSummary[]) ?? [];
   const upcomingInstallments = upcoming ?? [];
   const totalUpcoming = upcomingInstallments.reduce((s: number, i: any) => s + Number(i.amount_eur || 0), 0);
 
-  // Lo que falta por pagar del costo de cada camino (costo confirmado/estimado − ya pagado a proveedores)
-  const faltaPorPagar = departures.reduce(
-    (s, d) => s + Math.max(0, Number(d.confirmed_or_estimated_cost_eur || 0) - Number(d.paid_to_providers_eur || 0)),
-    0
-  );
+  // Falta por pagar por ítem del presupuesto (incluye viáticos y tiquetes, descuenta
+  // pagos hechos como provider_payment o como gasto vinculado). Fuente: v_budget_payable.
+  const payableByDep = new Map<string, number>();
+  (payable ?? []).forEach((p: any) => payableByDep.set(p.departure_id, Number(p.falta_por_pagar_eur || 0)));
+  const faltaPorPagar = (payable ?? []).reduce((s: number, p: any) => s + Number(p.falta_por_pagar_eur || 0), 0);
 
   const finRows = (fin ?? []) as any[];
   const costoPeregrinosGlobal = finRows.reduce((s, r) => s + Number(r.costo_peregrinos_eur || 0), 0);
@@ -45,7 +57,7 @@ export default async function NatyDashboard() {
         <KPI label="Plata disponible" value={formatEUR(global?.cash_available_eur)} hint="Cobrado − pagado prov. − operativo − personal" accent />
         <KPI label="Utilidad proyectada" value={formatEUR(global?.projected_profit_eur)} hint="Ingresos esperados − costo estimado" />
         <KPI label="Pendiente por entrar" value={formatEUR(global?.pending_revenue_eur)} hint="De peregrinos inscritos" />
-        <KPI label="Falta por pagar" value={formatEUR(faltaPorPagar)} hint="Costo de los caminos − ya pagado a proveedores" />
+        <KPI label="Falta por pagar" value={formatEUR(faltaPorPagar)} hint="Costo del presupuesto − ya pagado (incluye viáticos y tiquetes)" />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -53,6 +65,22 @@ export default async function NatyDashboard() {
         <KPI label="Pagado a proveedores" value={formatEUR(global?.paid_providers_eur)} small />
         <KPI label="Gastos operativos" value={formatEUR(global?.operational_expenses_eur)} small />
         <KPI label="Retiros personales" value={formatEUR(global?.personal_withdrawals_eur)} small />
+      </section>
+
+      <section>
+        <div className="mb-4">
+          <h2 className="font-display text-xl text-camino-ink">Dónde está la plata</h2>
+          <p className="text-sm text-muted-foreground">
+            Saldo de cada cuenta. En las que hubo cambio de divisa (Global 66, bancos en COP) se ve
+            cuánto se pagó en pesos, cuánto quedó en euros y a qué tasa.
+          </p>
+        </div>
+        <AccountBalancesCard
+          accounts={(accounts as AccountBalance[]) ?? []}
+          breakdown={(accountsByCurrency as AccountCurrencyBreakdown[]) ?? []}
+          variant="compact"
+          title="Cuentas"
+        />
       </section>
 
       <section>
@@ -180,7 +208,7 @@ export default async function NatyDashboard() {
                       <div className="h-full bg-camino-yellow" style={{ width: `${collectedPct}%` }} />
                     </div>
                     <Row label="Costo (estimado/confirmado)" value={formatEUR(d.confirmed_or_estimated_cost_eur)} />
-                    <Row label="Falta por pagar" value={formatEUR(Math.max(0, (d.confirmed_or_estimated_cost_eur || 0) - (d.paid_to_providers_eur || 0)))} />
+                    <Row label="Falta por pagar" value={formatEUR(payableByDep.get(d.departure_id) ?? 0)} />
                     <Row label="Utilidad proyectada" value={formatEUR(projectedProfit)} bold />
                   </CardContent>
                 </Card>

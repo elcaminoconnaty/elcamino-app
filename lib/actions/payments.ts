@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { assertGlobal66Rate } from "@/lib/global66";
 
 export async function createPilgrimPayment(input: {
   registration_id: string;
@@ -17,6 +18,7 @@ export async function createPilgrimPayment(input: {
   if (input.currency === "USD" && (!input.usd_eur_rate || input.usd_eur_rate <= 0)) {
     throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
   }
+  assertGlobal66Rate(input.method, input.currency, input.trm_eur_cop);
   const supabase = createClient();
   const { data, error } = await supabase
     .from("pilgrim_payments")
@@ -43,6 +45,7 @@ export async function updatePilgrimPayment(id: string, input: {
   if (input.currency === "USD" && (!input.usd_eur_rate || input.usd_eur_rate <= 0)) {
     throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
   }
+  if (input.currency) assertGlobal66Rate(input.method, input.currency, input.trm_eur_cop);
   const supabase = createClient();
   const { error } = await supabase.from("pilgrim_payments").update(input).eq("id", id);
   if (error) throw new Error(error.message);

@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { assertGlobal66Rate } from "@/lib/global66";
 
 export async function createReservation(formData: FormData) {
   const supabase = createClient();
@@ -108,10 +109,12 @@ export async function createProviderPayment(formData: FormData) {
   if (currency === "USD" && (!usdRate || usdRate <= 0)) {
     throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
   }
+  assertGlobal66Rate(formData.get("method")?.toString(), currency, trm);
   // amount_eur lo calcula el trigger de la BD (fuente única de conversión)
   const payload = {
     provider_id: formData.get("provider_id")?.toString() || "",
     reservation_id: formData.get("reservation_id")?.toString() || null,
+    budget_item_id: formData.get("budget_item_id")?.toString() || null,
     departure_id: formData.get("departure_id")?.toString() || null,
     paid_at: formData.get("paid_at")?.toString() || new Date().toISOString().slice(0, 10),
     amount,

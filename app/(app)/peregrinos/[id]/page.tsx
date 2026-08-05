@@ -188,7 +188,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
-                      <TableHead className="text-right">TRM</TableHead>
+                      <TableHead className="text-right">Tasa</TableHead>
                       <TableHead className="text-right">EUR</TableHead>
                       <TableHead>Cuenta</TableHead>
                       <TableHead>Método</TableHead>

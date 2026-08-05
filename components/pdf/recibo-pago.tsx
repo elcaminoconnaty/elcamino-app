@@ -1,4 +1,5 @@
 import { Page, Document, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { GLOBAL66 } from "@/lib/constants";
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontSize: 11, fontFamily: "Helvetica", color: "#1a1a1a", backgroundColor: "#fdfaf3" },
@@ -85,7 +86,11 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
           </Text>
           <View style={styles.row}><Text style={styles.rowLabel}>Equivalente en EUR</Text><Text style={styles.rowValue}>{fmt.eur(data.amount_eur)}</Text></View>
           {data.trm_eur_cop && (
-            <View style={styles.row}><Text style={styles.rowLabel}>TRM aplicada</Text><Text>{fmt.num(data.trm_eur_cop)} COP/EUR</Text></View>
+            <View style={styles.row}>
+              {/* Con Global 66 la tasa es la de la plataforma (comisión incluida), no la TRM del día */}
+              <Text style={styles.rowLabel}>{data.method === GLOBAL66 ? `Tasa ${GLOBAL66}` : "TRM aplicada"}</Text>
+              <Text>{fmt.num(data.trm_eur_cop)} COP/EUR</Text>
+            </View>
           )}
           {data.method && <View style={styles.row}><Text style={styles.rowLabel}>Método</Text><Text>{data.method}</Text></View>}
           {data.reference && <View style={styles.row}><Text style={styles.rowLabel}>Referencia</Text><Text>{data.reference}</Text></View>}

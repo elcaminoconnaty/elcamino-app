@@ -10,7 +10,8 @@ import { createProviderPayment, deleteProviderPayment } from "@/lib/actions/rese
 import { getReservationPayments } from "@/lib/actions/provider-payments";
 import { getReservationSchedule, markScheduleItemPaid } from "@/lib/actions/reservation-schedule";
 import { getTrmForDate } from "@/lib/actions/payments";
-import { PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
+import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
+import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
 import { formatEUR, formatDate } from "@/lib/utils";
 import { CreditCard, Trash2, Calendar } from "lucide-react";
@@ -32,12 +33,24 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [trm, setTrm] = useState("");
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState(PAYMENT_METHODS[0]);
+  const [account, setAccount] = useState(ACCOUNTS[0]);
+  const [eurSent, setEurSent] = useState("");
   const router = useRouter();
 
   const cost = Number(reservation.confirmed_cost_eur ?? reservation.estimated_cost_eur ?? 0);
   const paid = (payments ?? []).reduce((s, p) => s + Number(p.amount_eur || 0), 0);
   const pct = cost > 0 ? Math.min(100, Math.round((paid / cost) * 1000) / 10) : 0;
   const saldo = Math.max(0, cost - paid);
+
+  // Con Global 66 se debita COP y al proveedor le llegan euros a la tasa de Global 66.
+  const conversionGlobal66 = method === GLOBAL66 && currency === "COP";
+
+  function onMethodChange(m: string) {
+    setMethod(m);
+    if (m === GLOBAL66) setAccount(GLOBAL66);
+  }
 
   useEffect(() => {
     if (open && payments === null) {
@@ -48,6 +61,14 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
     }
     if (!open) { setPayments(null); setSchedule(null); setSelectedScheduleId(""); }
   }, [open, reservation.id, payments, schedule]);
+
+  // El monto arranca (y vuelve tras registrar un pago) en el saldo pendiente.
+  useEffect(() => {
+    if (open && payments !== null) {
+      setAmount(saldo > 0 ? saldo.toFixed(2) : "");
+      setEurSent("");
+    }
+  }, [open, payments, saldo]);
 
   useEffect(() => {
     if (currency === "COP" && open) {
@@ -136,7 +157,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
                     ) : (
                       <button
                         type="button"
-                        onClick={() => { setSelectedScheduleId(s.id); (document.getElementById("res-pay-amount") as HTMLInputElement).value = String(s.amount_eur); }}
+                        onClick={() => { setSelectedScheduleId(s.id); setAmount(String(s.amount_eur)); }}
                         className="text-camino-deepYellow hover:underline text-[10px]"
                       >
                         usar
@@ -193,7 +214,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
             <div className="grid gap-1.5"><Label className="text-xs">Fecha</Label><Input name="paid_at" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
             <div className="grid gap-1.5 sm:col-span-2"><Label className="text-xs">Monto</Label>
               <div className="flex gap-2">
-                <Input id="res-pay-amount" name="amount" type="number" step="0.01" required defaultValue={saldo > 0 ? saldo.toFixed(2) : ""} />
+                <Input id="res-pay-amount" name="amount" type="number" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} />
                 <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                   <option value="EUR">EUR</option>
                   <option value="COP">COP</option>
@@ -201,17 +222,27 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
               </div>
             </div>
           </div>
-          {currency === "COP" && (
+          {conversionGlobal66 && (
+            <Global66Fields
+              amountCop={Number(amount)}
+              eur={eurSent}
+              onEurChange={setEurSent}
+              marketTrm={Number(trm) || null}
+              direction="out"
+              trmInputName="trm_eur_cop"
+            />
+          )}
+          {currency === "COP" && !conversionGlobal66 && (
             <div className="grid gap-1.5"><Label className="text-xs">TRM (COP por EUR)</Label><Input name="trm_eur_cop" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5"><Label className="text-xs">Método</Label>
-              <select name="method" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="method" value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div className="grid gap-1.5"><Label className="text-xs">Cuenta (de dónde sale)</Label>
-              <select name="account" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>

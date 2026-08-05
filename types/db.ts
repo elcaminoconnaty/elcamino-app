@@ -62,6 +62,7 @@ export type PilgrimPayment = {
   usd_eur_rate: number | null;
   amount_eur: number | null;
   method: string | null;
+  account: string | null;
   reference: string | null;
   receipt_pdf_path: string | null;
   proof_path: string | null;
@@ -111,6 +112,7 @@ export type ProviderPayment = {
   usd_eur_rate: number | null;
   amount_eur: number | null;
   method: string | null;
+  account: string | null;
   reference: string | null;
   receipt_path: string | null;
   notes: string | null;
@@ -147,6 +149,7 @@ export type Expense = {
   amount_eur: number | null;
   departure_id: string | null;
   payment_method: string | null;
+  account: string | null;
   receipt_path: string | null;
   notes: string | null;
 };
@@ -202,6 +205,27 @@ export type DepartureSummary = {
   operational_expenses_eur: number;
   trm_frozen_at_date: string | null;
   trm_frozen_value: number | null;
+};
+
+export type AccountBalance = {
+  account: string;
+  ingresos_eur: number;
+  egresos_proveedores_eur: number;
+  egresos_operativos_eur: number;
+  egresos_personales_eur: number;
+  saldo_eur: number;
+};
+
+/** Por cuenta y divisa de origen: cuánto se movió en la moneda original, cuánto
+ * quedó en EUR y a qué tasa (para Global 66: pesos pagados → euros recibidos). */
+export type AccountCurrencyBreakdown = {
+  account: string;
+  direction: "ingreso" | "egreso";
+  currency: "EUR" | "COP" | "USD";
+  movimientos: number;
+  monto_origen: number;
+  monto_eur: number;
+  tasa_promedio: number | null;
 };
 
 export type FinancialGlobal = {

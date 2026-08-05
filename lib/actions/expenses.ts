@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { assertGlobal66Rate } from "@/lib/global66";
 
 export async function createExpense(formData: FormData) {
   const supabase = createClient();
@@ -19,10 +20,13 @@ export async function createExpense(formData: FormData) {
     trm_eur_cop: formData.get("trm_eur_cop") ? Number(formData.get("trm_eur_cop")) : null,
     usd_eur_rate: usdRate,
     departure_id: formData.get("departure_id")?.toString() || null,
+    provider_id: formData.get("provider_id")?.toString() || null,
+    budget_item_id: formData.get("budget_item_id")?.toString() || null,
     payment_method: formData.get("payment_method")?.toString() || null,
     account: formData.get("account")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
+  assertGlobal66Rate(payload.payment_method, payload.currency, payload.trm_eur_cop);
   const { error } = await supabase.from("expenses").insert(payload);
   if (error) throw new Error(error.message);
   revalidatePath("/gastos");
@@ -40,6 +44,7 @@ export async function deleteExpense(id: string) {
 
 export async function updateExpense(id: string, payload: any) {
   const supabase = createClient();
+  assertGlobal66Rate(payload.payment_method, payload.currency, payload.trm_eur_cop);
   const { error } = await supabase.from("expenses").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/gastos");
