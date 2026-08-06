@@ -3,6 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { assertGlobal66Rate } from "@/lib/global66";
 
+/** El wizard es una ruta aparte: revalidar /caminos/[id] no la alcanza. */
+function revalidateDeparture(departureId?: string | null) {
+  if (!departureId) return;
+  revalidatePath(`/caminos/${departureId}`);
+  revalidatePath(`/caminos/${departureId}/wizard`);
+}
+
 export async function createReservation(formData: FormData) {
   const supabase = createClient();
   const departure_id = formData.get("departure_id")?.toString() || "";
@@ -31,7 +38,7 @@ export async function createReservation(formData: FormData) {
   };
   const { data, error } = await supabase.from("reservations").insert(payload).select("id").single();
   if (error) throw new Error(error.message);
-  revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
   return data;
 }
 
@@ -39,14 +46,14 @@ export async function updateReservation(id: string, payload: any, departure_id?:
   const supabase = createClient();
   const { error } = await supabase.from("reservations").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
-  if (departure_id) revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
 }
 
 export async function deleteReservation(id: string, departure_id?: string) {
   const supabase = createClient();
   const { error } = await supabase.from("reservations").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  if (departure_id) revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
 }
 
 export async function updateProviderPayment(id: string, payload: any) {
@@ -143,5 +150,5 @@ export async function createProviderPayment(formData: FormData) {
   revalidatePath(`/proveedores/${payload.provider_id}`);
   revalidatePath("/gastos");
   revalidatePath("/dashboard/naty");
-  if (payload.departure_id) revalidatePath(`/caminos/${payload.departure_id}`);
+  revalidateDeparture(payload.departure_id);
 }

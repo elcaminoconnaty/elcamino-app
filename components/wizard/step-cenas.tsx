@@ -16,7 +16,8 @@ export async function StepCenas({ departureId }: { departureId: string }) {
       .select("*, providers(name, type)")
       .eq("departure_id", departureId)
       .eq("type", "cenas")
-      .order("check_in", { ascending: true, nullsFirst: false }),
+      .order("check_in", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true }),
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
   ]);
 
@@ -34,7 +35,7 @@ export async function StepCenas({ departureId }: { departureId: string }) {
         </CardHeader>
         <CardContent>
           <div className="flex justify-end mb-3">
-            <AddReservation departureId={departureId} providers={providers ?? []} />
+            <AddReservation departureId={departureId} providers={providers ?? []} defaultType="cenas" />
           </div>
 
           {(!reservations || reservations.length === 0) ? (
