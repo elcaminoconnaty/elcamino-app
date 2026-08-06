@@ -49,6 +49,7 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
           <AddBudgetItem
             departureId={departureId}
             providers={providers ?? []}
+            forceScaling="por_pagante"
             buttonLabel="Agregar item por peregrino"
           />
         </div>

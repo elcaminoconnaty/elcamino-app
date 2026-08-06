@@ -2,6 +2,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+/** El wizard es una ruta aparte: revalidar /caminos/[id] no la alcanza. */
+function revalidateDeparture(departureId?: string | null) {
+  if (!departureId) return;
+  revalidatePath(`/caminos/${departureId}`);
+  revalidatePath(`/caminos/${departureId}/wizard`);
+}
+
 export async function createBudgetItem(formData: FormData) {
   const supabase = createClient();
   const departure_id = formData.get("departure_id")?.toString() || "";
@@ -23,21 +30,21 @@ export async function createBudgetItem(formData: FormData) {
   };
   const { error } = await supabase.from("budget_items").insert(payload);
   if (error) throw new Error(error.message);
-  revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
 }
 
 export async function updateBudgetItem(id: string, payload: any, departure_id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("budget_items").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
 }
 
 export async function deleteBudgetItem(id: string, departure_id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("budget_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/caminos/${departure_id}`);
+  revalidateDeparture(departure_id);
 }
 
 /**
@@ -119,7 +126,7 @@ export async function payBudgetItem(itemId: string, pago: {
   const { error: updErr } = await supabase.from("budget_items").update(update).eq("id", itemId);
   if (updErr) throw new Error(updErr.message);
 
-  revalidatePath(`/caminos/${item.departure_id}`);
+  revalidateDeparture(item.departure_id);
   revalidatePath("/gastos");
   revalidatePath("/dashboard/naty");
 }
