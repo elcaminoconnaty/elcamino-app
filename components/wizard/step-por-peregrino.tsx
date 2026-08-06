@@ -6,25 +6,41 @@ import { AddBudgetItem } from "@/components/departures/add-budget-item";
 import { EditBudgetItemDialog } from "@/components/departures/edit-budget-item-dialog";
 import { Users } from "lucide-react";
 
+// Categorías que tienen su propio paso en el wizard — no se repiten acá.
+const CATEGORIAS_CON_PASO_PROPIO = ["Alojamiento", "Cenas", "Transporte"];
+
 export async function StepPorPeregrino({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: items }, { data: providers }, { data: finance }] = await Promise.all([
+  const [{ data: allItems }, { data: providers }, { data: finance }] = await Promise.all([
     supabase
       .from("budget_items")
       .select("*")
       .eq("departure_id", departureId)
-      .eq("scaling", "por_pagante")
+      // por_inscrito y por_pagante cuestan igual en el modelo (unit × inscritos),
+      // así que el paso muestra las dos y no esconde nada por la escala elegida.
+      .in("scaling", ["por_inscrito", "por_pagante"])
       .order("position"),
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
-    supabase.from("v_departure_finance").select("pagantes_count").eq("departure_id", departureId).maybeSingle(),
+    supabase
+      .from("v_departure_finance")
+      .select("team_count, inscritos_total")
+      .eq("departure_id", departureId)
+      .maybeSingle(),
   ]);
 
-  const pagantes = Number((finance as any)?.pagantes_count ?? 0);
+  const items = (allItems ?? []).filter(
+    (i: any) => !CATEGORIAS_CON_PASO_PROPIO.includes(i.category)
+  );
+
+  // Los ítems por-peregrino los consume TODO el que va, equipo incluido
+  // (misma regla que effectiveLineTotal en lib/finance.ts).
+  const inscritos = Number((finance as any)?.inscritos_total ?? 0);
+  const team = Number((finance as any)?.team_count ?? 0);
   const totalPorPersona = (items ?? []).reduce(
     (s: number, i: any) => s + Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0),
     0
   );
-  const totalGrupo = totalPorPersona * pagantes;
+  const totalGrupo = totalPorPersona * inscritos;
 
   return (
     <Card>
@@ -33,14 +49,19 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
           <div>
             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Items por peregrino</CardTitle>
             <CardDescription>
-              Servicios que se cobran por cada peregrino pagante: mochilas, materiales, vino, credenciales, seguro.
-              Cuando suma un peregrino, el costo crece linealmente.
+              Servicios que consume cada peregrino: traslado de mochilas, materiales, vino de bienvenida,
+              credenciales, seguro. Camas, cenas y transportes tienen su propio paso y no se repiten acá.
             </CardDescription>
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Por peregrino</div>
             <div className="text-lg font-display"><EurCop value={totalPorPersona} /></div>
-            <div className="text-[10px] text-muted-foreground">× {pagantes} = <EurCop value={totalGrupo} /></div>
+            <div className="text-[10px] text-muted-foreground">
+              × {inscritos} inscrito{inscritos !== 1 ? "s" : ""} = <EurCop value={totalGrupo} />
+            </div>
+            {team > 0 && (
+              <div className="text-[10px] text-muted-foreground">incluye al equipo ({team})</div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -49,14 +70,15 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
           <AddBudgetItem
             departureId={departureId}
             providers={providers ?? []}
-            forceScaling="por_pagante"
+            forceScaling="por_inscrito"
             buttonLabel="Agregar item por peregrino"
           />
         </div>
 
         {(!items || items.length === 0) ? (
           <div className="text-sm text-muted-foreground text-center py-6">
-            Sin items por peregrino. Aplicá la plantilla desde el paso 1 o agregá manualmente.
+            Sin items por peregrino. Aplicá la plantilla desde el paso 1 o agregá manualmente
+            (mochilas, materiales, vino de bienvenida, credenciales, seguro).
           </div>
         ) : (
           <div className="space-y-1">
