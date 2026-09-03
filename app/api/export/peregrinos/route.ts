@@ -20,7 +20,16 @@ export async function GET() {
     const bals = balancesByPilgrim.get(p.id) ?? [];
     const totalAcordado = bals.reduce((s, b) => s + Number(b.net_total_eur || 0), 0);
     const totalPagado = bals.reduce((s, b) => s + Number(b.paid_eur || 0), 0);
-    const totalPendiente = bals.reduce((s, b) => s + Number(b.pending_eur || 0), 0);
+    // El pendiente sale de la liquidación (con tasa de cierre son los abonos ya
+    // re-valorados; sin recálculo equivale al histórico). Se exportan las dos
+    // cifras de lo pagado para poder conciliar caja contra lo acreditado.
+    const totalAcreditado = bals.reduce((s, b) => s + Number(b.paid_eur_cierre || 0), 0);
+    const totalPendiente = bals.reduce((s, b) => s + Number(b.por_cobrar_eur || 0), 0);
+    const totalPorDevolver = bals.reduce((s, b) => s + Number(b.por_devolver_eur || 0), 0);
+    const difCambio = bals.reduce((s, b) => s + Number(b.fx_difference_eur || 0), 0);
+    const tasasCierre = Array.from(
+      new Set(bals.filter((b) => b.settlement_trm != null).map((b) => Number(b.settlement_trm)))
+    ).join("; ");
     const caminos = bals.map((b) => b.departure_name).join("; ");
     return {
       "Nombre": p.full_name,
@@ -39,8 +48,12 @@ export async function GET() {
       "Notas dietarias": p.dietary_notes ?? "",
       "Caminos": caminos,
       "Total acordado EUR": totalAcordado,
-      "Pagado EUR": totalPagado,
+      "Pagado EUR (entró en caja)": totalPagado,
+      "Tasa de cierre": tasasCierre,
+      "Acreditado EUR (a tasa cierre)": totalAcreditado,
+      "Diferencia en cambio EUR": difCambio,
       "Pendiente EUR": totalPendiente,
+      "Por devolver EUR": totalPorDevolver,
       "Notas": p.notes ?? "",
     };
   });

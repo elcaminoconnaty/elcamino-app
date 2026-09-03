@@ -29,15 +29,24 @@ type ReciboData = {
   method: string | null;
   reference: string | null;
   notes: string | null;
+  kind: "abono" | "cierre" | "devolucion";
   pilgrim_name: string;
   pilgrim_email: string | null;
   departure_name: string;
   departure_start_date: string | null;
   total_eur: number;
+  /** Euros que realmente entraron, sumando los pagos como se hicieron. */
   paid_total_eur: number;
+  /** Euros acreditados al viaje: los abonos en pesos ya a la tasa de cierre. */
+  paid_eur_cierre: number;
   pending_eur: number;
-  frozen_trm_eur_cop: number | null;
-  frozen_trm_date: string | null;
+  /** Saldo a la tasa de cierre. Negativo = a favor del peregrino. */
+  saldo_final_eur: number | null;
+  saldo_final_cop: number | null;
+  settlement_trm: number | null;
+  settlement_date: string | null;
+  /** "recalculo" | "sin_recalculo": si el camino re-valora los abonos en pesos. */
+  settlement_mode: string;
   paid_in_cop_originally: boolean;
 };
 
@@ -60,16 +69,26 @@ const fmt = {
   },
 };
 
+const TITULO: Record<string, string> = {
+  abono: "Recibo de pago",
+  cierre: "Recibo del pago de cierre",
+  devolucion: "Comprobante de devolución",
+};
+
 export function ReciboPagoPDF({ data }: { data: ReciboData }) {
   const code = data.payment_id.slice(0, 8).toUpperCase();
+  const esDevolucion = data.kind === "devolucion";
+  const conRecalculo = data.settlement_mode !== "sin_recalculo";
+  const hayCierre = conRecalculo && data.settlement_trm != null && Number(data.settlement_trm) > 0;
+  const saldo = data.saldo_final_eur != null ? Number(data.saldo_final_eur) : Number(data.pending_eur);
   return (
-    <Document title={`Recibo ${code}`} author="El Camino con Naty">
+    <Document title={`${TITULO[data.kind] ?? "Recibo"} ${code}`} author="El Camino con Naty">
       <Page size="A4" style={styles.page}>
         <View style={styles.brandBar} />
         <Text style={styles.brand}>El Camino con Naty</Text>
         <Text style={styles.brandSub}>elcaminoconnaty.com</Text>
 
-        <Text style={styles.title}>Recibo de pago</Text>
+        <Text style={styles.title}>{TITULO[data.kind] ?? "Recibo de pago"}</Text>
         <Text style={styles.subtitle}>N° {code} · {fmt.date(data.paid_at)}</Text>
 
         <View style={styles.section}>
@@ -80,15 +99,21 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
         </View>
 
         <View style={styles.box}>
-          <Text style={styles.sectionTitle}>Pago recibido</Text>
+          <Text style={styles.sectionTitle}>{esDevolucion ? "Monto devuelto" : "Pago recibido"}</Text>
           <Text style={styles.bigAmount}>
-            {fmt.num(data.amount)} {data.currency}
+            {fmt.num(Math.abs(data.amount))} {data.currency}
           </Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Equivalente en EUR</Text><Text style={styles.rowValue}>{fmt.eur(data.amount_eur)}</Text></View>
+          <View style={styles.row}><Text style={styles.rowLabel}>Equivalente en EUR</Text><Text style={styles.rowValue}>{fmt.eur(Math.abs(Number(data.amount_eur ?? 0)))}</Text></View>
           {data.trm_eur_cop && (
             <View style={styles.row}>
               {/* Con Global 66 la tasa es la de la plataforma (comisión incluida), no la TRM del día */}
-              <Text style={styles.rowLabel}>{data.method === GLOBAL66 ? `Tasa ${GLOBAL66}` : "TRM aplicada"}</Text>
+              <Text style={styles.rowLabel}>
+                {data.method === GLOBAL66
+                  ? `Tasa ${GLOBAL66}`
+                  : data.kind === "abono"
+                    ? "Tasa aplicada"
+                    : "Tasa de cierre"}
+              </Text>
               <Text>{fmt.num(data.trm_eur_cop)} COP/EUR</Text>
             </View>
           )}
@@ -99,24 +124,48 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Estado del viaje</Text>
           <View style={styles.row}><Text style={styles.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
-          <View style={styles.row}><Text style={styles.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
-          <View style={styles.row}><Text style={styles.rowLabel}>Saldo pendiente</Text><Text style={styles.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
+          {hayCierre ? (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Total abonado, a la tasa de cierre</Text>
+                <Text>{fmt.eur(data.paid_eur_cierre)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{saldo < -0.5 ? "Saldo a tu favor" : "Saldo pendiente"}</Text>
+                <Text style={styles.rowValue}>
+                  {fmt.eur(Math.abs(saldo) <= 0.5 ? 0 : Math.abs(saldo))}
+                  {data.saldo_final_cop != null && Math.abs(saldo) > 0.5
+                    ? ` · ${fmt.cop(Math.abs(data.saldo_final_cop))}`
+                    : ""}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.row}><Text style={styles.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
+              <View style={styles.row}><Text style={styles.rowLabel}>Saldo pendiente</Text><Text style={styles.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
+            </>
+          )}
         </View>
 
-        {data.paid_in_cop_originally && (
+        {hayCierre ? (
+          <View style={styles.yellowBox}>
+            <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Sobre la tasa de cambio</Text>
+            <Text>
+              La tasa de cierre quedó en {fmt.num(data.settlement_trm)} COP/EUR el {fmt.date(data.settlement_date)}. Todos
+              tus abonos hechos en pesos se recalcularon con ella, así que el saldo de arriba ya está a la tasa
+              final. El detalle pago por pago está en tu liquidación final.
+            </Text>
+          </View>
+        ) : conRecalculo && data.paid_in_cop_originally ? (
           <View style={styles.yellowBox}>
             <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Importante sobre la tasa de cambio</Text>
-            {data.frozen_trm_eur_cop ? (
-              <Text>
-                La tasa final fue congelada el {fmt.date(data.frozen_trm_date)} en {fmt.num(data.frozen_trm_eur_cop)} COP/EUR. El saldo pendiente en pesos colombianos se calculará con esta tasa.
-              </Text>
-            ) : (
-              <Text>
-                El saldo pendiente en pesos colombianos se recalcula con la tasa de cambio del día 1 mes antes de la fecha de salida. El monto final en COP puede variar respecto al estimado actual.
-              </Text>
-            )}
+            <Text>
+              Un mes antes de la salida se fija la tasa de cierre y todos tus abonos en pesos se recalculan con ella.
+              El saldo final en pesos puede variar respecto al estimado de hoy, en cualquiera de los dos sentidos.
+            </Text>
           </View>
-        )}
+        ) : null}
 
         <Text style={styles.footer}>El Camino con Naty · elcaminoconnaty.com · Documento generado automáticamente</Text>
       </Page>

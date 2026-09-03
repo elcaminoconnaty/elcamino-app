@@ -6,8 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: { paymentId: string } }) {
   const supabase = createClient();
+  // De la vista de liquidación, para que el recibo pueda mostrar el saldo a la
+  // tasa de cierre sin recalcular nada acá.
   const { data: pay } = await supabase
-    .from("pilgrim_payments")
+    .from("v_pilgrim_payment_settlement")
     .select("*")
     .eq("id", params.paymentId)
     .maybeSingle();
@@ -21,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
 
   const { data: balance } = await supabase
     .from("v_pilgrim_balance")
-    .select("paid_eur, pending_eur, net_total_eur, frozen_trm_eur_cop, frozen_trm_date, paid_in_cop_originally")
+    .select("paid_eur, paid_eur_cierre, pending_eur, net_total_eur, saldo_final_eur, saldo_final_cop, settlement_trm, settlement_date, settlement_mode, paid_in_cop_originally")
     .eq("registration_id", pay.registration_id)
     .maybeSingle();
 
@@ -37,15 +39,20 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
         method: pay.method,
         reference: pay.reference,
         notes: pay.notes,
+        kind: pay.kind ?? "abono",
         pilgrim_name: (reg as any)?.pilgrims?.full_name ?? "—",
         pilgrim_email: (reg as any)?.pilgrims?.email ?? null,
         departure_name: (reg as any)?.departures?.name ?? "—",
         departure_start_date: (reg as any)?.departures?.start_date ?? null,
         total_eur: Number(balance?.net_total_eur ?? 0),
         paid_total_eur: Number(balance?.paid_eur ?? 0),
+        paid_eur_cierre: Number(balance?.paid_eur_cierre ?? 0),
         pending_eur: Number(balance?.pending_eur ?? 0),
-        frozen_trm_eur_cop: balance?.frozen_trm_eur_cop != null ? Number(balance.frozen_trm_eur_cop) : null,
-        frozen_trm_date: balance?.frozen_trm_date ?? null,
+        saldo_final_eur: balance?.saldo_final_eur != null ? Number(balance.saldo_final_eur) : null,
+        saldo_final_cop: balance?.saldo_final_cop != null ? Number(balance.saldo_final_cop) : null,
+        settlement_trm: balance?.settlement_trm != null ? Number(balance.settlement_trm) : null,
+        settlement_date: balance?.settlement_date ?? null,
+        settlement_mode: balance?.settlement_mode ?? "recalculo",
         paid_in_cop_originally: !!balance?.paid_in_cop_originally,
       },
     }) as any

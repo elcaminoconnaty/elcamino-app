@@ -22,7 +22,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
     { data: budgetPayable },
     { data: providers },
   ] = await Promise.all([
-    supabase.from("v_departure_finance").select("expected_revenue_eur, collected_revenue_eur, pending_revenue_eur").eq("departure_id", departureId).maybeSingle(),
+    supabase.from("v_departure_finance").select("expected_revenue_eur, collected_revenue_eur, pending_revenue_eur, pending_settled_eur, por_devolver_eur, fx_difference_eur, liquidados_count, trm_frozen_value, settlement_mode").eq("departure_id", departureId).maybeSingle(),
     supabase.from("v_departure_payable").select("*").eq("departure_id", departureId).maybeSingle(),
     supabase.from("v_pilgrim_balance").select("*").eq("departure_id", departureId).order("pilgrim_name"),
     supabase.from("reservations").select("id, provider_id, departure_id, type, location, estimated_cost_eur, confirmed_cost_eur, status, providers(name)").eq("departure_id", departureId).neq("status", "cancelado").order("check_in", { ascending: true, nullsFirst: false }),
@@ -35,7 +35,16 @@ export async function PagosTab({ departureId }: { departureId: string }) {
   const activos = (pilgrims ?? []).filter((r: any) => r.status !== "cancelado");
   const esperado = Number((finance as any)?.expected_revenue_eur ?? 0);
   const cobrado = Number((finance as any)?.collected_revenue_eur ?? 0);
-  const faltaCobrar = Number((finance as any)?.pending_revenue_eur ?? 0);
+  // Con tasa de cierre fijada, lo que falta cobrar sale de la liquidación: los
+  // abonos en pesos ya re-valorados. Sin ella, del pendiente histórico.
+  const hayCierre =
+    ((finance as any)?.settlement_mode ?? "recalculo") === "recalculo" &&
+    Number((finance as any)?.trm_frozen_value ?? 0) > 0;
+  const faltaCobrar = hayCierre
+    ? Number((finance as any)?.pending_settled_eur ?? 0)
+    : Number((finance as any)?.pending_revenue_eur ?? 0);
+  const porDevolver = Number((finance as any)?.por_devolver_eur ?? 0);
+  const difCambio = Number((finance as any)?.fx_difference_eur ?? 0);
 
   const costo = Number((payable as any)?.total_modelo_eur ?? 0);
   const pagado = Number((payable as any)?.pagado_real_eur ?? 0);
@@ -62,11 +71,28 @@ export async function PagosTab({ departureId }: { departureId: string }) {
           <TrendingUp className="h-5 w-5 text-green-700" />
           <h2 className="font-display text-lg text-camino-ink">Lo que entra — abonos de peregrinos</h2>
         </div>
-        <div className="grid gap-3 grid-cols-3">
+        <div className={`grid gap-3 ${hayCierre ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"}`}>
           <SummaryCard label="Esperado" value={<EurCop value={esperado} />} />
           <SummaryCard label="Cobrado" value={<EurCop value={cobrado} />} tone="green" />
-          <SummaryCard label="Falta por cobrar" value={<EurCop value={faltaCobrar} />} tone="amber" />
+          <SummaryCard
+            label={hayCierre ? "Falta por cobrar (liquidado)" : "Falta por cobrar"}
+            value={<EurCop value={faltaCobrar} />}
+            tone="amber"
+          />
+          {hayCierre && (
+            <SummaryCard label="Por devolver" value={<EurCop value={porDevolver} />} tone="amber" />
+          )}
         </div>
+        {hayCierre && Math.abs(difCambio) > 0.5 && (
+          <p className="text-xs text-muted-foreground">
+            Diferencia en cambio de la salida:{" "}
+            <strong className={difCambio > 0 ? "text-red-700" : "text-green-700"}>
+              {difCambio > 0 ? "−" : "+"}{formatEUR(Math.abs(difCambio))}
+            </strong>{" "}
+            — lo que se movió la tasa entre el día de cada abono y el cierre. Ver{" "}
+            <Link href={`/caminos/${departureId}?tab=liquidacion`} className="underline">Liquidación</Link>.
+          </p>
+        )}
         <Card>
           <CardContent className="p-0">
             {activos.length === 0 ? (
@@ -84,7 +110,10 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                 </TableHeader>
                 <TableBody>
                   {activos.map((r: any) => {
-                    const saldado = Number(r.pending_eur) <= 0.01;
+                    const conCierre = r.settlement_trm != null;
+                    const saldo = conCierre ? Number(r.saldo_final_eur) : Number(r.pending_eur);
+                    const saldado = Math.abs(saldo) <= (conCierre ? 0.5 : 0.01);
+                    const devolver = conCierre && saldo < -0.5;
                     return (
                       <TableRow key={r.registration_id}>
                         <TableCell>
@@ -93,10 +122,18 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                         <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
                         <TableCell className="text-right text-green-700">{formatEUR(r.paid_eur)}</TableCell>
                         <TableCell className="text-right">
-                          {saldado ? <Badge variant="success">al día</Badge> : <span className="text-amber-700 font-medium">{formatEUR(r.pending_eur)}</span>}
+                          {saldado ? (
+                            <Badge variant="success">al día</Badge>
+                          ) : devolver ? (
+                            <span className="text-blue-800 font-medium" title="Pagó de más a la tasa de cierre">
+                              −{formatEUR(Math.abs(saldo))}
+                            </span>
+                          ) : (
+                            <span className="text-amber-700 font-medium">{formatEUR(saldo)}</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <NewPaymentDialog registrationId={r.registration_id} departureId={departureId} pilgrimPaysInCop={r.paid_in_cop_originally} />
+                          <NewPaymentDialog registrationId={r.registration_id} departureId={departureId} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
                         </TableCell>
                       </TableRow>
                     );

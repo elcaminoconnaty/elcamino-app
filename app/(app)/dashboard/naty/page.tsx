@@ -45,6 +45,16 @@ export default async function NatyDashboard() {
   const costoTotalGlobal = costoPeregrinosGlobal + costoEquipoGlobal + costoFijoGlobal;
   const caminosConCosto = finRows.filter((r) => Number(r.costo_total_eur || 0) > 0);
 
+  // Con salidas ya liquidadas, el pendiente real es el saldo a la tasa de cierre:
+  // los abonos en pesos re-valorados. La diferencia en cambio es plata que no va
+  // a entrar (o que entró de más), así que va aparte y no como "pendiente".
+  const hayLiquidacion = Number(global?.pending_settled_eur ?? 0) > 0 || Number(global?.por_devolver_eur ?? 0) > 0.5;
+  const pendientePorEntrar = hayLiquidacion
+    ? Number(global?.pending_settled_eur ?? 0)
+    : Number(global?.pending_revenue_eur ?? 0);
+  const porDevolver = Number(global?.por_devolver_eur ?? 0);
+  const difCambio = Number(global?.fx_difference_eur ?? 0);
+
   return (
     <div className="space-y-8">
       <div>
@@ -56,12 +66,27 @@ export default async function NatyDashboard() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPI label="Plata disponible" value={formatEUR(global?.cash_available_eur)} hint="Cobrado − pagado prov. − operativo − personal" accent />
         <KPI label="Utilidad proyectada" value={formatEUR(global?.projected_profit_eur)} hint="Ingresos esperados − costo estimado" />
-        <KPI label="Pendiente por entrar" value={formatEUR(global?.pending_revenue_eur)} hint="De peregrinos inscritos" />
+        <KPI
+          label="Pendiente por entrar"
+          value={formatEUR(pendientePorEntrar)}
+          hint={hayLiquidacion ? "Liquidado a la tasa de cierre" : "De peregrinos inscritos"}
+        />
         <KPI label="Falta por pagar" value={formatEUR(faltaPorPagar)} hint="Costo del presupuesto − ya pagado (incluye viáticos y tiquetes)" />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPI label="Cobrado" value={formatEUR(global?.collected_eur)} small />
+        {porDevolver > 0.5 && (
+          <KPI label="Por devolver a peregrinos" value={formatEUR(porDevolver)} hint="Pagaron de más a la tasa de cierre" small />
+        )}
+        {Math.abs(difCambio) > 0.5 && (
+          <KPI
+            label="Diferencia en cambio"
+            value={`${difCambio > 0 ? "−" : "+"}${formatEUR(Math.abs(difCambio))}`}
+            hint="Movimiento de la tasa entre cada abono y el cierre"
+            small
+          />
+        )}
         <KPI label="Pagado a proveedores" value={formatEUR(global?.paid_providers_eur)} small />
         <KPI label="Gastos operativos" value={formatEUR(global?.operational_expenses_eur)} small />
         <KPI label="Retiros personales" value={formatEUR(global?.personal_withdrawals_eur)} small />

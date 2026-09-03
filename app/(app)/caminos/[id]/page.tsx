@@ -4,13 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatEUR, daysUntil, cn } from "@/lib/utils";
-import { FreezeTrmBanner } from "@/components/departures/freeze-trm-banner";
 import { CriticalAlertsBanner } from "@/components/departures/critical-alerts-banner";
 import { MealCoverageBanner } from "@/components/departures/meal-coverage-banner";
 import { DeletePassportsButton } from "@/components/departures/delete-passports-button";
 import { ResumenTab } from "@/components/departures/tabs/resumen-tab";
 import { PeregrinosTab } from "@/components/departures/tabs/peregrinos-tab";
 import { PagosTab } from "@/components/departures/tabs/pagos-tab";
+import { LiquidacionTab } from "@/components/departures/tabs/liquidacion-tab";
 import { PresupuestoTab } from "@/components/departures/tabs/presupuesto-tab";
 import { ViaticosTab } from "@/components/departures/tabs/viaticos-tab";
 import { ReservasTab } from "@/components/departures/tabs/reservas-tab";
@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic";
 const TABS = [
   { value: "resumen", label: "Resumen" },
   { value: "pagos", label: "Pagos" },
+  { value: "liquidacion", label: "Liquidación" },
   { value: "peregrinos", label: "Peregrinos" },
   { value: "presupuesto", label: "Presupuesto" },
   { value: "viaticos", label: "Viáticos equipo" },
@@ -57,7 +58,9 @@ export default async function DepartureDetailPage({
   const f = (finance as DepartureFinance) ?? null;
   const defaultTrm = Number(d.trm_frozen_value ?? latestTrm?.eur_cop ?? 0);
   const days = d.start_date ? daysUntil(d.start_date) : null;
-  const needsFreeze = days !== null && days <= 30 && days >= -7 && !d.trm_frozen_at_date;
+  // Solo tiene sentido recordar la tasa de cierre si el camino liquida con recálculo.
+  const conRecalculo = (d.settlement_mode ?? "recalculo") === "recalculo";
+  const needsFreeze = conRecalculo && days !== null && days <= 30 && days >= -7 && !d.trm_frozen_at_date;
   const activeTab = searchParams.tab ?? "resumen";
 
   return (
@@ -91,11 +94,26 @@ export default async function DepartureDetailPage({
 
       <CriticalAlertsBanner departureId={d.id} inscritosTotal={f?.inscritos_total ?? 0} />
       <MealCoverageBanner departureId={d.id} />
-      {needsFreeze && <FreezeTrmBanner departureId={d.id} startDate={d.start_date!} />}
-      {d.trm_frozen_at_date && (
+      {needsFreeze && activeTab !== "liquidacion" && (
+        <Card className="border-camino-yellow border-2 bg-camino-yellow/10">
+          <CardContent className="py-3 flex items-center justify-between gap-3 flex-wrap text-sm">
+            <span>
+              La salida es en {days} días: es momento de fijar la <strong>tasa de cierre</strong> y recalcular los
+              abonos en pesos.
+            </span>
+            <Link href={`/caminos/${d.id}?tab=liquidacion`} className="inline-flex items-center gap-1 bg-camino-yellow text-camino-ink rounded-md px-3 py-1.5 font-medium hover:bg-camino-deepYellow whitespace-nowrap">
+              Ir a la liquidación
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+      {conRecalculo && d.trm_frozen_at_date && activeTab !== "liquidacion" && (
         <Card className="border-green-200 bg-green-50">
-          <CardContent className="py-3 text-sm text-green-900">
-            ✓ TRM congelada en <strong>{Number(d.trm_frozen_value).toLocaleString("es-CO")} COP/EUR</strong> el {formatDate(d.trm_frozen_at_date)}
+          <CardContent className="py-3 text-sm text-green-900 flex items-center justify-between gap-3 flex-wrap">
+            <span>
+              ✓ Tasa de cierre en <strong>{Number(d.trm_frozen_value).toLocaleString("es-CO")} COP/EUR</strong> desde el {formatDate(d.trm_frozen_at_date)}
+            </span>
+            <Link href={`/caminos/${d.id}?tab=liquidacion`} className="underline whitespace-nowrap">Ver liquidación</Link>
           </CardContent>
         </Card>
       )}
@@ -122,6 +140,7 @@ export default async function DepartureDetailPage({
       <div>
         {activeTab === "resumen" && <ResumenTab departureId={d.id} />}
         {activeTab === "pagos" && <PagosTab departureId={d.id} />}
+        {activeTab === "liquidacion" && <LiquidacionTab departureId={d.id} />}
         {activeTab === "peregrinos" && <PeregrinosTab departureId={d.id} />}
         {activeTab === "presupuesto" && <PresupuestoTab departureId={d.id} />}
         {activeTab === "viaticos" && <ViaticosTab departureId={d.id} />}

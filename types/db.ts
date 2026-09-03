@@ -1,3 +1,5 @@
+import type { EstadoLiquidacion, PaymentKind, SettlementMode } from "@/lib/settlement";
+
 export type Route = {
   id: string;
   slug: string;
@@ -21,6 +23,8 @@ export type Departure = {
   notes: string | null;
   trm_frozen_at_date: string | null;
   trm_frozen_value: number | null;
+  /** Cómo se liquida el saldo final — ver lib/settlement.ts. */
+  settlement_mode: SettlementMode;
 };
 
 export type Pilgrim = {
@@ -67,6 +71,10 @@ export type PilgrimPayment = {
   receipt_pdf_path: string | null;
   proof_path: string | null;
   notes: string | null;
+  /** abono | cierre | devolucion. Las devoluciones van con `amount` negativo. */
+  kind: PaymentKind;
+  /** Override de la re-valoración a la tasa de cierre. null = regla automática. */
+  fx_recalc: boolean | null;
 };
 
 export type Provider = {
@@ -171,6 +179,29 @@ export type PilgrimBalance = {
   paid_in_cop_originally: boolean;
   pending_cop_reference: number | null;
   status: string;
+  refund_status: string | null;
+  // Liquidación a la tasa de cierre — ver lib/settlement.ts. `paid_eur` y
+  // `pending_eur` siguen siendo los históricos (la caja que realmente entró).
+  settlement_trm: number | null;
+  settlement_date: string | null;
+  settlement_source: "salida" | "inscripcion" | null;
+  paid_eur_cierre: number;
+  fx_difference_eur: number;
+  saldo_final_eur: number;
+  saldo_final_cop: number | null;
+  total_cop_cierre: number | null;
+  por_cobrar_eur: number;
+  por_cobrar_cop: number | null;
+  por_devolver_eur: number;
+  por_devolver_cop: number | null;
+  devuelto_eur: number;
+  devuelto_cop: number;
+  pagos_cierre: number;
+  estado_liquidacion: EstadoLiquidacion;
+  cop_revalorado: number;
+  eur_fijo: number;
+  is_team: boolean;
+  settlement_mode: SettlementMode;
 };
 
 export type UpcomingInstallment = {
@@ -239,4 +270,8 @@ export type FinancialGlobal = {
   projected_profit_eur: number;
   realized_operational_profit_eur: number;
   cash_available_eur: number;
+  /** Pendiente por cobrar liquidado a la tasa de cierre — ver lib/settlement.ts. */
+  pending_settled_eur: number;
+  por_devolver_eur: number;
+  fx_difference_eur: number;
 };

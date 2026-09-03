@@ -25,6 +25,18 @@ export type DepartureFinance = {
   costo_peregrinos_eur: number;
   costo_equipo_eur: number;
   variable_buffer_pct: number;
+  trm_frozen_at_date: string | null;
+  trm_frozen_value: number | null;
+  /** Pendiente por cobrar ya liquidado a la tasa de cierre — ver lib/settlement.ts. */
+  pending_settled_eur: number;
+  /** Lo que hay que girarle de vuelta a los peregrinos que pagaron de más. */
+  por_devolver_eur: number;
+  /** Hueco entre el precio acordado y la caja real por el movimiento de la tasa. */
+  fx_difference_eur: number;
+  /** Cuántas inscripciones ya tienen tasa de cierre. */
+  liquidados_count: number;
+  /** "recalculo" | "sin_recalculo" — ver lib/settlement.ts. */
+  settlement_mode: string;
 };
 
 export type Scenario = {

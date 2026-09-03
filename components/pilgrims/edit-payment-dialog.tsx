@@ -11,12 +11,15 @@ import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
 import { Global66Fields } from "@/components/ui/global66-fields";
 import { global66Rate } from "@/lib/global66";
 import { toast } from "@/components/ui/toaster";
+import { PAYMENT_KIND, type PaymentKind } from "@/lib/settlement";
 import { Pencil, Trash2 } from "lucide-react";
 
 export function EditPaymentDialog({ payment }: { payment: any }) {
   const [open, setOpen] = useState(false);
   const [paidAt, setPaidAt] = useState(payment.paid_at);
-  const [amount, setAmount] = useState(String(payment.amount));
+  const kind: PaymentKind = payment.kind ?? "abono";
+  const esDevolucion = kind === "devolucion";
+  const [amount, setAmount] = useState(String(Math.abs(Number(payment.amount))));
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(payment.currency);
   const [trm, setTrm] = useState(payment.trm_eur_cop != null ? String(payment.trm_eur_cop) : "");
   const [usdRate, setUsdRate] = useState(payment.usd_eur_rate != null ? String(payment.usd_eur_rate) : "");
@@ -86,8 +89,13 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editar pago</DialogTitle>
-          <DialogDescription>Modificá los datos del pago. El recibo PDF reflejará los cambios.</DialogDescription>
+          <DialogTitle>Editar {kind === "abono" ? "pago" : PAYMENT_KIND[kind].label.toLowerCase()}</DialogTitle>
+          <DialogDescription>
+            {esDevolucion
+              ? "Monto en positivo: es plata que sale, y se guarda como tal."
+              : "Modificá los datos del pago. El recibo PDF reflejará los cambios."}
+            {kind === "cierre" && " Este es el pago de cierre, calculado a la tasa de cierre de la salida."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -99,7 +107,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2"><Label>Monto *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div className="grid gap-2"><Label>{esDevolucion ? "Monto devuelto *" : "Monto *"}</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
               <select value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="EUR">EUR</option>
@@ -120,7 +128,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
             <div className="grid gap-2"><Label>TRM EUR/COP</Label><Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} /></div>
           )}
           <div className="grid gap-2">
-            <Label>Cuenta / dónde entró la plata</Label>
+            <Label>{esDevolucion ? "Cuenta de donde salió la plata" : "Cuenta / dónde entró la plata"}</Label>
             <select value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
               {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>

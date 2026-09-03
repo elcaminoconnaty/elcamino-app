@@ -46,13 +46,6 @@ export async function updateDeparture(id: string, formData: FormData) {
   revalidatePath("/caminos");
 }
 
-export async function freezeDepartureTRM(departure_id: string, trm: number, date: string) {
-  const supabase = createClient();
-  const { error } = await supabase.rpc("freeze_departure_trm", { p_departure_id: departure_id, p_trm: trm, p_date: date });
-  if (error) throw new Error(error.message);
-  revalidatePath(`/caminos/${departure_id}`);
-}
-
 export async function createRoute(formData: FormData) {
   const supabase = createClient();
   const slug = formData.get("slug")?.toString() || "";

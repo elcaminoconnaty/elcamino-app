@@ -20,8 +20,8 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
     .maybeSingle();
 
   const { data: payments } = await supabase
-    .from("pilgrim_payments")
-    .select("paid_at, amount, currency, trm_eur_cop, amount_eur, method")
+    .from("v_pilgrim_payment_settlement")
+    .select("paid_at, amount, currency, trm_eur_cop, amount_eur, amount_eur_cierre, se_revalora, method, kind")
     .eq("registration_id", params.registrationId)
     .order("paid_at", { ascending: true });
 
@@ -44,8 +44,12 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
         paid_eur: Number(balance.paid_eur ?? 0),
         pending_eur: Number(balance.pending_eur ?? 0),
         pending_cop_reference: balance.pending_cop_reference != null ? Number(balance.pending_cop_reference) : null,
-        frozen_trm_eur_cop: balance.frozen_trm_eur_cop != null ? Number(balance.frozen_trm_eur_cop) : null,
-        frozen_trm_date: balance.frozen_trm_date,
+        settlement_trm: balance.settlement_trm != null ? Number(balance.settlement_trm) : null,
+        settlement_date: balance.settlement_date,
+        settlement_mode: balance.settlement_mode ?? "recalculo",
+        paid_eur_cierre: Number(balance.paid_eur_cierre ?? 0),
+        saldo_final_eur: balance.saldo_final_eur != null ? Number(balance.saldo_final_eur) : null,
+        saldo_final_cop: balance.saldo_final_cop != null ? Number(balance.saldo_final_cop) : null,
         paid_in_cop_originally: !!balance.paid_in_cop_originally,
         current_trm: latestTrm?.eur_cop != null ? Number(latestTrm.eur_cop) : null,
         payments: (payments ?? []).map((p: any) => ({
@@ -54,7 +58,10 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
           currency: p.currency,
           trm_eur_cop: p.trm_eur_cop != null ? Number(p.trm_eur_cop) : null,
           amount_eur: p.amount_eur != null ? Number(p.amount_eur) : null,
+          amount_eur_cierre: p.amount_eur_cierre != null ? Number(p.amount_eur_cierre) : null,
+          se_revalora: !!p.se_revalora,
           method: p.method,
+          kind: p.kind ?? "abono",
         })),
       },
     }) as any

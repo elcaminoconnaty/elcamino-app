@@ -14,9 +14,11 @@ import { EditPaymentDialog } from "@/components/pilgrims/edit-payment-dialog";
 import { PaymentPlanCard } from "@/components/pilgrims/payment-plan-card";
 import { PassportUpload } from "@/components/pilgrims/passport-upload";
 import { PaymentSummary } from "@/components/pilgrims/payment-summary";
+import { SettlementCard } from "@/components/pilgrims/settlement-card";
 import { UpcomingPaymentsCard } from "@/components/pilgrims/upcoming-payments-card";
 import { EurCop } from "@/components/ui/eur-cop";
 import type { UpcomingInstallment } from "@/types/db";
+import { PAYMENT_KIND, motivoSinRecalculo, type PilgrimSettlement, type PaymentSettlement } from "@/lib/settlement";
 import { FileText, Download, Mail, Phone, MapPin, Heart, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -34,13 +36,25 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
 
   const regIds = (registrations ?? []).map((r: any) => r.registration_id);
 
+  // Los pagos se leen de la vista de liquidación: trae cada uno con su tasa
+  // histórica intacta y, además, su valor re-valorado a la tasa de cierre.
   const { data: payments } = regIds.length
     ? await supabase
-        .from("pilgrim_payments")
+        .from("v_pilgrim_payment_settlement")
         .select("*")
         .in("registration_id", regIds)
         .order("paid_at", { ascending: true })
     : { data: [] };
+  const pagos = (payments as PaymentSettlement[]) ?? [];
+
+  const { data: settlementRows } = regIds.length
+    ? await supabase.from("v_pilgrim_settlement").select("*").in("registration_id", regIds)
+    : { data: [] };
+  const settlementByReg = new Map(
+    ((settlementRows as PilgrimSettlement[]) ?? []).map((r) => [r.registration_id, r])
+  );
+  // Con tasa de cierre puesta, al menos una inscripción tiene algo que liquidar.
+  const hayTasaDeCierre = ((settlementRows as PilgrimSettlement[]) ?? []).some((r) => r.settlement_trm != null);
 
   const { data: upcoming } = await supabase
     .from("v_upcoming_installments")
@@ -61,7 +75,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
   ]);
   const notesByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r.notes]));
 
-  const paidEur = (payments ?? []).reduce((s: number, p: any) => s + Number(p.amount_eur || 0), 0);
+  const paidEur = pagos.reduce((acc, p) => acc + Number(p.amount_eur || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -138,16 +152,26 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Pagado</span><span><EurCop value={r.paid_eur} /></span></div>
-                <div className="flex justify-between font-medium"><span>Pendiente</span><span><EurCop value={r.pending_eur} /></span></div>
-                {r.frozen_trm_eur_cop && (
-                  <div className="text-xs text-green-700 mt-1">TRM congelada: {Number(r.frozen_trm_eur_cop).toLocaleString("es-CO")} COP/EUR ({formatDate(r.frozen_trm_date)})</div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Pagado (euros que entraron)</span><span><EurCop value={r.paid_eur} /></span></div>
+                {r.settlement_trm ? (
+                  <>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Acreditado a la tasa de cierre</span><span><EurCop value={r.paid_eur_cierre} /></span></div>
+                    <div className="flex justify-between font-medium">
+                      <span>{Number(r.saldo_final_eur) < -0.5 ? "A favor del peregrino" : "Pendiente"}</span>
+                      <span><EurCop value={Math.abs(Number(r.saldo_final_eur))} /></span>
+                    </div>
+                    <div className="text-xs text-green-700 mt-1">
+                      Tasa de cierre: {Number(r.settlement_trm).toLocaleString("es-CO")} COP/EUR ({formatDate(r.settlement_date)})
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between font-medium"><span>Pendiente</span><span><EurCop value={r.pending_eur} /></span></div>
                 )}
                 <div className="mt-3">
                   <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} />
                 </div>
                 <div className="flex gap-2 mt-3 flex-wrap">
-                  <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} />
+                  <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
                   <EditRegistrationDialog
                     registration={{
                       registration_id: r.registration_id,
@@ -165,6 +189,13 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                       <FileText className="h-4 w-4" /> Reporte
                     </a>
                   </Button>
+                  {r.settlement_trm && (
+                    <Button asChild variant="outline" size="sm">
+                      <a href={`/api/pdf/liquidacion/${r.registration_id}`} target="_blank">
+                        <FileText className="h-4 w-4" /> Recibo final
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -175,12 +206,24 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
         </div>
       </section>
 
+      {settlementByReg.size > 0 && (
+        <section>
+          <h2 className="font-display text-xl text-camino-ink mb-3">Liquidación final</h2>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {(registrations ?? []).map((r: any) => {
+              const s = settlementByReg.get(r.registration_id);
+              return s ? <SettlementCard key={r.registration_id} settlement={s} /> : null;
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="font-display text-xl text-camino-ink mb-3">Pagos</h2>
           <Card>
             <CardContent className="p-0">
-              {(!payments || payments.length === 0) ? (
+              {pagos.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">Sin pagos registrados.</div>
               ) : (
                 <Table>
@@ -188,32 +231,64 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
-                      <TableHead className="text-right">Tasa</TableHead>
+                      <TableHead className="text-right">Tasa del día</TableHead>
                       <TableHead className="text-right">EUR</TableHead>
+                      {hayTasaDeCierre && <TableHead className="text-right">A tasa de cierre</TableHead>}
                       <TableHead>Cuenta</TableHead>
                       <TableHead>Método</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((p: any) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="whitespace-nowrap">{formatDate(p.paid_at)}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{Number(p.amount).toLocaleString("es-CO")} {p.currency}</TableCell>
-                        <TableCell className="text-right">{p.trm_eur_cop ? Number(p.trm_eur_cop).toLocaleString("es-CO") : "—"}</TableCell>
-                        <TableCell className="text-right">{formatEUR(p.amount_eur)}</TableCell>
-                        <TableCell className="text-xs">{p.account ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{p.method ?? "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <EditPaymentDialog payment={p} />
-                            <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-camino-deepYellow hover:underline text-xs flex items-center gap-1 px-2">
-                              <Download className="h-3 w-3" /> PDF
-                            </a>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {pagos.map((p) => {
+                      const esDevolucion = p.kind === "devolucion";
+                      const difPago = Number(p.fx_diff_eur ?? 0);
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDate(p.paid_at)}
+                            {p.kind !== "abono" && (
+                              <Badge variant={esDevolucion ? "accent" : "success"} className="ml-1.5 align-middle text-[10px]">
+                                {PAYMENT_KIND[p.kind].short}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-right whitespace-nowrap ${esDevolucion ? "text-blue-800" : ""}`}>
+                            {Number(p.amount).toLocaleString("es-CO")} {p.currency}
+                          </TableCell>
+                          <TableCell className="text-right">{p.trm_eur_cop ? Number(p.trm_eur_cop).toLocaleString("es-CO") : "—"}</TableCell>
+                          <TableCell className="text-right">{formatEUR(p.amount_eur)}</TableCell>
+                          {hayTasaDeCierre && (
+                            <TableCell className="text-right whitespace-nowrap">
+                              {p.se_revalora && p.settlement_trm ? (
+                                <>
+                                  {formatEUR(p.amount_eur_cierre)}
+                                  {Math.abs(difPago) >= 0.01 && (
+                                    <span className={`block text-[10px] ${difPago > 0 ? "text-green-700" : "text-red-700"}`}>
+                                      {difPago > 0 ? "+" : "−"}{formatEUR(Math.abs(difPago))}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground" title={motivoSinRecalculo(p.currency, p.method)}>
+                                  igual
+                                </span>
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell className="text-xs">{p.account ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{p.method ?? "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <EditPaymentDialog payment={p} />
+                              <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-camino-deepYellow hover:underline text-xs flex items-center gap-1 px-2">
+                                <Download className="h-3 w-3" /> PDF
+                              </a>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -221,7 +296,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
           </Card>
         </div>
         <PaymentSummary
-          payments={payments ?? []}
+          payments={pagos}
           totalEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.net_total_eur || 0), 0)}
         />
       </section>

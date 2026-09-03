@@ -19,6 +19,8 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
 
   const activos = (rows ?? []).filter((r: any) => r.status !== "cancelado");
   const retirados = (rows ?? []).filter((r: any) => r.status === "cancelado");
+  // Con tasa de cierre fijada, el saldo que manda es el liquidado; si no, el histórico.
+  const hayCierre = activos.some((r: any) => r.settlement_trm != null);
 
   return (
     <div className="space-y-4">
@@ -37,23 +39,38 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Pagado</TableHead>
-                  <TableHead className="text-right">Falta EUR</TableHead>
-                  <TableHead className="text-right">Falta COP (ref.)</TableHead>
+                  {hayCierre && <TableHead className="text-right">Acreditado</TableHead>}
+                  <TableHead className="text-right">{hayCierre ? "Saldo EUR" : "Falta EUR"}</TableHead>
+                  <TableHead className="text-right">{hayCierre ? "Saldo COP" : "Falta COP (ref.)"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activos.map((r: any) => (
-                  <TableRow key={r.registration_id}>
-                    <TableCell>
-                      <Link href={`/peregrinos/${r.pilgrim_id}`} className="hover:underline font-medium">{r.pilgrim_name}</Link>
-                    </TableCell>
-                    <TableCell><Badge variant="muted">{r.status}</Badge></TableCell>
-                    <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
-                    <TableCell className="text-right">{formatEUR(r.paid_eur)}</TableCell>
-                    <TableCell className="text-right">{formatEUR(r.pending_eur)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatCOP(r.pending_cop_reference)}</TableCell>
-                  </TableRow>
-                ))}
+                {activos.map((r: any) => {
+                  const conCierre = r.settlement_trm != null;
+                  const saldo = Number(r.saldo_final_eur);
+                  const devolver = saldo < -0.5;
+                  return (
+                    <TableRow key={r.registration_id}>
+                      <TableCell>
+                        <Link href={`/peregrinos/${r.pilgrim_id}`} className="hover:underline font-medium">{r.pilgrim_name}</Link>
+                      </TableCell>
+                      <TableCell><Badge variant="muted">{r.status}</Badge></TableCell>
+                      <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
+                      <TableCell className="text-right">{formatEUR(r.paid_eur)}</TableCell>
+                      {hayCierre && (
+                        <TableCell className="text-right">{conCierre ? formatEUR(r.paid_eur_cierre) : "—"}</TableCell>
+                      )}
+                      <TableCell className={`text-right ${devolver ? "text-blue-800" : ""}`}>
+                        {devolver ? `−${formatEUR(Math.abs(saldo))}` : formatEUR(Math.max(0, saldo))}
+                      </TableCell>
+                      <TableCell className={`text-right ${devolver ? "text-blue-800" : "text-muted-foreground"}`}>
+                        {conCierre && r.saldo_final_cop != null
+                          ? (devolver ? `−${formatCOP(Math.abs(Number(r.saldo_final_cop)))}` : formatCOP(Math.max(0, Number(r.saldo_final_cop))))
+                          : formatCOP(r.pending_cop_reference)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -76,7 +93,8 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Estos abonos siguen contando como ingreso del camino aunque el peregrino ya no viaja.
+              Estos abonos siguen contando como ingreso del camino aunque el peregrino ya no viaja, y no entran en la
+              liquidación a la tasa de cierre.
             </p>
           </CardContent>
         </Card>

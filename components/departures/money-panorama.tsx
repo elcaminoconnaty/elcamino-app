@@ -25,7 +25,13 @@ export function MoneyPanorama({
 
   const esperado = Number(f.expected_revenue_eur ?? 0);
   const cobrado = Number(f.collected_revenue_eur ?? 0);
-  const faltaCobrar = Number(f.pending_revenue_eur ?? 0);
+  // Con la tasa de cierre fijada, lo que falta cobrar sale de la liquidación
+  // (abonos en pesos re-valorados); antes de eso, del pendiente histórico. En un
+  // camino sin recálculo no hay tasa de cierre y el pendiente ya es el definitivo.
+  const hayCierre = (f.settlement_mode ?? "recalculo") === "recalculo" && Number(f.trm_frozen_value ?? 0) > 0;
+  const faltaCobrar = hayCierre ? Number(f.pending_settled_eur ?? 0) : Number(f.pending_revenue_eur ?? 0);
+  const porDevolver = Number(f.por_devolver_eur ?? 0);
+  const difCambio = Number(f.fx_difference_eur ?? 0);
   const cobradoPct = esperado > 0 ? Math.min(100, Math.round((cobrado / esperado) * 100)) : 0;
 
   // El costo del modelo puede tener contingencia; usamos el costo total de finanzas
@@ -84,15 +90,30 @@ export function MoneyPanorama({
             <div className="flex items-center gap-1.5 text-xs font-medium text-green-900">
               <TrendingUp className="h-4 w-4" /> Lo que entra — peregrinos
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className={`mt-3 grid gap-2 ${hayCierre ? "grid-cols-4" : "grid-cols-3"}`}>
               <MoneyCell label="Esperado" value={<EurCop value={esperado} />} />
               <MoneyCell label="Cobrado" value={<EurCop value={cobrado} />} strong="text-green-700" />
-              <MoneyCell label="Falta por cobrar" value={<EurCop value={faltaCobrar} />} strong="text-amber-700" />
+              <MoneyCell
+                label={hayCierre ? "Falta (liquidado)" : "Falta por cobrar"}
+                value={<EurCop value={faltaCobrar} />}
+                strong="text-amber-700"
+              />
+              {hayCierre && (
+                <MoneyCell label="Por devolver" value={<EurCop value={porDevolver} />} strong="text-blue-800" />
+              )}
             </div>
             <div className="mt-3 h-2 bg-cream-100 rounded-full overflow-hidden">
               <div className="h-full bg-green-500" style={{ width: `${cobradoPct}%` }} />
             </div>
-            <div className="text-[10px] text-muted-foreground text-right mt-1">{cobradoPct}% cobrado</div>
+            <div className="text-[10px] text-muted-foreground text-right mt-1 flex justify-between">
+              {hayCierre && Math.abs(difCambio) > 0.5 ? (
+                <span className={difCambio > 0 ? "text-red-700" : "text-green-700"}>
+                  dif. en cambio {difCambio > 0 ? "−" : "+"}
+                  <EurCop value={Math.abs(difCambio)} hideZeroCop />
+                </span>
+              ) : <span />}
+              <span>{cobradoPct}% cobrado</span>
+            </div>
           </CardContent>
         </Card>
 

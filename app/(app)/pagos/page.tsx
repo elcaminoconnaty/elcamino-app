@@ -70,8 +70,11 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
     return a.pilgrim_name.localeCompare(b.pilgrim_name);
   });
 
-  // Resumen global (sobre todas las inscripciones, no sobre el filtro)
-  const totalPendiente = balances.reduce((s, b) => s + Number(b.pending_eur || 0), 0);
+  // Resumen global (sobre todas las inscripciones, no sobre el filtro).
+  // El saldo sale de la liquidación: con tasa de cierre son los abonos ya
+  // re-valorados, y sin recálculo equivale al pendiente histórico.
+  const totalPendiente = balances.reduce((s, b) => s + Number(b.por_cobrar_eur || 0), 0);
+  const totalPorDevolver = balances.reduce((s, b) => s + Number(b.por_devolver_eur || 0), 0);
   const totalVencido = upcoming
     .filter((i) => i.status === "vencida" || i.days_until_due < 0)
     .reduce((s, i) => s + Number(i.amount_eur || 0), 0);
@@ -87,8 +90,11 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
         <div className="brand-yellow-bar mt-2" />
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className={`grid gap-4 ${totalPorDevolver > 0.5 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         <KPI label="Pendiente por cobrar" value={formatEUR(totalPendiente)} hint="De todos los inscritos" accent />
+        {totalPorDevolver > 0.5 && (
+          <KPI label="Por devolver" value={formatEUR(totalPorDevolver)} hint="Pagaron de más a la tasa de cierre" />
+        )}
         <KPI label="Cuotas vencidas" value={formatEUR(totalVencido)} hint="Suma de cuotas pasadas de fecha" />
         <KPI label="Con cuotas próximas" value={String(conProximos)} hint="Inscripciones con cuota futura pendiente" />
       </section>
@@ -144,7 +150,15 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
                       <TableCell className="text-sm text-muted-foreground">{r.departure_name}</TableCell>
                       <TableCell className="text-right whitespace-nowrap">{formatEUR(r.net_total_eur)}</TableCell>
                       <TableCell className="text-right whitespace-nowrap">{formatEUR(r.paid_eur)}</TableCell>
-                      <TableCell className="text-right whitespace-nowrap font-medium">{formatEUR(r.pending_eur)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap font-medium">
+                        {Number(r.saldo_final_eur) < -0.5 ? (
+                          <span className="text-blue-800" title="Pagó de más">
+                            −{formatEUR(Math.abs(Number(r.saldo_final_eur)))}
+                          </span>
+                        ) : (
+                          formatEUR(Math.max(0, Number(r.saldo_final_eur)))
+                        )}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <ProximaCuota cuota={r.proximaCuota} />
                       </TableCell>

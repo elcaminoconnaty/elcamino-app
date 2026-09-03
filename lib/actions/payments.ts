@@ -27,12 +27,15 @@ export async function createPilgrimPayment(input: {
     .single();
   if (error) throw new Error(error.message);
   revalidatePath("/peregrinos");
+  revalidatePath("/caminos");
+  revalidatePath("/pagos");
   revalidatePath("/dashboard/naty");
   return data;
 }
 
 export async function updatePilgrimPayment(id: string, input: {
   paid_at?: string;
+  /** Siempre en positivo. En una devolución se guarda con el signo negativo. */
   amount?: number;
   currency?: "EUR" | "COP" | "USD";
   trm_eur_cop?: number | null;
@@ -47,9 +50,26 @@ export async function updatePilgrimPayment(id: string, input: {
   }
   if (input.currency) assertGlobal66Rate(input.method, input.currency, input.trm_eur_cop);
   const supabase = createClient();
-  const { error } = await supabase.from("pilgrim_payments").update(input).eq("id", id);
+
+  // Las devoluciones viven con monto negativo, así que el signo lo pone el
+  // servidor según el tipo del pago y los formularios trabajan en positivo.
+  const patch: typeof input = { ...input };
+  if (patch.amount != null) {
+    const { data: actual } = await supabase
+      .from("pilgrim_payments")
+      .select("kind")
+      .eq("id", id)
+      .maybeSingle();
+    const magnitud = Math.abs(patch.amount);
+    if (!magnitud) throw new Error("Monto inválido");
+    patch.amount = actual?.kind === "devolucion" ? -magnitud : magnitud;
+  }
+
+  const { error } = await supabase.from("pilgrim_payments").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/peregrinos");
+  revalidatePath("/caminos");
+  revalidatePath("/pagos");
   revalidatePath("/dashboard/naty");
 }
 
@@ -58,6 +78,8 @@ export async function deletePilgrimPayment(id: string) {
   const { error } = await supabase.from("pilgrim_payments").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/peregrinos");
+  revalidatePath("/caminos");
+  revalidatePath("/pagos");
   revalidatePath("/dashboard/naty");
 }
 

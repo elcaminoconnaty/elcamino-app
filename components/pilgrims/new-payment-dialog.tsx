@@ -17,11 +17,15 @@ export function NewPaymentDialog({
   registrationId,
   departureId,
   pilgrimPaysInCop,
+  settlementTrm,
 }: {
   registrationId: string;
   departureId: string;
   pilgrimPaysInCop: boolean;
+  /** Si la salida ya cerró su tasa, los pagos en pesos van con ella, no con la del día. */
+  settlementTrm?: number | null;
 }) {
+  const tasaCierre = settlementTrm ? Number(settlementTrm) : 0;
   const [open, setOpen] = useState(false);
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
   const [amount, setAmount] = useState("");
@@ -41,13 +45,18 @@ export function NewPaymentDialog({
   const esGlobal66 = method === GLOBAL66;
   const conversionGlobal66 = esGlobal66 && currency === "COP";
 
+  // Con la tasa de cierre ya fijada, un abono en pesos se convierte con ella:
+  // es la tasa que se le prometió al peregrino y la que usa su liquidación.
   useEffect(() => {
-    if (currency === "COP" && open) {
-      getTrmForDate(paidAt).then((r) => {
-        if (r) setTrm(String(r));
-      });
+    if (currency !== "COP" || !open) return;
+    if (tasaCierre > 0) {
+      setTrm(String(tasaCierre));
+      return;
     }
-  }, [currency, paidAt, open]);
+    getTrmForDate(paidAt).then((r) => {
+      if (r) setTrm(String(r));
+    });
+  }, [currency, paidAt, open, tasaCierre]);
 
   function onMethodChange(m: string) {
     setMethod(m);
@@ -95,7 +104,11 @@ export function NewPaymentDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Registrar pago</DialogTitle>
-          <DialogDescription>Se calcula automáticamente el equivalente en EUR usando la TRM del día.</DialogDescription>
+          <DialogDescription>
+            {tasaCierre > 0
+              ? "Esta salida ya tiene tasa de cierre: los pagos en pesos se convierten con ella."
+              : "Se calcula automáticamente el equivalente en EUR usando la TRM del día."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -126,9 +139,18 @@ export function NewPaymentDialog({
           )}
           {currency === "COP" && !conversionGlobal66 && (
             <div className="grid gap-2">
-              <Label>TRM EUR/COP (autocompletado desde TRM del día)</Label>
+              <Label>
+                {tasaCierre > 0 ? "Tasa de cierre EUR/COP" : "TRM EUR/COP (autocompletado desde TRM del día)"}
+              </Label>
               <Input type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} placeholder="4500.00" />
-              {!trm && <p className="text-xs text-amber-700">No hay TRM cargada para {paidAt}. Ingresá una manual o cargá una en /trm.</p>}
+              {tasaCierre > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Esta salida ya tiene tasa de cierre ({tasaCierre.toLocaleString("es-CO")} COP/EUR), así que el pago
+                  se convierte con ella y no con la TRM de hoy.
+                </p>
+              ) : (
+                !trm && <p className="text-xs text-amber-700">No hay TRM cargada para {paidAt}. Ingresá una manual o cargá una en /trm.</p>
+              )}
             </div>
           )}
           <div className="grid gap-2">
