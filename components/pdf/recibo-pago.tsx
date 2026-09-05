@@ -1,23 +1,7 @@
-import { Page, Document, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { base, Document, Membrete, Page, Pie, Text, View } from "./brand-shell";
+import { FUENTE } from "@/lib/brand";
 import { GLOBAL66 } from "@/lib/constants";
 
-const styles = StyleSheet.create({
-  page: { padding: 48, fontSize: 11, fontFamily: "Helvetica", color: "#1a1a1a", backgroundColor: "#fdfaf3" },
-  brandBar: { height: 4, width: 60, backgroundColor: "#f5c518", marginBottom: 24 },
-  brand: { fontSize: 22, fontFamily: "Helvetica-Bold", letterSpacing: 0.5, marginBottom: 4 },
-  brandSub: { fontSize: 10, color: "#6b6b6b", marginBottom: 32 },
-  title: { fontSize: 16, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  subtitle: { fontSize: 10, color: "#6b6b6b", marginBottom: 24 },
-  section: { marginBottom: 18 },
-  sectionTitle: { fontSize: 9, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 },
-  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
-  rowLabel: { color: "#6b6b6b" },
-  rowValue: { fontFamily: "Helvetica-Bold" },
-  bigAmount: { fontSize: 28, fontFamily: "Helvetica-Bold", marginVertical: 12 },
-  box: { borderWidth: 1, borderColor: "#e6dcc2", padding: 16, borderRadius: 4, marginBottom: 16 },
-  yellowBox: { backgroundColor: "#fef3c7", padding: 12, borderRadius: 4, fontSize: 9.5, color: "#7c5e10", marginTop: 16 },
-  footer: { position: "absolute", bottom: 32, left: 48, right: 48, fontSize: 8, color: "#9a9a9a", textAlign: "center", borderTopWidth: 0.5, borderTopColor: "#e6dcc2", paddingTop: 8 },
-});
 
 type ReciboData = {
   payment_id: string;
@@ -83,31 +67,29 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
   const saldo = data.saldo_final_eur != null ? Number(data.saldo_final_eur) : Number(data.pending_eur);
   return (
     <Document title={`${TITULO[data.kind] ?? "Recibo"} ${code}`} author="El Camino con Naty">
-      <Page size="A4" style={styles.page}>
-        <View style={styles.brandBar} />
-        <Text style={styles.brand}>El Camino con Naty</Text>
-        <Text style={styles.brandSub}>elcaminoconnaty.com</Text>
+      <Page size="A4" style={base.page}>
+        <Membrete />
 
-        <Text style={styles.title}>{TITULO[data.kind] ?? "Recibo de pago"}</Text>
-        <Text style={styles.subtitle}>N° {code} · {fmt.date(data.paid_at)}</Text>
+        <Text style={base.title}>{TITULO[data.kind] ?? "Recibo de pago"}</Text>
+        <Text style={base.subtitle}>N° {code} · {fmt.date(data.paid_at)}</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Peregrino</Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Nombre</Text><Text style={styles.rowValue}>{data.pilgrim_name}</Text></View>
-          {data.pilgrim_email && <View style={styles.row}><Text style={styles.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
-          <View style={styles.row}><Text style={styles.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
+        <View style={base.section}>
+          <Text style={base.sectionTitle}>Peregrino</Text>
+          <View style={base.row}><Text style={base.rowLabel}>Nombre</Text><Text style={base.rowValue}>{data.pilgrim_name}</Text></View>
+          {data.pilgrim_email && <View style={base.row}><Text style={base.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
+          <View style={base.row}><Text style={base.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
         </View>
 
-        <View style={styles.box}>
-          <Text style={styles.sectionTitle}>{esDevolucion ? "Monto devuelto" : "Pago recibido"}</Text>
-          <Text style={styles.bigAmount}>
+        <View style={base.box}>
+          <Text style={base.sectionTitle}>{esDevolucion ? "Monto devuelto" : "Pago recibido"}</Text>
+          <Text style={base.bigAmount}>
             {fmt.num(Math.abs(data.amount))} {data.currency}
           </Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Equivalente en EUR</Text><Text style={styles.rowValue}>{fmt.eur(Math.abs(Number(data.amount_eur ?? 0)))}</Text></View>
+          <View style={base.row}><Text style={base.rowLabel}>Equivalente en EUR</Text><Text style={base.rowValue}>{fmt.eur(Math.abs(Number(data.amount_eur ?? 0)))}</Text></View>
           {data.trm_eur_cop && (
-            <View style={styles.row}>
+            <View style={base.row}>
               {/* Con Global 66 la tasa es la de la plataforma (comisión incluida), no la TRM del día */}
-              <Text style={styles.rowLabel}>
+              <Text style={base.rowLabel}>
                 {data.method === GLOBAL66
                   ? `Tasa ${GLOBAL66}`
                   : data.kind === "abono"
@@ -117,22 +99,22 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
               <Text>{fmt.num(data.trm_eur_cop)} COP/EUR</Text>
             </View>
           )}
-          {data.method && <View style={styles.row}><Text style={styles.rowLabel}>Método</Text><Text>{data.method}</Text></View>}
-          {data.reference && <View style={styles.row}><Text style={styles.rowLabel}>Referencia</Text><Text>{data.reference}</Text></View>}
+          {data.method && <View style={base.row}><Text style={base.rowLabel}>Método</Text><Text>{data.method}</Text></View>}
+          {data.reference && <View style={base.row}><Text style={base.rowLabel}>Referencia</Text><Text>{data.reference}</Text></View>}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estado del viaje</Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
+        <View style={base.section}>
+          <Text style={base.sectionTitle}>Estado del viaje</Text>
+          <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
           {hayCierre ? (
             <>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Total abonado, a la tasa de cierre</Text>
+              <View style={base.row}>
+                <Text style={base.rowLabel}>Total abonado, a la tasa de cierre</Text>
                 <Text>{fmt.eur(data.paid_eur_cierre)}</Text>
               </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{saldo < -0.5 ? "Saldo a tu favor" : "Saldo pendiente"}</Text>
-                <Text style={styles.rowValue}>
+              <View style={base.row}>
+                <Text style={base.rowLabel}>{saldo < -0.5 ? "Saldo a tu favor" : "Saldo pendiente"}</Text>
+                <Text style={base.rowValue}>
                   {fmt.eur(Math.abs(saldo) <= 0.5 ? 0 : Math.abs(saldo))}
                   {data.saldo_final_cop != null && Math.abs(saldo) > 0.5
                     ? ` · ${fmt.cop(Math.abs(data.saldo_final_cop))}`
@@ -142,15 +124,15 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
             </>
           ) : (
             <>
-              <View style={styles.row}><Text style={styles.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
-              <View style={styles.row}><Text style={styles.rowLabel}>Saldo pendiente</Text><Text style={styles.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
+              <View style={base.row}><Text style={base.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
+              <View style={base.row}><Text style={base.rowLabel}>Saldo pendiente</Text><Text style={base.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
             </>
           )}
         </View>
 
         {hayCierre ? (
-          <View style={styles.yellowBox}>
-            <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Sobre la tasa de cambio</Text>
+          <View style={base.noteBox}>
+            <Text style={base.noteTitle}>Sobre la tasa de cambio</Text>
             <Text>
               La tasa de cierre quedó en {fmt.num(data.settlement_trm)} COP/EUR el {fmt.date(data.settlement_date)}. Todos
               tus abonos hechos en pesos se recalcularon con ella, así que el saldo de arriba ya está a la tasa
@@ -158,8 +140,8 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
             </Text>
           </View>
         ) : conRecalculo && data.paid_in_cop_originally ? (
-          <View style={styles.yellowBox}>
-            <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Importante sobre la tasa de cambio</Text>
+          <View style={base.noteBox}>
+            <Text style={base.noteTitle}>Importante sobre la tasa de cambio</Text>
             <Text>
               Un mes antes de la salida se fija la tasa de cierre y todos tus abonos en pesos se recalculan con ella.
               El saldo final en pesos puede variar respecto al estimado de hoy, en cualquiera de los dos sentidos.
@@ -167,7 +149,7 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
           </View>
         ) : null}
 
-        <Text style={styles.footer}>El Camino con Naty · elcaminoconnaty.com · Documento generado automáticamente</Text>
+        <Pie />
       </Page>
     </Document>
   );

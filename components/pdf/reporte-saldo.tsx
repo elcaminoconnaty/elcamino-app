@@ -1,28 +1,13 @@
-import { Page, Document, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { base, Document, Membrete, Page, Pie, StyleSheet, Text, View } from "./brand-shell";
+import { FUENTE } from "@/lib/brand";
 
-const styles = StyleSheet.create({
-  page: { padding: 48, fontSize: 10.5, fontFamily: "Helvetica", color: "#1a1a1a", backgroundColor: "#fdfaf3" },
-  brandBar: { height: 4, width: 60, backgroundColor: "#f5c518", marginBottom: 24 },
-  brand: { fontSize: 22, fontFamily: "Helvetica-Bold", letterSpacing: 0.5, marginBottom: 4 },
-  brandSub: { fontSize: 10, color: "#6b6b6b", marginBottom: 32 },
-  title: { fontSize: 16, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  subtitle: { fontSize: 10, color: "#6b6b6b", marginBottom: 20 },
-  section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 9, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 },
-  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
-  rowLabel: { color: "#6b6b6b" },
-  rowValue: { fontFamily: "Helvetica-Bold" },
-  table: { borderWidth: 0.5, borderColor: "#e6dcc2", borderRadius: 3, marginVertical: 8 },
-  tableHead: { flexDirection: "row", backgroundColor: "#faf3e3", padding: 6, fontSize: 8.5, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 0.8, borderBottomWidth: 0.5, borderBottomColor: "#e6dcc2" },
-  tableRow: { flexDirection: "row", padding: 6, borderBottomWidth: 0.5, borderBottomColor: "#f0e7cf", fontSize: 9.5 },
-  col1: { flex: 1.2, paddingRight: 4 },
-  col2: { flex: 1.1, textAlign: "right", paddingRight: 6 },
-  col3: { flex: 0.9, textAlign: "right", paddingRight: 6 },
-  col4: { flex: 1.1, textAlign: "right", paddingRight: 8 },
-  col5: { flex: 1.2, textAlign: "left" },
-  bigAmount: { fontSize: 24, fontFamily: "Helvetica-Bold", marginTop: 8 },
-  yellowBox: { backgroundColor: "#fef3c7", padding: 12, borderRadius: 4, fontSize: 9.5, color: "#7c5e10", marginTop: 16 },
-  footer: { position: "absolute", bottom: 32, left: 48, right: 48, fontSize: 8, color: "#9a9a9a", textAlign: "center", borderTopWidth: 0.5, borderTopColor: "#e6dcc2", paddingTop: 8 },
+/** Anchos de la tabla de pagos. Todo lo demás sale de `base`. */
+const col = StyleSheet.create({
+  c1: { flex: 1.2, paddingRight: 4 },
+  c2: { flex: 1.1, textAlign: "right", paddingRight: 6 },
+  c3: { flex: 0.9, textAlign: "right", paddingRight: 6 },
+  c4: { flex: 1.1, textAlign: "right", paddingRight: 8 },
+  c5: { flex: 1.2, textAlign: "left" },
 });
 
 type ReporteData = {
@@ -82,78 +67,76 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
   const saldo = data.saldo_final_eur != null ? Number(data.saldo_final_eur) : Number(data.pending_eur);
   return (
     <Document title={`Saldo ${data.pilgrim_name}`} author="El Camino con Naty">
-      <Page size="A4" style={styles.page}>
-        <View style={styles.brandBar} />
-        <Text style={styles.brand}>El Camino con Naty</Text>
-        <Text style={styles.brandSub}>elcaminoconnaty.com</Text>
+      <Page size="A4" style={base.page}>
+        <Membrete />
 
-        <Text style={styles.title}>Reporte de saldo</Text>
-        <Text style={styles.subtitle}>Generado el {fmt.date(new Date().toISOString().slice(0, 10))}</Text>
+        <Text style={base.title}>Reporte de saldo</Text>
+        <Text style={base.subtitle}>Generado el {fmt.date(new Date().toISOString().slice(0, 10))}</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Peregrino</Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Nombre</Text><Text style={styles.rowValue}>{data.pilgrim_name}</Text></View>
-          {data.pilgrim_email && <View style={styles.row}><Text style={styles.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
-          <View style={styles.row}><Text style={styles.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
+        <View style={base.section}>
+          <Text style={base.sectionTitle}>Peregrino</Text>
+          <View style={base.row}><Text style={base.rowLabel}>Nombre</Text><Text style={base.rowValue}>{data.pilgrim_name}</Text></View>
+          {data.pilgrim_email && <View style={base.row}><Text style={base.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
+          <View style={base.row}><Text style={base.rowLabel}>Camino</Text><Text>{data.departure_name}</Text></View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Historial de pagos</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHead}>
-              <Text style={styles.col1}>Fecha</Text>
-              <Text style={styles.col2}>Monto orig.</Text>
-              <Text style={styles.col3}>Tasa del día</Text>
-              <Text style={styles.col4}>Equiv. EUR</Text>
-              {hayCierre && <Text style={styles.col4}>A tasa cierre</Text>}
-              <Text style={styles.col5}>Método pago</Text>
+        <View style={base.section}>
+          <Text style={base.sectionTitle}>Historial de pagos</Text>
+          <View style={base.table}>
+            <View style={base.tableHead}>
+              <Text style={col.c1}>Fecha</Text>
+              <Text style={col.c2}>Monto orig.</Text>
+              <Text style={col.c3}>Tasa del día</Text>
+              <Text style={col.c4}>Equiv. EUR</Text>
+              {hayCierre && <Text style={col.c4}>A tasa cierre</Text>}
+              <Text style={col.c5}>Método pago</Text>
             </View>
             {data.payments.length === 0 ? (
-              <View style={styles.tableRow}><Text>Sin pagos registrados.</Text></View>
+              <View style={base.tableRow}><Text>Sin pagos registrados.</Text></View>
             ) : (
               data.payments.map((p, i) => (
-                <View key={i} style={styles.tableRow}>
-                  <Text style={styles.col1}>{fmt.date(p.paid_at)}</Text>
-                  <Text style={styles.col2}>
+                <View key={i} style={base.tableRow}>
+                  <Text style={col.c1}>{fmt.date(p.paid_at)}</Text>
+                  <Text style={col.c2}>
                     {fmt.num(p.amount)} {p.currency}
                     {p.kind === "devolucion" ? " (dev.)" : p.kind === "cierre" ? " (cierre)" : ""}
                   </Text>
-                  <Text style={styles.col3}>{p.trm_eur_cop ? fmt.num(p.trm_eur_cop) : "—"}</Text>
-                  <Text style={styles.col4}>{fmt.eur(p.amount_eur)}</Text>
+                  <Text style={col.c3}>{p.trm_eur_cop ? fmt.num(p.trm_eur_cop) : "—"}</Text>
+                  <Text style={col.c4}>{fmt.eur(p.amount_eur)}</Text>
                   {hayCierre && (
-                    <Text style={styles.col4}>{p.se_revalora ? fmt.eur(p.amount_eur_cierre) : "="}</Text>
+                    <Text style={col.c4}>{p.se_revalora ? fmt.eur(p.amount_eur_cierre) : "="}</Text>
                   )}
-                  <Text style={styles.col5}>{p.method ?? "—"}</Text>
+                  <Text style={col.c5}>{p.method ?? "—"}</Text>
                 </View>
               ))
             )}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen</Text>
-          <View style={styles.row}><Text style={styles.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
+        <View style={base.section}>
+          <Text style={base.sectionTitle}>Resumen</Text>
+          <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
           {hayCierre ? (
             <>
-              <View style={styles.row}><Text style={styles.rowLabel}>Total abonado, a la tasa de cierre</Text><Text>{fmt.eur(data.paid_eur_cierre)}</Text></View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{saldo < -0.5 ? "Saldo a tu favor" : "Saldo pendiente"}</Text>
-                <Text style={styles.rowValue}>{fmt.eur(Math.abs(saldo) <= 0.5 ? 0 : Math.abs(saldo))}</Text>
+              <View style={base.row}><Text style={base.rowLabel}>Total abonado, a la tasa de cierre</Text><Text>{fmt.eur(data.paid_eur_cierre)}</Text></View>
+              <View style={base.row}>
+                <Text style={base.rowLabel}>{saldo < -0.5 ? "Saldo a tu favor" : "Saldo pendiente"}</Text>
+                <Text style={base.rowValue}>{fmt.eur(Math.abs(saldo) <= 0.5 ? 0 : Math.abs(saldo))}</Text>
               </View>
               {data.saldo_final_cop != null && Math.abs(saldo) > 0.5 && (
-                <View style={styles.row}>
-                  <Text style={styles.rowLabel}>{saldo < 0 ? "A devolverte en pesos" : "Saldo pendiente en pesos"}</Text>
+                <View style={base.row}>
+                  <Text style={base.rowLabel}>{saldo < 0 ? "A devolverte en pesos" : "Saldo pendiente en pesos"}</Text>
                   <Text>{fmt.cop(Math.abs(data.saldo_final_cop))}</Text>
                 </View>
               )}
             </>
           ) : (
             <>
-              <View style={styles.row}><Text style={styles.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_eur)}</Text></View>
-              <View style={styles.row}><Text style={styles.rowLabel}>Saldo pendiente EUR</Text><Text style={styles.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
+              <View style={base.row}><Text style={base.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_eur)}</Text></View>
+              <View style={base.row}><Text style={base.rowLabel}>Saldo pendiente EUR</Text><Text style={base.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
               {data.paid_in_cop_originally && (
-                <View style={styles.row}>
-                  <Text style={styles.rowLabel}>Saldo pendiente COP (referencia)</Text>
+                <View style={base.row}>
+                  <Text style={base.rowLabel}>Saldo pendiente COP (referencia)</Text>
                   <Text>{fmt.cop(data.pending_cop_reference)}</Text>
                 </View>
               )}
@@ -162,8 +145,8 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
         </View>
 
         {hayCierre ? (
-          <View style={styles.yellowBox}>
-            <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Sobre la tasa de cambio</Text>
+          <View style={base.noteBox}>
+            <Text style={base.noteTitle}>Sobre la tasa de cambio</Text>
             <Text>
               La tasa de cierre quedó en {fmt.num(data.settlement_trm)} COP/EUR el {fmt.date(data.settlement_date)}, y con
               ella se recalcularon todos tus abonos hechos en pesos: la columna «A tasa cierre» es la que cuenta. Un «=»
@@ -171,8 +154,8 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
             </Text>
           </View>
         ) : conRecalculo && data.paid_in_cop_originally ? (
-          <View style={styles.yellowBox}>
-            <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 4 }}>Sobre la tasa de cambio</Text>
+          <View style={base.noteBox}>
+            <Text style={base.noteTitle}>Sobre la tasa de cambio</Text>
             <Text>
               El saldo en pesos es una referencia con la TRM de hoy ({fmt.num(data.current_trm)} COP/EUR). Un mes antes de
               la salida se fija la tasa de cierre y todos tus abonos en pesos se recalculan con ella, así que el monto
@@ -181,7 +164,7 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
           </View>
         ) : null}
 
-        <Text style={styles.footer}>El Camino con Naty · elcaminoconnaty.com · Documento generado automáticamente</Text>
+        <Pie />
       </Page>
     </Document>
   );

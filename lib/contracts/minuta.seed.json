@@ -1,0 +1,690 @@
+{
+ "version": "2026-09-05",
+ "titulo": "ACUERDO DE PRESTACIÓN DE SERVICIOS TURÍSTICOS",
+ "subtitulo": "EL CAMINO CON NATY",
+ "partes": [
+  {
+   "tipo": "parrafo",
+   "texto": "(i) NATALIA LARGO DURÁN, identificada con la cédula de ciudadanía número 1.037.593.713, quien en adelante se denominará “EL CAMINO CON NATY”, y"
+  },
+  {
+   "tipo": "parrafo",
+   "texto": "(ii) {{viajero_nombre}}, {{viajero_identificado}} con {{viajero_documento_frase}}, obrando en su propio nombre, quien en adelante se denominará “EL VIAJERO”,"
+  }
+ ],
+ "secciones": [
+  {
+   "clave": "contrato",
+   "titulo": null,
+   "bloques": [
+    {
+     "tipo": "parrafo",
+     "texto": "Hemos acordado celebrar el presente contrato de prestación de servicios turísticos (en adelante “el Contrato”), el cual se regirá por las disposiciones aquí establecidas, incluyendo las cláusulas y consideraciones estipuladas. En lo no previsto en este documento, serán aplicables las normas civiles y comerciales vigentes."
+    },
+    {
+     "tipo": "seccion",
+     "texto": "CONSIDERACIONES"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "1. NATALIA LARGO DURÁN es dueña de la marca denominada “EL CAMINO CON NATY”, por medio de la cual esta se permite transmitir su conocimiento y experiencias de orientadora espiritual a través de diferentes medios tales como: terapias personalizadas, grupos de trabajo, encuentros profesionales, charlas motivacionales, viajes orientados a vivir experiencias espirituales, entre otras."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "2. EL CAMINO CON NATY ofrece sus servicios a través de actividades turísticas a nivel internacional, actuando como intermediario ante LOS VIAJEROS y los proveedores de los servicios de turismo."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "3. EL CAMINO CON NATY ofrece y vende planes turísticos que integran la combinación de varios servicios de carácter turístico en un solo producto y por un precio global, en los cuales quedan comprendidos los servicios complementarios de su actividad principal."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "4. EL CAMINO CON NATY contrata a través de diferentes proveedores de turismo, la prestación de los servicios de transporte terrestre, alojamiento, restaurantes, recorridos, guías, conductores, vehículos y los demás servicios complementarios a fin de efectuar el plan de viaje contratado."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "5. Por lo anterior, EL CAMINO CON NATY y EL VIAJERO acuerdan celebrar el presente contrato de prestación de servicios, en el que quedarán contempladas las condiciones específicas para su ejecución."
+    },
+    {
+     "tipo": "seccion",
+     "texto": "CLÁUSULAS"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "1. OBJETO. – EL CAMINO CON NATY se obliga frente al VIAJERO a actuar como intermediario comercial y logístico entre este y los distintos proveedores de bienes y servicios turísticos, con el fin de ofrecer un plan turístico internacional a {{plan_descripcion}}, compuesto por una combinación de servicios prestados por terceros, reunidos en un único producto con un precio global."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Dicho plan podrá incluir, según las condiciones del viaje, los intereses del VIAJERO y las posibilidades logísticas del momento, espacios de acompañamiento como terapias personalizadas, grupos de trabajo, charlas motivacionales y sesiones de coaching, orientadas al turismo espiritual y al desarrollo personal. Estos servicios no constituyen una obligación exigible para EL CAMINO CON NATY, pues su realización dependerá de factores como la dinámica del grupo, las condiciones del recorrido, la disponibilidad de tiempo y la disposición de los participantes para involucrarse en dichas actividades."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO declara conocer y aceptar que EL CAMINO CON NATY no es el proveedor directo de servicios como transporte, hospedaje, alimentación, seguros, ni otros servicios logísticos prestados por terceros, y que su rol se limita a la coordinación, articulación y acompañamiento durante la ejecución del plan."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO PRIMERO. – El presente contrato se regirá y ejecutará de conformidad con lo establecido en las condiciones particulares del plan turístico contratado, las cuales se encuentran publicadas en el en el siguiente link: {{anexo1_url}}. Estas condiciones harán parte del presente contrato como Anexo No. 1."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO declara expresamente que ha leído, comprendido y aceptado en su integridad dichas condiciones particulares antes de la suscripción del presente contrato, y que entiende que estas constituyen el marco específico del servicio adquirido."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL CAMINO CON NATY informa que a través de su página web pueden ofrecerse otros planes turísticos con condiciones, precios y beneficios distintos o más favorables, sin que ello implique obligación alguna de extender tales condiciones al presente contrato. En consecuencia, EL VIAJERO declara haber elegido libre y voluntariamente el plan específico detallado en el Anexo No. 1, renunciando a cualquier reclamación por condiciones aplicables a otros planes distintos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "2. ALCANCE DEL SERVICIO. – Toda vez que EL CAMINO CON NATY actúa exclusivamente en calidad de intermediario entre EL VIAJERO y los distintos proveedores de servicios turísticos, EL VIAJERO autoriza expresamente a EL CAMINO CON NATY a contratar, en su nombre y representación, los servicios necesarios con los respectivos proveedores, entendiéndose que tales contrataciones se rigen por los términos y condiciones propios de cada proveedor, los cuales EL VIAJERO se obliga a respetar y cumplir integralmente."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – EL CAMINO CON NATY actuará únicamente como intermediario entre EL VIAJERO y los terceros proveedores de servicios tales como transporte terrestre, alojamiento, alimentación, recorridos turísticos, guías, conductores, vehículos y demás servicios complementarios vinculados a la experiencia del Camino de Santiago. En virtud de lo anterior, EL CAMINO CON NATY no será responsable, en ningún caso, por la calidad, cumplimiento, modificaciones, cancelaciones, demoras, accidentes, pérdidas, daños o perjuicios que puedan derivarse de la prestación de dichos servicios por parte de terceros."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Así mismo, EL CAMINO CON NATY no está obligada a gestionar, reservar ni prestar servicios de transporte aéreo, ni será responsable por la llegada oportuna del VIAJERO al lugar de encuentro establecido para el inicio del recorrido. EL VIAJERO asume total responsabilidad por su traslado hacia y desde dicho lugar, así como por cualquier situación que pueda afectar su participación en la experiencia contratada por causas ajenas a EL CAMINO CON NATY."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "3. VALOR. – El valor total del presente contrato será de {{valor_total}}, que EL VIAJERO se obliga a pagar a EL CAMINO CON NATY, pudiendo hacerlo en euros o en pesos colombianos (COP), según su preferencia y conforme a las instrucciones de pago que le sean informadas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de optar por el pago en pesos colombianos, el valor equivalente será calculado con base en la Tasa Representativa del Mercado (TRM) vigente un (1) mes antes de la fecha de inicio del viaje, publicada en el sitio de Google Finance: https://www.google.com/finance/quote/EUR-COP?hl=es, salvo pacto expreso en contrario."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO podrá realizar abonos parciales en pesos colombianos antes de esa fecha, utilizando la TRM vigente al momento de cada pago. No obstante, independientemente de los pagos efectuados, EL CAMINO CON NATY realizará un recálculo definitivo del valor en COP un (1) mes antes del viaje, aplicando la TRM correspondiente a ese día. Con base en dicho recálculo, se informará al VIAJERO si existe un saldo pendiente por pagar o un monto a favor por devolución."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO declara conocer y aceptar que la TRM puede variar por factores externos e imprevisibles, y que tales fluctuaciones no afectan el valor pactado en euros ni constituyen responsabilidad de EL CAMINO CON NATY. En todo caso, el riesgo cambiario será asumido en su totalidad por EL VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – En caso de que la prestación del servicio deba ser aplazada, reprogramada o modificada por causas ajenas a la voluntad de ambas partes (como disposiciones gubernamentales, cierres de frontera, situaciones de orden público u otras de naturaleza similar), los pagos realizados por EL VIAJERO no serán objeto de reembolso, y se entenderán automáticamente aplicados como saldo a favor para la reserva del siguiente viaje o experiencia programada por EL CAMINO CON NATY, sin perjuicio de los costos en que ya se haya incurrido con terceros, conforme a las condiciones del presente contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "4. FORMA DE PAGO. – Teniendo en cuenta que EL VIAJERO no está en capacidad para hacer el pago del valor total del contrato, para la fecha de suscripción del mismo, EL CAMINO CON NATY otorgará un plan de financiamiento permitiendo al VIAJERO pagar el valor total del contrato en los plazos y montos establecidos a continuación:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "{{forma_de_pago}}"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO PRIMERO. – EL VIAJERO podrá realizar el pago en efectivo, a través de consignación o transferencia bancaria a la cuenta de ahorros Bancolombia No. 436 - 655249 - 58 o por medio de tarjeta de crédito a través del portal de pagos que sea indicado EL CAMINO CON NATY para estos efectos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Los pagos realizados en línea tendrán un costo adicional por concepto de fee bancario, la cual deberá asumir EL VIAJERO, así: del 8% si el pago se realiza por PayPal; y del 5% si el pago se realiza por PSE."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO SEGUNDO. – EL VIAJERO deberá enviar los respectivos comprobantes de pago al correo electrónico elcaminoconnaty@gmail.com o al WhatsApp +57 3014314296."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO TERCERO. – EL CAMINO CON NATY no cobrará al VIAJERO ningún tipo de interés remuneratorio por el financiamiento en cuestión. Sin embargo, en caso de que EL VIAJERO incurra en mora o incumpla cualquiera de los pagos en las cuotas correspondientes, EL CAMINO CON NATY podrá cobrar intereses moratorios a la tasa máxima legal y podrá declarar vencidos la totalidad de las cuotas que constituyan el saldo de lo debido y exigir su pago inmediato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO CUARTO. – EL VIAJERO se obliga con EL CAMINO CON NATY a suscribir un pagaré en blanco con carta de instrucciones que garantice el cumplimiento de las obligaciones dinerarias acá establecidas, de conformidad con lo establecido en los artículos 621, 710 y subsiguientes del Código de Comercio."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En el pagaré consta el reconocimiento del valor total del contrato y la promesa de pago que hace EL VIAJERO a EL CAMINO CON NATY. El pagaré presta mérito ejecutivo, por lo que, al vencimiento del mismo, cuando no se hubiere pagado en su totalidad o se hubiere recibido un pago parcial sobre el valor total del contrato, EL CAMINO CON NATY podrá ejercer la acción cambiaria ante la justicia ordinaria para exigir el cumplimiento de la obligación."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "5. SEGURO. – EL CAMINO CON NATY se compromete a contratar un seguro en favor del VIAJERO, con vigencia desde el {{seguro_desde}} hasta el {{seguro_hasta}} cuyo propósito será brindar protección frente a los riesgos contemplados en la póliza (las condiciones específicas están detalladas en el Anexo No. 2, el cual hace parte integral del presente Contrato)."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La aseguradora y las condiciones definitivas del seguro serán comunicadas al VIAJERO con al menos un mes de anticipación a la fecha de inicio del viaje."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO PRIMERO. – En caso de que EL VIAJERO decida iniciar su viaje antes de la fecha de vigencia del seguro o extenderlo más allá de la misma, será su exclusiva responsabilidad contratar, por su cuenta, una póliza adicional que cubra dichas fechas, en caso de considerarlo necesario."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO SEGUNDO. – EL VIAJERO reconoce y acepta que cualquier gasto o tratamiento médico que se requiera fuera del alcance y cobertura del seguro contratado por EL CAMINO CON NATY será de su entera responsabilidad, incluyendo los costos y la organización de dichos servicios."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO TERCERO. – EL CAMINO CON NATY incluirá dentro del plan turístico una póliza de seguro de viaje con cobertura únicamente desde el momento del encuentro en el lugar de inicio del recorrido en Portugal o España, hasta la finalización del itinerario contratado. En consecuencia, el seguro no cubre el trayecto previo desde el país de origen del VIAJERO ni el retorno posterior al lugar de origen, por lo que cualquier evento ocurrido fuera del periodo y territorio cubiertos por el plan será de entera responsabilidad del VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL CAMINO CON NATY no asume responsabilidad alguna por situaciones ocurridas antes o después del viaje pactado, incluyendo fechas adicionales o estancias fuera del itinerario oficial. La participación en actividades previas o posteriores será completamente potestativa, y EL CAMINO CON NATY no estará obligada a ofrecer acompañamiento, cobertura o asistencia fuera de las fechas y condiciones expresamente contratadas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Será responsabilidad exclusiva del VIAJERO revisar la póliza contratada por EL CAMINO CON NATY, y, si lo considera necesario, contratar un seguro adicional que cubra periodos o situaciones no contempladas, tales como el desplazamiento internacional desde su lugar de salida, pérdida de vuelos, cancelaciones, enfermedades preexistentes u otras circunstancias no incluidas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "6. EXONERACIÓN DE RESPONSABILIDAD. – EL VIAJERO asume de manera expresa y consciente todos los riesgos inherentes al viaje y acepta las limitaciones y exclusiones de responsabilidad aquí establecidas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "a. Limitación de responsabilidad por terceros proveedores. – EL CAMINO CON NATY queda expresamente exonerado de toda responsabilidad frente al VIAJERO por la calidad, incumplimiento, daños, perjuicios, errores, fallas o conductas de los proveedores turísticos terceros, incluyendo daños directos, lucro cesante o cualquier otro perjuicio derivado. Cualquier reclamación relacionada con tales servicios deberá dirigirse directamente al proveedor responsable, toda vez que EL VIAJERO entiende y acepta que EL CAMINO CON NATY no representa, ni tiene control directo sobre dichos terceros."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "b. Asunción de riesgos inherentes al viaje. – EL VIAJERO asume total y plena responsabilidad por los riesgos inherentes al viaje, incluyendo, pero no limitándose a: enfermedades, intoxicaciones, accidentes, fallecimientos, disturbios civiles, condiciones insalubres, desastres naturales, actos de terrorismo, actos de autoridad, condiciones climáticas adversas, pandemias que impliquen prohibiciones legales de movilización y cualquier otro evento fortuito o de fuerza mayor."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO es consciente de que los viajes, recorridos y demás actividades pueden implicar riesgos personales significativos, incluyendo lesiones físicas o daños a su propiedad. Por ello, EL CAMINO CON NATY no será responsable, de manera conjunta o separada, por cualquier muerte, lesión, daño o pérdida sufrida por EL VIAJERO, sus pertenencias o terceros relacionados con este, incluso si tales eventos están relacionados con el viaje contratado."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Mediante el presente contrato, EL VIAJERO, en su nombre y en representación de sus familiares o acompañantes, renuncia, libera y desiste de forma definitiva, absoluta y solidaria a EL CAMINO CON NATY y a sus afiliados, agentes, empleados y proveedores, de toda responsabilidad y reclamación por muerte, lesiones, daños o pérdidas que pudieran sufrir como consecuencia o en relación con el viaje reservado a través de EL CAMINO CON NATY."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "c. Eventos de fuerza mayor o caso fortuito – Se entiende por caso fortuito o fuerza mayor cualquier acontecimiento externo, imprevisible, irresistible y ajeno a la voluntad de las partes, que impida objetiva y materialmente el cumplimiento total o parcial de las obligaciones derivadas del presente contrato, y que no pueda ser superado mediante el ejercicio de una diligencia razonable."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Se incluyen, a título enunciativo y no limitativo: desastres naturales (terremotos, huracanes, inundaciones), actos de autoridad debidamente comprobados (cierres de fronteras, restricciones de movilidad), actos de guerra, terrorismo, pandemias que impliquen prohibiciones legales de movilización, o cualquier otro evento de similar naturaleza que imposibilite la ejecución de los servicios pactados."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "No constituirá caso fortuito o fuerza mayor la imposibilidad del VIAJERO de disfrutar del viaje por causas personales, laborales, médicas, familiares o similares, ni el desistimiento voluntario del VIAJERO, cualesquiera sean las razones alegadas. Por tanto, ninguna de estas situaciones darán lugar a ningún tipo de reembolso del dinero pagado ni exonerará del pago de las obligaciones que siguieran estando adeudadas en favor de EL CAMINO CON NATY."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "d. Responsabilidad exclusiva del VIAJERO. – EL VIAJERO asume total y absoluta responsabilidad por:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "i. Documentación y requisitos migratorios. – Gestionar, tramitar y obtener a su exclusivo costo y riesgo todos los documentos, permisos y requisitos exigidos por las autoridades del país o países de destino (pasaportes, visas, certificados de vacunación, tasas, impuestos, autorizaciones, etc.)."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL CAMINO CON NATY solo podrá, por mera liberalidad, brindar apoyo exclusivamente informativo preliminar en la obtención de documentos, sin que ello genere obligación o responsabilidad alguna por errores, omisiones o incumplimientos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La negativa de ingreso o deportación por incumplimiento de estos requisitos no generará responsabilidad ni obligación de reembolso para EL CAMINO CON NATY, siendo EL VIAJERO el único responsable de gestionar y sufragar los gastos derivados de su retorno."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "ii. Incidentes en transporte y hospedaje. – Cualquier retraso, cancelación, alteración, daño o irregularidad originada en servicios de transporte (aéreo, terrestre, marítimo) u hospedaje. Estos son responsabilidad exclusiva de los proveedores respectivos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "iii. Equipaje y pertenencias. – Pérdida, daño, sustracción o deterioro de equipaje u objetos personales. EL VIAJERO debe informarse y cumplir con las políticas de equipaje de los transportadores."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "iv. Conducta del viajero. – Cualquier conducta grave, inmoral o peligrosa que afecte el normal desarrollo del viaje. EL CAMINO CON NATY podrá retirar al VIAJERO del viaje sin obligación de reembolso por los servicios no disfrutados, salvo lo que la ley disponga."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "v. Daños a infraestructura y bienes. – Cualquier daño ocasionado a instalaciones, mobiliario o bienes de terceros. EL VIAJERO responderá económicamente por dichos daños, y EL CAMINO CON NATY podrá cobrar dichas sumas por vía ejecutiva."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "vi. Gastos personales. – Cualquier gasto derivado de situaciones personales, médicas, legales o de otra índole que afecten a EL VIAJERO durante el viaje."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "7. RECOMENDACIONES. – EL VIAJERO se obliga a acatar en todo momento las instrucciones, recomendaciones y directrices que le sean impartidas por EL CAMINO CON NATY, con el fin de garantizar su seguridad personal, la del grupo, y la adecuada custodia de sus pertenencias."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En ningún caso EL CAMINO CON NATY será responsable por pérdidas, daños, lesiones, accidentes, o cualquier otro evento que pueda sufrir EL VIAJERO como consecuencia directa o indirecta de la omisión, incumplimiento o desobediencia a las instrucciones y recomendaciones impartidas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO SEGUNDO. – Adicionalmente, y con el fin de garantizar una adecuada y segura ejecución del plan turístico, EL CAMINO CON NATY podrá remitir al VIAJERO –en cualquier momento y por cualquier medio idóneo– recomendaciones, advertencias o lineamientos complementarios que deberán ser cumplidos estrictamente por EL VIAJERO. Estas recomendaciones harán parte integral del presente contrato como Anexo No. 3, y su incumplimiento podrá dar lugar a restricciones en la participación de actividades, sin que ello implique devolución de sumas pagadas ni compensación alguna."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "8. CONDICIONES ESPECIALES. – EL VIAJERO declara haber leído, comprendido y aceptado en su integridad los anexos que hacen parte del presente contrato, dentro de los cuales se detallan las condiciones específicas del plan de viaje contratado, incluyendo pero sin limitarse a: itinerario por días, ciudades de destino, alojamiento, traslados, actividades programadas, servicios no incluidos, tarifas, gastos adicionales y demás aspectos logísticos y operativos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de discrepancia entre el presente contrato y sus anexos, se interpretarán de forma armónica, dando prioridad a la voluntad de las partes y al objeto principal del contrato. No obstante, cuando los anexos incluyan especificaciones técnicas o detalles logísticos particulares del viaje, estos prevalecerán exclusivamente en lo que no contradiga las cláusulas generales de responsabilidad, condiciones de pago o política de reembolsos establecidas en el cuerpo principal del contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – EL CAMINO CON NATY, así como los terceros proveedores vinculados al viaje, podrán realizar ajustes razonables, aclaraciones o modificaciones en los detalles logísticos del plan, cuando ello sea necesario para garantizar la ejecución adecuada, segura y oportuna de los servicios ofrecidos. Estas modificaciones podrán obedecer, entre otras causas, a situaciones operativas, disponibilidad, condiciones climáticas o recomendaciones de seguridad."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Dichos cambios serán comunicados oportunamente a EL VIAJERO, y no darán lugar a reembolsos o indemnizaciones, siempre que no afecten de manera sustancial el objeto del plan contratado."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "9. DERECHO DE RETRACTO. – En virtud de que los servicios objeto de este contrato fueron contratados mediante métodos de venta a distancia y/o sistemas de financiación ofrecidos por EL CAMINO CON NATY, EL VIAJERO podrá ejercer el derecho de retracto dentro de los cinco (5) días hábiles siguientes a la firma del presente contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Para ejercer dicho derecho, EL VIAJERO deberá comunicarlo por escrito a EL CAMINO CON NATY dentro del plazo establecido. En este caso, EL CAMINO CON NATY procederá a resolver el contrato y devolverá al VIAJERO el total de las sumas pagadas, descontando únicamente los gastos administrativos y bancarios comprobados, siempre y cuando no se haya iniciado la prestación del servicio."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – El derecho de retracto no será aplicable cuando la prestación del servicio haya comenzado, en cuyo caso no procederá la devolución de dinero ni la resolución unilateral del contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "10. REVERSIÓN DEL PAGO. – De acuerdo con el artículo 51 de la Ley 1480 de 2011 y el Decreto 587 de 2016, EL VIAJERO podrá solicitar la reversión del pago a los participantes del proceso de pago electrónico, la cual será realizada a través del mismo método de pago utilizado inicialmente, a menos que autorice un método diferente, de acuerdo con los requisitos establecidos en dichas normas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La reversión procederá cuando EL VIAJERO sea objeto de fraude, o corresponda a una operación no solicitada, o el servicio adquirido no haya sido ejecutado o el servicio realizado no corresponda a lo solicitado y este presente queja a EL CAMINO CON NATY, y notifique de la reclamación al emisor del instrumento de pago, el cual –en conjunto con los demás participantes del proceso de pago– realizarán la reversión del pago dentro de los cinco (5) días hábiles siguientes a la reclamación. La reversión del pago se hará sólo al titular del pago y se deberán diligenciar los formularios requeridos para tal fin por parte DEL VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO entiende que por “participantes del proceso de pago”, se hace referencia a los emisores de los instrumentos de pago, las entidades administradoras de los Sistemas de Pago de Bajo Valor, los bancos que manejan las cuentas y/o depósitos bancarios del Cliente y/o de la plataforma."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "11. GARANTÍA. – La garantía es una obligación temporal, de responder por la calidad e idoneidad del servicio ofrecido por EL CAMINO CON NATY. El término de garantía de los servicios será de diez (10) días calendario, contados a partir de la prestación efectiva del servicio por parte de EL CAMINO CON NATY."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Para hacer efectiva la garantía, EL VIAJERO se contactará con EL CAMINO CON NATY a través de los canales de atención, manifestarán su intención de hacerla efectiva –argumentando de forma completa y clara y con base en hechos verificables y absolutamente objetivos. Sólo se atenderán favorablemente las reclamaciones que versen sobre incumplimientos concretos y comprobables frente a las condiciones expresamente ofrecidas del servicio, teniendo en cuenta las obligaciones objetivas indicadas en el contrato y/o en los anexos del mismo, así como las condiciones de cumplimiento de las mismas. No serán procedentes reclamaciones basadas en percepciones personales, valoraciones subjetivas o expectativas no pactadas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO podrá indicar si prefiere la repetición del servicio o la devolución del dinero pagado, de acuerdo con el Decreto 735 de 2013."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de comprobar que se está ante un caso de exoneración de responsabilidad de la garantía, de acuerdo con los términos del artículo 16 de la Ley 1480 de 2011, se le informará de tal situación al VIAJERO exponiendo los motivos de su negativa y no podrá este último repetir contra EL CAMINO CON NATY o pretender la repetición o devolución del dinero pagado."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de demostrarse estar ante una causal de garantía y de no encajar en alguna de las circunstancias de exoneración de responsabilidad de la garantía, se procederá con la repetición del servicio, la devolución del dinero, o la entrega de créditos de acuerdo con lo solicitado por EL VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Una vez hecha la reposición del servicio, EL CAMINO CON NATY enviará constancia indicando lo siguiente: ● Descripción del servicio repetido o del dinero devuelto. ● La fecha en que EL VIAJERO hizo la solicitud de garantía. ● La fecha en que EL CAMINO CON NATY hizo efectiva la garantía."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "12. POLÍTICAS DE REEMBOLSO. – EL VIAJERO reconoce y acepta que, por su naturaleza como intermediario, EL CAMINO CON NATY realiza reservas y gestiones con proveedores externos desde el momento de la contratación. En virtud de lo anterior, EL VIAJERO manifesta conocer y aceptar las siguientes políticas de reembolso:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "a. En caso de desistimiento total o parcial por parte del VIAJERO antes de la realización del viaje, no habrá devolución ni reembolso alguno de las sumas pagadas hasta ese momento. Asimismo, EL VIAJERO seguirá obligado a pagar cualquier saldo pendiente, toda vez que un desistimiento no se trata de una justa causa de terminación del contrato de las mencionados en la cláusula 16 de este contrato y, por tanto, sigue obligado contractualmente a efectuar los pagos que le corresponden. Especialmente, y sin excepción, EL CAMINO CON NATY liquidará y exigirá el pago proporcional correspondiente a gastos ya asumidos, incluyendo pero no limitándose a costos por no presentación (\"no show\") en hoteles, reservaciones de traslados, y demás compromisos adquiridos con proveedores."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "b. No obstante lo dispuesto en el apartado anterior sobre la inexistencia de reembolsos, EL CAMINO CON NATY podrá autorizar, de manera excepcional y discrecional, la devolución parcial del valor total del viaje en los casos en que EL VIAJERO acredite mediante soporte médico oficial y verificable una condición de salud grave, diagnosticada por un profesional de la salud legalmente habilitado, que haga médica y objetivamente imposible su participación en el viaje."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La solicitud deberá presentarse por escrito, acompañada de los soportes médicos correspondientes, dentro de los tres (3) días hábiles siguientes a la expedición del diagnóstico que impida viajar. Una vez recibida la solicitud y verificados los soportes, EL CAMINO CON NATY podrá autorizar, según la antelación con que se comunique la cancelación, los siguientes porcentajes de devolución sobre el valor total del viaje:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Antelación con respecto a la fecha de inicio del viaje Porcentaje de devolución Hasta 120 días antes del viaje 50 %"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Antelación con respecto a la fecha de inicio del viaje Porcentaje de devolución Hasta 90 días antes del viaje 40 % Hasta 60 días antes del viaje 30 % Hasta 30 días antes del viaje 20 % 29 días o menos antes del viaje Sin devolución"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "1. Los porcentajes anteriores se calculan sobre el valor total del viaje, sin incluir costos administrativos, bancarios o montos no recuperables ya asumidos por EL CAMINO CON NATY ante proveedores (alojamientos, traslados, seguros, reservas, entre otros). 2. En caso de que EL VIAJERO no haya completado el total de los pagos, deberá cubrir el monto equivalente a la parte no reembolsable, conforme a la escala anterior. 3. Las devoluciones, si son aprobadas, se realizarán dentro de los treinta (30) días hábiles siguientes a la validación de los soportes y aceptación del caso por parte de EL CAMINO CON NATY. 4. No se considerarán justificables las causas personales, laborales, emocionales o médicas de menor entidad (como gripa, ansiedad leve, o molestias pasajeras) que no representen una afectación grave y comprobada de la salud de EL VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "c. Si durante la ejecución del viaje EL VIAJERO se ve obligado a suspender o interrumpir su participación, regresar anticipadamente o cambiar su itinerario por razones personales, será única y exclusiva responsabilidad del VIAJERO todos los costos, gastos, trámites y gestiones adicionales que ello implique. Así, EL CAMINO CON NATY no asumirá obligación alguna de reembolso o compensación."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "d. EL CAMINO CON NATY podrá, por mera liberalidad y sin que ello genere obligación legal, apoyar al VIAJERO en la gestión de trámites o gestiones derivadas de emergencias, sin que esto implique reconocimiento de responsabilidad alguna."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "13. INDEMNIDAD. – EL VIAJERO se compromete a mantener indemne, defender y liberar de toda responsabilidad a EL CAMINO CON NATY, así como a sus empleados, proveedores, agentes, contratistas y subcontratistas, frente a cualquier reclamo, demanda, acción legal, perjuicio, daño, pérdida, gasto, multa o costo, incluyendo honorarios legales, que pueda surgir directa o indirectamente por cualquier hecho, acto, omisión, incumplimiento o situación imputable al VIAJERO, a terceros o a causas ajenas a EL CAMINO CON NATY en relación con la ejecución, cumplimiento o terminación del presente contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Esta obligación de indemnidad incluye, pero no se limita a, daños personales, materiales, económicos, morales, y cualquier tipo de perjuicio que el VIAJERO pueda sufrir o causar a terceros durante el desarrollo del viaje o por el uso de los servicios contratados."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO será responsable exclusivo de cualquier reclamación de terceros derivada de su conducta, y deberá asumir todos los costos y gastos en que incurra EL CAMINO CON NATY para su defensa y eventual reparación del daño."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "14. SUBCONTRATACIÓN. – EL CAMINO CON NATY se obliga a asumir las cargas contractuales u obligaciones laborales resultado de relaciones externas al presente vínculo, que tengan por finalidad el cumplimiento total o parcial del objeto contractual."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "15. CESIÓN. – EL VIAJERO no podrá ceder, total ni parcialmente, los derechos y obligaciones derivados del presente contrato a ningún tercero, salvo autorización previa, expresa y escrita de EL CAMINO CON NATY, quien podrá negar discrecionalmente, sin que deba motivar su decisión ni que ello genere derecho a reembolso, indemnización o compensación alguna para EL VIAJERO."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – En caso de que EL VIAJERO desee ceder la totalidad del contrato, deberá notificarlo por escrito a EL CAMINO CON NATY con una antelación mínima de treinta (30) días hábiles a la fecha de inicio del viaje, indicando los datos completos del tercero interesado y las razones de la solicitud. EL CAMINO CON NATY evaluará, a su exclusivo criterio, la viabilidad de la cesión considerando aspectos logísticos, legales, contractuales y de seguridad."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La cesión sólo se entenderá válida cuando exista autorización expresa y escrita por parte de EL CAMINO CON NATY. En ningún caso se entenderá otorgada por silencio o inacción."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de ser autorizada, todos los gastos, costos administrativos, penalidades o cargos asociados a dicha cesión (incluyendo pero sin limitarse a: cambio de nombre en tiquetes, reservas de alojamiento, traslados, seguros, trámites migratorios o de visado, entre otros) serán asumidos íntegramente por EL VIAJERO cedente."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "16. CAUSALES DE TERMINACIÓN DEL CONTRATO. – Son causales para la terminación del contrato, las siguientes:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "a. Cumplimiento total del objeto contractual, es decir, cuando se haya ejecutado en su totalidad el plan turístico contratado por EL VIAJERO conforme a lo pactado."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "b. Mutuo acuerdo entre las partes, formalizado por escrito."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "c. Incumplimiento de las obligaciones a cargo del VIAJERO, sin necesidad de declaración judicial previa. En este evento, EL CAMINO CON NATY quedará facultado para dar por terminado el contrato de manera inmediata, sin perjuicio del cobro de perjuicios, la cláusula penal pactada y demás acciones legales a que haya lugar."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "PARÁGRAFO. – En caso de terminación anticipada por causa imputable al VIAJERO, éste deberá asumir el valor total del viaje, sin que exista lugar a reembolsos alguno."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "17. DESISTIMIENTO. – EL VIAJERO declara conocer y aceptar que los pagos realizados en el marco del presente contrato son necesarios para garantizar la reserva efectiva de cupos, la contratación anticipada de servicios con terceros proveedores y la organización logística del plan turístico contratado. Por tanto, el cumplimiento oportuno del cronograma de pagos pactado constituye una obligación esencial para la viabilidad del servicio."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En caso de que EL VIAJERO incumpla con el pago total o parcial de alguna de las cuotas en las fechas acordadas, y no haya justificado dicha mora dentro de los cinco (5) días calendario siguientes al vencimiento, se entenderá que ha desistido tácitamente del viaje, liberando automáticamente su cupo."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Dado que EL CAMINO CON NATY realiza gestiones, pagos y reservas anticipadas con proveedores externos sobre la base de los compromisos adquiridos por EL VIAJERO, este último acepta que, en caso de desistimiento por incumplimiento, los valores pagados no serán reembolsables, dado que ya se han destinado, total o parcialmente, a cubrir gastos operativos y logísticos no recuperables."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Lo anterior no excluye la posibilidad de que EL CAMINO CON NATY, a su sola discreción y sin que constituya obligación, ofrezca alternativas de aplicación parcial del saldo a favor, únicamente si las condiciones contractuales con los proveedores lo permiten y no se han generado costos irrecuperables."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "18. TRATAMIENTO DE DATOS. – EL VIAJERO declara conocer y entender que, para la ejecución del presente contrato, deberá suministrar al EL CAMINO CON NATY y éste, a su vez, a sus proveedores turísticos, su información y datos personales."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL CAMINO CON NATY recolectará los datos a través de los canales de comunicación dispuestos por este, como correo electrónico, WhatsApp y Google Forms, para las finalidades propias de la prestación del servicio."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO autoriza expresamente a EL CAMINO CON NATY y a sus proveedores turísticos a recolectar y tratar sus datos de conformidad con lo dispuesto en la Ley 1581 de 2012 y el Decreto 1377 de 2013 y demás normas que complementen o las modifiquen."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Igualmente, EL VIAJERO autoriza a EL CAMINO CON NATY a recolectar imágenes o videos suyos, durante la ejecución del plan turístico contratado, para posteriormente utilizarlas en campañas publicitarias, comerciales, redes sociales, entre otros semejantes."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "19. OBLIGACIONES DEL VIAJERO. – EL VIAJERO se obliga en el presente contrato a:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "a. Pagar de manera completa y oportuna el valor total del contrato, en la forma y plazos establecidos, sin necesidad de requerimiento previo."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "b. Suscribir un pagaré en blanco con su correspondiente carta de instrucciones, como garantía del cumplimiento de las obligaciones derivadas del presente contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "c. Colaborar activamente con EL CAMINO CON NATY para la adecuada ejecución del viaje y el desarrollo armónico del grupo, actuando con respeto y buena fe."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "d. Suministrar información veraz, actualizada, completa y suficiente para la correcta prestación del servicio, y responder por las consecuencias de cualquier omisión o falsedad."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "e. Acatar estrictamente las instrucciones, protocolos y recomendaciones de EL CAMINO CON NATY, especialmente en temas de seguridad, salud y convivencia, con el fin de prevenir accidentes, conflictos o situaciones que puedan poner en riesgo al grupo o a sí mismo."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "f. Asumir plena responsabilidad por su documentación personal, así como por los requisitos legales y sanitarios necesarios para su salida del país, entrada a los destinos previstos y participación en las actividades contratadas (pasaporte vigente, visados, certificados médicos, carné de vacunación, entre otros)."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "g. Abstenerse de realizar cualquier conducta que ponga en riesgo la seguridad física o emocional de los demás integrantes del viaje, del equipo de EL CAMINO CON NATY o de sí mismo, bajo pena de ser excluido del viaje sin derecho a reembolso."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "20. OBLIGACIONES DEL CAMINO CON NATY. – EL CAMINO CON NATY se obliga en el presente contrato a:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "a. Actuar como intermediaria entre EL VIAJERO y los proveedores de servicios turísticos, nacionales o internacionales, contratados para la ejecución del plan."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "b. Coordinar y organizar el desarrollo de las actividades descritas en el contrato, anexos y eventuales modificaciones, procurando su ejecución conforme al itinerario previsto."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "c. Brindar al VIAJERO información clara y completa sobre los servicios contratados, incluyendo itinerarios, fechas, actividades, recomendaciones y condiciones generales del viaje."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "d. Realizar gestiones razonables para buscar soluciones ante eventualidades que puedan interferir con el normal desarrollo del viaje, siempre que no correspondan a situaciones de fuerza mayor, caso fortuito o decisiones de los proveedores."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "21. INDEPENDENCIA DEL CAMINO CON NATY. – EL CAMINO CON NATY actuará por su propia cuenta, con absoluta autonomía y no estará sometido a subordinación laboral con EL VIAJERO. Sus derechos se limitarán, de acuerdo con la naturaleza del contrato, a exigir el cumplimiento de las obligaciones de EL VIAJERO y al pago de los honorarios estipulados por la prestación del servicio. Queda claramente entendido que no existirá relación laboral alguna entre EL CAMINO CON NATY y EL VIAJERO, o el personal que éste utilice en la ejecución del objeto del presente contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "22. DOMICILIO CONTRACTUAL. – Para todos los efectos del presente contrato, las partes fijan como domicilio contractual el municipio de Medellín - Antioquia."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "23. NOTIFICACIONES. – Las notificaciones serán recibidas en las siguientes direcciones:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL VIAJERO,"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Dirección física: {{viajero_direccion}}"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Correo electrónico: {{viajero_email}}"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL CAMINO CON NATY,"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Correo electrónico: elcaminoconnaty@gmail.com"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "24. EFECTOS. – El presente contrato reemplaza en su integridad y deja sin efectos cualquier otro contrato, verbal o escrito, celebrado entre las partes con anterioridad, pudiendo las partes convenir por escrito modificaciones al mismo, las que formarán parte integrante de este contrato."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Para constancia se firma electrónicamente, el {{fecha_firma}}, en dos ejemplares de igual tenor y valor, con destino a cada una de las partes."
+    },
+    {
+     "tipo": "firmas",
+     "partes": [
+      {
+       "rol": "viajero",
+       "titulo": "EL VIAJERO,",
+       "nombre": "{{viajero_nombre}}",
+       "documento": "{{viajero_documento_label}}"
+      },
+      {
+       "rol": "camino",
+       "titulo": "EL CAMINO CON NATY,",
+       "nombre": "NATALIA LARGO DURÁN",
+       "documento": "C.C. 1.037.593.713"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "clave": "pagare",
+   "titulo": "PAGARÉ EN BLANCO NO. 01 Y CARTA DE INSTRUCCIONES",
+   "bloques": [
+    {
+     "tipo": "parrafo",
+     "texto": "{{viajero_nombre}}, {{viajero_identificado}} con {{viajero_documento_frase}}, obrando en su propio nombre (en adelante, EL DEUDOR), promete de manera incondicional, irrevocable y solidaria, pagar a NATALIA LARGO DURÁN, mayor de edad, identificada con la cédula de ciudadanía número 1.037.593.713 (en adelante, LA ACREEDORA), a su orden o a quien represente sus derechos, en la ciudad de Medellín, Colombia, en la fecha de vencimiento que adelante se indica (la “Fecha de Vencimiento”), las siguientes sumas que EL DEUDOR adeuda LA ACREEDORA, de acuerdo con los siguientes términos:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Sumas. –"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La suma de ______________________________________________________________ __________________________________________________________________________________ ______________________________________________________________ pesos ($_______________________) moneda legal colombiana, por concepto de capital;"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La suma de _____________________________________________________________ __________________________________________________________________________________ ______________________________________________________________ pesos ($_______________________) moneda legal colombiana, por concepto de reembolso del impuesto de timbre causado por este Pagaré."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "La suma de _____________________________________________________________ __________________________________________________________________________________ ______________________________________________________________ pesos ($_______________________) moneda legal colombiana, por concepto de intereses pendientes de pago a la Fecha de Vencimiento."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Intereses de mora. – La suma indicada en el numeral 1.1. devengará intereses de mora a partir de la Fecha de Vencimiento, a la máxima tasa de interés moratorio permitida por las normas comerciales vigentes en la República de Colombia."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Fecha de vencimiento. – La Fecha de Vencimiento, en la cual EL DEUDOR pagará LA ACREEDORA las sumas antes mencionadas, es ___________________________________________."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Renuncias. – EL DEUDOR renuncia irrevocablemente a cualquier presentación, reconvención privada o judicial, protesto, denuncia, reclamación, constitución en mora, requerimiento o notificación adicional de cualquier naturaleza."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Ley aplicable. – Este Pagaré se encuentra regido por, y debe interpretarse de conformidad con, las leyes de la República de Colombia. EL DEUDOR expresamente acuerda que las leyes que rigen su creación son las leyes de la República de Colombia, lugar donde ha sido firmado por él."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Este Pagaré se emite el {{fecha_firma}}."
+    },
+    {
+     "tipo": "firmas",
+     "partes": [
+      {
+       "rol": "viajero",
+       "titulo": "EL DEUDOR,",
+       "nombre": "{{viajero_nombre}}",
+       "documento": "{{viajero_documento_label}}"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "clave": "carta",
+   "titulo": null,
+   "bloques": [
+    {
+     "tipo": "parrafo",
+     "texto": "Medellín, {{fecha_firma}}"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Señora NATALIA LARGO DURÁN Ciudad"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Referencia. – Instrucciones para diligenciar el Pagaré con espacios en blanco No. 01"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "{{viajero_nombre}}, {{viajero_identificado}} con {{viajero_documento_frase}}, obrando en su propio nombre (en adelante, EL DEUDOR), conforme al artículo 622 del Código de Comercio, por medio de la presente carta imparto instrucciones y otorgo facultades irrevocables y permanentes a NATALIA LARGO DURÁN, mayor de edad, identificada con la cédula de ciudadanía número 1.037.593.713 (en adelante, LA ACREEDORA) y/o a sus cesionarios, endosatarios o causahabientes, de las sumas que podrán incorporarse en el Pagaré con espacios en blanco No. 01 (en adelante, el “Pagaré”), según esta carta de instrucciones, para llenar todos y cada uno de los espacios en blanco dejados en el Pagaré, en los términos que se indican a continuación."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Autorización para llenar el Pagaré. – El {{fecha_firma}} se suscribió el Contrato de Prestación de Servicios entre EL DEUDOR en calidad de contratante o “Viajero” y LA ACREEDORA, en calidad de contratista o “EL CAMINO CON NATY”, (el “Contrato de Prestación de Servicios”)."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Bajo el Contrato de Prestación de Servicios EL DEUDOR asumió ciertas obligaciones para con LA ACREEDORA, en virtud de lo cual compareció en dicho Contrato de Prestación de Servicios en señal de conocimiento y aceptación de las mismas."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En el evento en que EL DEUDOR incumpla en todo o en parte sus obligaciones de pago para con LA ACREEDORA –en el marco del Contrato de Prestación de Servicios–, LA ACREEDORA o sus cesionarios, endosatarios o causahabientes podrán llenar los espacios en blanco del Pagaré, sin necesidad de aviso previo, presentación, reconvención privada o judicial, protesto, denuncia, reclamación, requerimiento, constitución en mora o notificación adicional de cualquier naturaleza, de conformidad con esta carta de instrucciones."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "En esos eventos se entenderá ipso facto extinguido o insubsistente el plazo que se encuentre pendiente para el pago de todas las obligaciones y será exigible el pago inmediato con todos sus accesorios. Por lo tanto, el Pagaré podrá llenarse por los saldos totales de capital e intereses insolutos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Valor o importe del título. – EL DEUDOR autoriza expresa e irrevocablemente que LA ACREEDORA y/o sus cesionarios, endosatarios o causahabientes llenen los espacios en blanco del Pagaré de manera mecánica (a máquina o computador) o a mano, de conformidad con las instrucciones que se indican a continuación:"
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Sumas de Capital. – El espacio en blanco identificado con el numeral 1.1. del Pagaré se llenará con todas las sumas de dinero que sean adeudadas a LA ACREEDORA, por parte del DEUDOR, bajo el Contrato de Prestación de Servicios, por cualquier motivo, excluyendo las sumas debidas por concepto de intereses, el día en que éste opte por llenarlo, incluyendo, pero limitarse a, las sumas declaradas vencidas por cualquier aceleración, de conformidad con lo previsto en esta carta."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Intereses pendientes de pago. – El espacio en blanco identificado con el numeral 1.3. del Pagaré se llenará con todas las sumas de dinero que sean adeudadas a LA ACREEDORA, por parte del DEUDOR, bajo el Contrato de Prestación de Servicios, por concepto de intereses pendientes de pago, el día en que éste opte por llenarlo."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Intereses de mora. – En caso de mora en el pago del capital, durante ella y sin perjuicio de las demás acciones legales de LA ACREEDORA, se causarán intereses de a la máxima tasa de interés moratorio permitida por las normas comerciales vigentes en la República de Colombia."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Fecha de Vencimiento. – El espacio en blanco en el numeral 4 del Pagaré (correspondiente a la Fecha de Vencimiento) se llenará con la fecha del día en que LA ACREEDORA opte por llenar o completar los espacios en blanco del Pagaré."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Sucesores o causahabientes. – Los espacios en blanco pueden ser llenados por las personas que sean endosatarios o causahabientes de LA ACREEDORA."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Impuesto de timbre. – El impuesto de timbre que se cause con ocasión de la suscripción, expedición y ejecución del Pagaré cuyos espacios en blanco se llenen de conformidad con esta carta de instrucciones, será asumido enteramente por EL DEUDOR y esa suma se incluirá en el espacio indicado en el numeral 1.2 del Pagaré."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "El Pagaré así llenado será exigible inmediatamente y prestará mérito ejecutivo sin más requisitos."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "EL DEUDOR declara haber recibido copia del Pagaré y de la presente Carta de Instrucciones."
+    },
+    {
+     "tipo": "parrafo",
+     "texto": "Atentamente,"
+    },
+    {
+     "tipo": "firmas",
+     "partes": [
+      {
+       "rol": "viajero",
+       "titulo": "EL DEUDOR,",
+       "nombre": "{{viajero_nombre}}",
+       "documento": "{{viajero_documento_label}}"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
