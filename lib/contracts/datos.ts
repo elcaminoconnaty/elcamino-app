@@ -104,7 +104,7 @@ export async function armarDatosContrato(
     .select(
       `id, total_eur, discount_eur,
        pilgrims:pilgrim_id ( full_name, sex, email, address, document_id, document_kind, passport_number, passport_expiry_date ),
-       departures:departure_id ( name, start_date, end_date, contract_start_date, contract_end_date, origin_city, destination_city, contract_plan_name )`
+       departures:departure_id ( name, start_date, end_date, contract_start_date, contract_end_date, origin_city, destination_city, contract_plan_name, brochure_url )`
     )
     .eq("id", registrationId)
     .single();
@@ -177,8 +177,14 @@ export async function armarDatosContrato(
     pendientes.push({ campo: "forma_de_pago", que_falta: "el acuerdo de pago", donde: "el plan de pagos de la inscripción" });
   }
 
-  if (!opciones?.anexo1Url) {
-    pendientes.push({ campo: "anexo1_url", que_falta: "el enlace al brochure (Anexo No. 1)", donde: "la ficha del camino" });
+  // El Anexo No. 1 sale de la ficha del camino; se puede pisar desde la pantalla si hace falta.
+  const anexo1 = opciones?.anexo1Url ?? d?.brochure_url ?? undefined;
+  if (!anexo1) {
+    pendientes.push({
+      campo: "anexo1_url",
+      que_falta: "el enlace a las condiciones del viaje (Anexo No. 1 del contrato)",
+      donde: "la ficha del camino",
+    });
   }
 
   // --- Avisos que no bloquean ---
@@ -211,7 +217,7 @@ export async function armarDatosContrato(
       inicio && fin && d?.origin_city && d?.destination_city && d?.contract_plan_name
         ? `${d.contract_plan_name} - ORIGEN: ${d.origin_city} - DESTINO: ${d.destination_city} - ${fechaCorta(inicio)} - ${fechaCorta(fin)}`
         : undefined,
-    anexo1_url: opciones?.anexo1Url,
+    anexo1_url: anexo1,
     valor_total: total > 0 ? euroEnLetra(total) : undefined,
     forma_de_pago: formaDePago || undefined,
     // El seguro cubre desde la salida hasta la víspera del regreso.

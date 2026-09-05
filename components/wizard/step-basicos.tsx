@@ -9,7 +9,7 @@ import { applyRouteTemplate } from "@/lib/actions/route-template";
 import { updateDeparture } from "@/lib/actions/departures";
 import { toast } from "@/components/ui/toaster";
 import { formatDate } from "@/lib/utils";
-import { Sparkles, Calendar } from "lucide-react";
+import { Sparkles, Calendar, FileSignature } from "lucide-react";
 import { DAY_KIND_LABELS } from "@/lib/data/wizard-steps";
 
 export function StepBasicos({
@@ -32,6 +32,16 @@ export function StepBasicos({
   const [capacity, setCapacity] = useState(String(departure.capacity ?? ""));
   const [basePrice, setBasePrice] = useState(String(departure.base_price_eur ?? ""));
   const [bufferPct, setBufferPct] = useState(String(departure.variable_buffer_pct ?? ""));
+  // Datos que solo usa el contrato. Las fechas van aparte de las de operación porque en los
+  // dos contratos ya firmados no coinciden: Sept-2026 opera del 28/09 al 06/10 y el contrato
+  // dice del 27/09 al 04/10.
+  const [contratoInicio, setContratoInicio] = useState(departure.contract_start_date ?? "");
+  const [contratoFin, setContratoFin] = useState(departure.contract_end_date ?? "");
+  const [origen, setOrigen] = useState(departure.origin_city ?? "");
+  const [destino, setDestino] = useState(departure.destination_city ?? "");
+  const [planNombre, setPlanNombre] = useState(departure.contract_plan_name ?? "");
+  const [brochureUrl, setBrochureUrl] = useState(departure.brochure_url ?? "");
+  const [guardandoContrato, setGuardandoContrato] = useState(false);
   const [applying, setApplying] = useState(false);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -55,6 +65,33 @@ export function StepBasicos({
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
     setSaving(false);
+  }
+
+  async function guardarDatosDelContrato() {
+    setGuardandoContrato(true);
+    const fd = new FormData();
+    // `updateDeparture` reescribe estos campos siempre, así que hay que mandarlos todos.
+    fd.set("name", name);
+    fd.set("start_date", startDate);
+    if (endDate) fd.set("end_date", endDate);
+    if (capacity) fd.set("capacity", capacity);
+    fd.set("base_price_eur", basePrice || "0");
+    fd.set("status", departure.status);
+    if (routeId) fd.set("route_id", routeId);
+    fd.set("contract_start_date", contratoInicio);
+    fd.set("contract_end_date", contratoFin);
+    fd.set("origin_city", origen);
+    fd.set("destination_city", destino);
+    fd.set("contract_plan_name", planNombre);
+    fd.set("brochure_url", brochureUrl);
+    try {
+      await updateDeparture(departure.id, fd);
+      toast({ title: "Datos del contrato guardados", variant: "success" });
+      router.refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setGuardandoContrato(false);
   }
 
   async function onApplyTemplate() {
@@ -140,6 +177,61 @@ export function StepBasicos({
             </p>
           </div>
           <Button variant="accent" onClick={saveBasics} disabled={saving}>{saving ? "Guardando..." : "Guardar datos básicos"}</Button>
+        </CardContent>
+      </Card>
+
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><FileSignature className="h-4 w-4" /> Datos para el contrato</CardTitle>
+          <CardDescription>
+            Lo que el contrato dice de este camino. Se guarda aparte de lo operativo porque no
+            siempre coincide: en los dos contratos ya firmados las fechas difieren de las de
+            operación en uno o varios días.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Fecha de inicio según el contrato</Label>
+              <Input type="date" value={contratoInicio} onChange={(e) => setContratoInicio(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Fecha de fin según el contrato</Label>
+              <Input type="date" value={contratoFin} onChange={(e) => setContratoFin(e.target.value)} />
+            </div>
+          </div>
+          {(!contratoInicio || !contratoFin) && (
+            <p className="text-xs text-amber-700">
+              Si las dejás vacías, el contrato usa las fechas de operación
+              {startDate ? ` (${formatDate(startDate)}${endDate ? ` a ${formatDate(endDate)}` : ""})` : ""} y avisa en la tarjeta del peregrino.
+            </p>
+          )}
+          <div className="grid gap-2">
+            <Label>Nombre del plan, tal como debe leerse en el contrato</Label>
+            <Input value={planNombre} onChange={(e) => setPlanNombre(e.target.value)} placeholder="EL CAMINO DE SANTIAGO FRANCÉS" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Ciudad de origen</Label>
+              <Input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="MADRID" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Ciudad de destino</Label>
+              <Input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="SANTIAGO DE COMPOSTELA" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Enlace a las condiciones del viaje (Anexo No. 1)</Label>
+            <Input value={brochureUrl} onChange={(e) => setBrochureUrl(e.target.value)} placeholder="https://…" />
+            <p className="text-xs text-muted-foreground">
+              El contrato lo cita en la cláusula 1. Por ahora es el PDF de Google Drive; cuando
+              exista la página del viaje en la plataforma, va esa.
+            </p>
+          </div>
+          <Button variant="accent" onClick={guardarDatosDelContrato} disabled={guardandoContrato}>
+            {guardandoContrato ? "Guardando..." : "Guardar datos del contrato"}
+          </Button>
         </CardContent>
       </Card>
 

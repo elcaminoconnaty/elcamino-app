@@ -44,7 +44,27 @@ export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>País</Label><Input name="country" defaultValue={pilgrim.country ?? ""} /></div>
-            <div className="grid gap-2"><Label>Documento</Label><Input name="document_id" defaultValue={pilgrim.document_id ?? ""} /></div>
+            <div className="grid gap-2"><Label>Cédula</Label><Input name="document_id" defaultValue={pilgrim.document_id ?? ""} /></div>
+          </div>
+          {/* La dirección y el tipo de documento son lo que el contrato necesita y la ficha
+              no guardaba: la cláusula 23 fija dónde se notifica al viajero, y la cláusula de
+              partes dice si se identifica con pasaporte o con cédula. */}
+          <div className="grid gap-2">
+            <Label>Dirección de notificaciones</Label>
+            <Input name="address" defaultValue={pilgrim.address ?? ""} placeholder="Calle, número, ciudad y país" />
+            <p className="text-xs text-muted-foreground">Va en el contrato (cláusula 23). Sin esto no se puede emitir.</p>
+          </div>
+          <div className="grid gap-2">
+            <Label>En el contrato se identifica con</Label>
+            <select
+              name="document_kind"
+              defaultValue={pilgrim.document_kind ?? ""}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Automático (pasaporte si lo tiene cargado)</option>
+              <option value="pasaporte">Pasaporte</option>
+              <option value="cedula">Cédula de ciudadanía</option>
+            </select>
           </div>
           <div className="grid gap-2"><Label>Fecha de nacimiento</Label><Input name="birth_date" type="date" defaultValue={pilgrim.birth_date ?? ""} /></div>
           <div className="grid gap-4 sm:grid-cols-2">

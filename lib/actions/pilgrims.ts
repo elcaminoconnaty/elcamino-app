@@ -11,6 +11,11 @@ export async function createPilgrim(formData: FormData) {
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     document_id: formData.get("document_id")?.toString() || null,
+    // Con qué documento se identifica en el contrato. En null se deduce: pasaporte si hay
+    // número de pasaporte cargado.
+    document_kind: formData.get("document_kind")?.toString() || null,
+    // Dirección de notificaciones de la cláusula 23. Sin esto no se puede emitir contrato.
+    address: formData.get("address")?.toString() || null,
     birth_date: formData.get("birth_date")?.toString() || null,
     emergency_contact_name: formData.get("emergency_contact_name")?.toString() || null,
     emergency_contact_phone: formData.get("emergency_contact_phone")?.toString() || null,
@@ -31,6 +36,11 @@ export async function updatePilgrim(id: string, formData: FormData) {
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     document_id: formData.get("document_id")?.toString() || null,
+    // Con qué documento se identifica en el contrato. En null se deduce: pasaporte si hay
+    // número de pasaporte cargado.
+    document_kind: formData.get("document_kind")?.toString() || null,
+    // Dirección de notificaciones de la cláusula 23. Sin esto no se puede emitir contrato.
+    address: formData.get("address")?.toString() || null,
     birth_date: formData.get("birth_date")?.toString() || null,
     emergency_contact_name: formData.get("emergency_contact_name")?.toString() || null,
     emergency_contact_phone: formData.get("emergency_contact_phone")?.toString() || null,

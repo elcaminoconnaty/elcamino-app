@@ -36,6 +36,15 @@ export async function updateDeparture(id: string, formData: FormData) {
     notes: formData.get("notes")?.toString() || null,
     route_id: formData.get("route_id")?.toString() || null,
   };
+  // Los datos del contrato solo se guardan si el formulario los trae, para que un
+  // formulario que no los muestra no los borre.
+  for (const campo of [
+    "contract_start_date", "contract_end_date",
+    "origin_city", "destination_city", "contract_plan_name", "brochure_url",
+  ]) {
+    if (formData.has(campo)) payload[campo] = formData.get(campo)?.toString() || null;
+  }
+
   // El % de contingencia solo se edita desde el wizard; otros formularios no lo tocan.
   if (formData.has("variable_buffer_pct")) {
     payload.variable_buffer_pct = Number(formData.get("variable_buffer_pct") || 0) || 0;
