@@ -27,8 +27,8 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
   const pedir = () => {
     setError(null);
-    if (!leyo || !acepta) return setError("Marcá las dos casillas antes de pedir el código.");
-    if (!trazo) return setError("Dibujá tu firma antes de pedir el código.");
+    if (!leyo || !acepta) return setError("Marca las dos casillas antes de pedir el código.");
+    if (!trazo) return setError("Dibuja tu firma antes de pedir el código.");
     empezar(async () => {
       const r = await accionPedirCodigo(token);
       if (r.ok) {
@@ -42,7 +42,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
   const firmar = () => {
     setError(null);
-    if (!codigo.trim()) return setError("Escribí el código que te llegó al correo.");
+    if (!codigo.trim()) return setError("Escribe el código que te llegó al correo.");
     empezar(async () => {
       const r = await accionFirmar({
         token, codigo, trazoDataUrl: trazo!, aceptaLectura: leyo, aceptaFirma: acepta,
@@ -59,7 +59,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
           Listo. Ya está firmado.
         </h1>
         <p style={{ color: COLOR.castano, marginTop: 12, lineHeight: 1.6 }}>
-          Te mandamos la copia en PDF a <strong>{contrato.email}</strong>. Guardala: es tuya.
+          Te mandamos la copia en PDF a <strong>{contrato.email}</strong>. Guárdala: es tuya.
           Al final del documento vas a encontrar el Informe de Firmas con todos los datos.
         </p>
         <p style={{ color: COLOR.castano, marginTop: 14, fontSize: 13 }}>
@@ -82,8 +82,8 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
           Hola, {contrato.nombre.split(" ")[0][0] + contrato.nombre.split(" ")[0].slice(1).toLowerCase()}
         </h1>
         <p style={{ color: COLOR.castano, marginTop: 10, lineHeight: 1.6 }}>
-          Este es tu contrato del <strong>{contrato.camino}</strong>. Leelo con calma: si algo no te
-          cuadra, escribinos antes de firmar y lo vemos juntas.
+          Este es tu contrato del <strong>{contrato.camino}</strong>. Léelo con calma: si algo no te
+          cuadra, escríbenos antes de firmar y lo vemos con calma.
         </p>
       </section>
 
@@ -106,9 +106,9 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
           />
         </div>
         <p className="mt-2 text-xs" style={{ color: COLOR.castano }}>
-          ¿Preferís tenerlo en el celular?{" "}
+          ¿Prefieres tenerlo en el celular?{" "}
           <a href={`/api/pdf/contrato/publico/${token}`} download style={{ color: COLOR.atlantico, textDecoration: "underline" }}>
-            Descargalo en PDF
+            Descárgalo en PDF
           </a>
           .
         </p>
@@ -116,7 +116,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
       {/* 2 — Aceptar y firmar */}
       <section>
-        <Paso n={2} titulo="Aceptá y dibujá tu firma" />
+        <Paso n={2} titulo="Acepta y dibuja tu firma" />
         <label className="flex gap-3 items-start text-sm mb-3" style={{ color: COLOR.noche }}>
           <input type="checkbox" checked={leyo} onChange={(e) => setLeyo(e.target.checked)} className="mt-1" />
           <span>{CONSENTIMIENTO.lectura}</span>
@@ -135,9 +135,9 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
           <>
             <p className="text-sm mb-3" style={{ color: COLOR.castano }}>
               Te vamos a mandar un código de seis dígitos a <strong>{contrato.email}</strong>. Es lo que
-              confirma que sos vos quien firma.
+              confirma que eres tú quien firma.
             </p>
-            <Boton onClick={pedir} pendiente={pendiente}>Mandame el código</Boton>
+            <Boton onClick={pedir} pendiente={pendiente}>Mándame el código</Boton>
           </>
         ) : (
           <>
@@ -162,7 +162,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
               className="ml-4 text-sm underline"
               style={{ color: COLOR.castano }}
             >
-              Mandame otro código
+              Mándame otro código
             </button>
           </>
         )}

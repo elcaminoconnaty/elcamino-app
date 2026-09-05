@@ -110,7 +110,7 @@ export function SignaturePad({
         />
       </div>
       <div className="mt-2 flex items-center justify-between text-xs" style={{ color: COLOR.castano }}>
-        <span>{conTrazo ? "Si no te gusta cómo quedó, borrala y volvé a firmar." : "Dibujá tu firma con el dedo o con el mouse."}</span>
+        <span>{conTrazo ? "Si no te gusta cómo quedó, bórrala y vuelve a firmar." : "Dibuja tu firma con el dedo o con el mouse."}</span>
         <button
           type="button"
           onClick={borrar}

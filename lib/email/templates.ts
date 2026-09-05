@@ -21,7 +21,7 @@ function primerNombre(nombreCompleto: string): string {
 
 const CUERPO_FIRMAR_POR_DEFECTO = `Ya está listo tu contrato para el Camino. Es el acuerdo de prestación de servicios, con las condiciones del viaje y tu acuerdo de pago tal como lo hablamos.
 
-Tómate el tiempo de leerlo completo antes de firmar. Si algo no te cuadra o quieres que lo revisemos juntas, escríbeme y lo vemos con calma — no hay ninguna prisa.
+Tómate el tiempo de leerlo completo antes de firmar. Si algo no te cuadra o quieres que lo revisemos, escríbeme y lo vemos con calma — no hay ninguna prisa.
 
 Para firmarlo solo necesitas el celular: abres el enlace, lo lees, dibujas tu firma con el dedo y confirmas con un código que te llega a este mismo correo.`;
 
@@ -184,7 +184,7 @@ export function correoCodigoDeFirma(o: { nombre: string; codigo: string; minutos
        </table>`
     ) +
     fila(
-      `<p style="${P_MINI}">Escribilo en la página donde estás firmando. Si no fuiste vos quien lo pidió, ignorá este correo — sin el código nadie puede firmar por ti. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.</p>`
+      `<p style="${P_MINI}">Escríbelo en la página donde estás firmando. Si no fuiste tú quien lo pidió, ignora este correo — sin el código nadie puede firmar por ti. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.</p>`
     );
 
   return {
@@ -200,7 +200,7 @@ export function correoCodigoDeFirma(o: { nombre: string; codigo: string; minutos
       `    ${o.codigo}`,
       "",
       `Vence en ${o.minutos} minutos.`,
-      `Si no fuiste vos quien lo pidió, ignorá este correo. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.`,
+      `Si no fuiste tú quien lo pidió, ignora este correo. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.`,
       "",
       `${CONTACTO.marca} · ${CONTACTO.whatsapp}`,
     ].join("\n"),

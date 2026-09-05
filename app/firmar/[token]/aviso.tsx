@@ -20,7 +20,7 @@ export function Aviso({ contrato }: { contrato: ContratoParaFirmar }) {
         </h1>
         <p style={{ color: COLOR.castano, marginTop: 12, lineHeight: 1.6 }}>
           Lo firmaste el {contrato.firmadoEn}. Te mandamos una copia en PDF al correo{" "}
-          <strong>{contrato.email}</strong>; si no la ves, revisá el spam o escribinos y te la
+          <strong>{contrato.email}</strong>; si no la ves, revisa el spam o escríbenos y te la
           reenviamos.
         </p>
         {contrato.huella && (
@@ -31,7 +31,7 @@ export function Aviso({ contrato }: { contrato: ContratoParaFirmar }) {
             <code style={{ wordBreak: "break-all", fontSize: 11 }}>{contrato.huella}</code>
             {contrato.urlVerificacion && (
               <p className="mt-3">
-                Para comprobar que el archivo que tenés es exactamente el que firmaste,{" "}
+                Para comprobar que el archivo que tienes es exactamente el que firmaste,{" "}
                 <a href={contrato.urlVerificacion} style={{ color: COLOR.atlantico, textDecoration: "underline" }}>
                   verificalo acá
                 </a>
@@ -46,8 +46,8 @@ export function Aviso({ contrato }: { contrato: ContratoParaFirmar }) {
 
   const texto =
     contrato.estado === "vencido"
-      ? "El enlace para firmar venció. Escribinos por WhatsApp y te mandamos uno nuevo en un minuto — no tenés que volver a empezar nada."
-      : "Este contrato fue anulado porque se emitió una versión corregida. Buscá en tu correo el más reciente, o escribinos y te lo reenviamos.";
+      ? "El enlace para firmar venció. Escríbenos por WhatsApp y te mandamos uno nuevo en un minuto — no tienes que volver a empezar nada."
+      : "Este contrato fue anulado porque se emitió una versión corregida. Busca en tu correo el más reciente, o escríbenos y te lo reenviamos.";
 
   return (
     <section className="rounded p-6" style={{ background: COLOR.piedra, borderLeft: `3px solid ${COLOR.ocre}` }}>

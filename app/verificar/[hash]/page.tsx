@@ -53,7 +53,7 @@ export default async function PaginaVerificar({ params }: { params: { hash: stri
             </h1>
             <p style={{ color: COLOR.castano, marginTop: 10, lineHeight: 1.6 }}>
               Esta huella corresponde a un contrato firmado electrónicamente en la plataforma de{" "}
-              {CONTACTO.marca}, conforme a la Ley 527 de 1999. Si el archivo que tenés produce esta
+              {CONTACTO.marca}, conforme a la Ley 527 de 1999. Si el archivo que tienes produce esta
               misma huella, es exactamente el que se firmó.
             </p>
 
@@ -87,7 +87,7 @@ export default async function PaginaVerificar({ params }: { params: { hash: stri
                 : "Una huella SHA-256 son 64 caracteres entre 0-9 y a-f. Revisá que la hayas copiado completa."}
             </p>
             <p style={{ color: COLOR.castano, marginTop: 14, fontSize: 13 }}>
-              Si creés que es un error, escribinos a {CONTACTO.correo}.
+              Si crees que es un error, escríbenos a {CONTACTO.correo}.
             </p>
           </>
         )}
