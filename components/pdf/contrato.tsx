@@ -2,6 +2,7 @@ import { COLOR, CONTACTO, ESCALA_PDF, FUENTE } from "@/lib/brand";
 import { Document, Image, Page, StyleSheet, Text, View } from "./brand-shell";
 import type { BloqueMinuta, DatosContrato, Minuta, ParteFirma } from "@/lib/contracts/minuta";
 import { rellenar } from "@/lib/contracts/minuta";
+import { PaginaInformeFirmas, type InformeFirmasProps } from "./informe-firmas";
 
 /**
  * El contrato: acuerdo de prestación de servicios + pagaré en blanco + carta de instrucciones,
@@ -198,9 +199,11 @@ export type ContratoProps = {
   codigo: string;
   /** PNG en data URL del trazo de cada firmante, cuando ya firmaron. */
   trazos?: Partial<Record<"viajero" | "camino", string>>;
+  /** Cuando el contrato ya está firmado, el Informe de Firmas va como última página. */
+  informe?: InformeFirmasProps;
 };
 
-export function ContratoPDF({ minuta, datos, codigo, trazos }: ContratoProps) {
+export function ContratoPDF({ minuta, datos, codigo, trazos, informe }: ContratoProps) {
   // La minuta se rellena una sola vez, acá: el resto del componente ya no ve placeholders.
   const llenar = (b: BloqueMinuta): BloqueMinuta =>
     b.tipo === "firmas"
@@ -242,6 +245,8 @@ export function ContratoPDF({ minuta, datos, codigo, trazos }: ContratoProps) {
           <Text>{CONTACTO.sitio}</Text>
         </View>
       </Page>
+
+      {informe ? <PaginaInformeFirmas {...informe} /> : null}
     </Document>
   );
 }

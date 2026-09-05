@@ -165,3 +165,44 @@ Ahora sí: a preparar la mochila.`
     ].join("\n"),
   };
 }
+
+/**
+ * El código de un solo uso. Es el correo más importante del flujo y el más corto: quien lo
+ * abre está a un paso de firmar, casi siempre desde el celular. Nada que distraiga, el
+ * código grande y legible, y la advertencia de que nadie debería pedírselo.
+ */
+export function correoCodigoDeFirma(o: { nombre: string; codigo: string; minutos: number }): Correo {
+  const hola = primerNombre(o.nombre);
+  const contenido =
+    fila(`<p style="${P}">Hola, ${esc(hola)}. Este es tu código para firmar:</p>`) +
+    fila(
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
+         <tr><td align="center" style="background:#E8D9C0;border-left:3px solid #C4822A;border-radius:4px;padding:20px 12px;">
+           <div style="font-family:Georgia,'Times New Roman',serif;font-size:36px;letter-spacing:10px;color:#1A2E3D;font-weight:bold;">${esc(o.codigo)}</div>
+           <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8B6A3E;margin-top:8px;">Vence en ${o.minutos} minutos</div>
+         </td></tr>
+       </table>`
+    ) +
+    fila(
+      `<p style="${P_MINI}">Escribilo en la página donde estás firmando. Si no fuiste vos quien lo pidió, ignorá este correo — sin el código nadie puede firmar por ti. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.</p>`
+    );
+
+  return {
+    subject: `${o.codigo} es tu código para firmar`,
+    html: envolturaCorreo({
+      eyebrow: "Código de firma",
+      preheader: `Tu código es ${o.codigo}. Vence en ${o.minutos} minutos.`,
+      contenido,
+    }),
+    text: [
+      `Hola, ${hola}. Este es tu código para firmar:`,
+      "",
+      `    ${o.codigo}`,
+      "",
+      `Vence en ${o.minutos} minutos.`,
+      `Si no fuiste vos quien lo pidió, ignorá este correo. Nunca te lo vamos a pedir por WhatsApp ni por teléfono.`,
+      "",
+      `${CONTACTO.marca} · ${CONTACTO.whatsapp}`,
+    ].join("\n"),
+  };
+}

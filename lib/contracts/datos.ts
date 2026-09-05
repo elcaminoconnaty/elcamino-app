@@ -72,6 +72,14 @@ export function formaDePagoEnProsa(
 
 export type Pendiente = { campo: string; que_falta: string; donde: string };
 
+/** Lo que ve Naty antes de generar: qué diría el contrato y qué falta para poder emitirlo. */
+export type RevisionContrato = {
+  datos: Partial<DatosContrato>;
+  pendientes: Pendiente[];
+  avisos: string[];
+  listo: boolean;
+};
+
 export type ArmadoContrato = {
   datos: Partial<DatosContrato>;
   pendientes: Pendiente[];

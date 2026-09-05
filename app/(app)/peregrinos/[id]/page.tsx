@@ -16,6 +16,9 @@ import { PassportUpload } from "@/components/pilgrims/passport-upload";
 import { PaymentSummary } from "@/components/pilgrims/payment-summary";
 import { SettlementCard } from "@/components/pilgrims/settlement-card";
 import { UpcomingPaymentsCard } from "@/components/pilgrims/upcoming-payments-card";
+import { ContractCard, type EstadoContrato } from "@/components/pilgrims/contract-card";
+import { revisarContrato } from "@/lib/actions/contracts";
+import type { RevisionContrato } from "@/lib/contracts/datos";
 import { EurCop } from "@/components/ui/eur-cop";
 import type { UpcomingInstallment } from "@/types/db";
 import { PAYMENT_KIND, motivoSinRecalculo, type PilgrimSettlement, type PaymentSettlement } from "@/lib/settlement";
@@ -74,6 +77,49 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
       : Promise.resolve({ data: [] as { id: string; notes: string | null }[] }),
   ]);
   const notesByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r.notes]));
+
+  // Contratos: el vigente por inscripción, y qué falta para poder emitirlo.
+  const { data: contratos } = regIds.length
+    ? await supabase
+        .from("contracts")
+        .select("id, registration_id, status, version, access_token, sent_at, viewed_at, signed_at, pdf_signed_sha256")
+        .in("registration_id", regIds)
+        .in("status", ["borrador", "enviado", "visto", "firmado"])
+    : { data: [] as any[] };
+
+  const contratoByReg = new Map<string, EstadoContrato>(
+    (contratos ?? []).map((c: any) => [
+      c.registration_id,
+      {
+        id: c.id,
+        status: c.status,
+        version: c.version,
+        codigo: String(c.access_token).slice(0, 8).toUpperCase(),
+        sentAt: c.sent_at,
+        viewedAt: c.viewed_at,
+        signedAt: c.signed_at,
+        huella: c.pdf_signed_sha256,
+        urlVerificacion: c.pdf_signed_sha256
+          ? `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/${c.pdf_signed_sha256}`
+          : null,
+      },
+    ])
+  );
+
+  // `revisarContrato` solo lee: dice qué falta sin escribir nada.
+  const revisiones = new Map<string, RevisionContrato>(
+    await Promise.all(
+      regIds.map(async (id: string): Promise<[string, RevisionContrato]> => {
+        try {
+          return [id, await revisarContrato(id)];
+        } catch {
+          // Si algo falla al leer, la tarjeta muestra el contrato sin avisos en vez de
+          // tumbar la página entera del peregrino.
+          return [id, { pendientes: [], avisos: [], datos: {}, listo: false }];
+        }
+      })
+    )
+  );
 
   const paidEur = pagos.reduce((acc, p) => acc + Number(p.amount_eur || 0), 0);
 
@@ -170,6 +216,13 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                 <div className="mt-3">
                   <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} />
                 </div>
+                <ContractCard
+                  registrationId={r.registration_id}
+                  pilgrimId={params.id}
+                  contrato={contratoByReg.get(r.registration_id) ?? null}
+                  pendientes={revisiones.get(r.registration_id)?.pendientes ?? []}
+                  avisos={revisiones.get(r.registration_id)?.avisos ?? []}
+                />
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
                   <EditRegistrationDialog

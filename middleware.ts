@@ -28,6 +28,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/auth");
 
+  // Rutas que un peregrino abre sin tener cuenta: el enlace de firma, la comprobación de
+  // integridad de un documento firmado, la ficha pública del viaje y la versión web de un
+  // correo. Todas se protegen por un token largo, no por sesión, y `next.config.mjs` les
+  // pone Referrer-Policy: no-referrer y X-Robots-Tag: noindex.
+  const esPublica = PUBLICAS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (esPublica) return response;
+
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -41,6 +48,9 @@ export async function middleware(request: NextRequest) {
 
   return response;
 }
+
+/** Ver el comentario dentro de `middleware`. */
+const PUBLICAS = ["/firmar", "/verificar", "/viaje", "/correo"];
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
