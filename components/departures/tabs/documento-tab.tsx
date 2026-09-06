@@ -64,6 +64,14 @@ export async function DocumentoTab({ departureId }: { departureId: string }) {
               </div>
             </dl>
 
+            {doc.dias.some((d) => d.km) && !doc.dias.some((d) => d.horas) && (
+              <p className="text-xs text-aviso-700">
+                Las etapas no tienen horas aproximadas, así que el trazado solo muestra los
+                kilómetros. Se cargan en{" "}
+                <Link href="/configuracion" className="underline">Configuración → Rutas → Etapas</Link>.
+              </p>
+            )}
+
             <AccionesDocumento departureId={departureId} token={token} inscritos={0} />
           </CardContent>
         </Card>
@@ -99,8 +107,10 @@ export async function DocumentoTab({ departureId }: { departureId: string }) {
               </div>
             ))}
             <p className="text-xs text-muted-foreground pt-2">
-              La dirección, las horas y las fotos se cargan en la ficha de cada proveedor, y
-              sirven para todos los caminos donde aparezca.
+              La dirección, las horas y las fotos se cargan en la{" "}
+              <Link href="/proveedores" className="underline">ficha de cada proveedor</Link>, y sirven
+              para todos los caminos donde aparezca. Las etapas, los km y las horas de camino,
+              en <Link href="/configuracion" className="underline">Configuración → Rutas</Link>.
             </p>
           </CardContent>
         </Card>

@@ -209,6 +209,8 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 payload.meal_price_per_person_eur = null;
               } else {
                 payload.accommodation_type = fd.get("accommodation_type")?.toString() || null;
+                payload.check_in_time = fd.get("check_in_time")?.toString() || null;
+                payload.breakfast_time = fd.get("breakfast_time")?.toString() || null;
                 payload.beds_count = useRoomsTotals ? roomTotals.beds : (fd.get("beds_count") ? Number(fd.get("beds_count")) : null);
                 const baseCost = useRoomsTotals ? roomTotals.cost : Number(fd.get("estimated_cost_eur") || 0);
                 const baseConfirmed = useRoomsTotals
@@ -354,7 +356,22 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2"><Label>Plazas (manual)</Label><Input name="beds_count" type="number" defaultValue={reservation.beds_count ?? ""} /></div>
-                <div className="grid gap-2"><Label>Acomodación libre</Label><Input name="accommodation_type" defaultValue={reservation.accommodation_type ?? ""} /></div>
+                <div className="grid gap-2">
+                  <Label>Acomodación libre</Label>
+                  <Input name="accommodation_type" defaultValue={reservation.accommodation_type ?? ""} placeholder="Se deduce de las habitaciones" />
+                </div>
+              </div>
+              {/* Horas de ESTE grupo. En blanco se usan las del hotel, que están en su ficha
+                  de proveedor y sirven para todos los caminos. */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>Hora de entrada, solo este grupo</Label>
+                  <Input name="check_in_time" defaultValue={reservation.check_in_time ?? ""} placeholder="La del hotel" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Hora del desayuno, solo este grupo</Label>
+                  <Input name="breakfast_time" defaultValue={reservation.breakfast_time ?? ""} placeholder="La del hotel" />
+                </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2"><Label>Costo estimado (EUR)</Label><Input name="estimated_cost_eur" type="number" step="0.01" defaultValue={reservation.estimated_cost_eur} /></div>

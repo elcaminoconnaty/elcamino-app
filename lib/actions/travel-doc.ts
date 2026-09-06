@@ -133,3 +133,31 @@ export async function enviarDocumentoAlGrupo(departureId: string, soloA?: string
   revalidatePath(`/caminos/${departureId}`);
   return { enviados: enviados.length, total: destinatarios.length, fallidos };
 }
+
+/**
+ * URL firmada para subir la foto de portada.
+ *
+ * Va al cubo `brand`, que es público — la portada se ve en una página que se abre sin
+ * sesión. Se sube directo desde el navegador y no a través de esta acción, que tiene límite
+ * de tamaño y no está para mover megas de foto.
+ */
+export async function urlDeSubidaDePortada(departureId: string, contentType: string) {
+  const TIPOS: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+  };
+  const ext = TIPOS[contentType];
+  if (!ext) throw new Error("Solo admitimos JPG, PNG o WebP.");
+
+  const supabase = createClient();
+  const ruta = `portadas/${departureId}/${Date.now()}${ext}`;
+  const { data, error } = await supabase.storage.from("brand").createSignedUploadUrl(ruta);
+  if (error) throw new Error(error.message);
+
+  return {
+    ruta,
+    signedUrl: data.signedUrl,
+    urlPublica: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/${ruta}`,
+  };
+}
