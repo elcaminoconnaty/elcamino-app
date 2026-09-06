@@ -39,7 +39,7 @@ export default async function PaginaVerificar({ params }: { params: { hash: stri
           <div style={{ fontFamily: "Georgia, serif", fontSize: 20, letterSpacing: 1.5, color: COLOR.alba }}>
             {CONTACTO.marca}
           </div>
-          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocre, marginTop: 10 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocreClaro, marginTop: 10 }}>
             VERIFICACIÓN DE DOCUMENTO
           </div>
         </div>
@@ -70,7 +70,7 @@ export default async function PaginaVerificar({ params }: { params: { hash: stri
             </div>
 
             <div className="mt-6" style={{ fontSize: 11, color: COLOR.castano }}>
-              <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocre }}>
+              <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocreProfundo }}>
                 Huella SHA-256
               </div>
               <code style={{ wordBreak: "break-all" }}>{huellaLegible(hash)}</code>

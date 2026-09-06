@@ -24,7 +24,7 @@ export default function PaginaVerificarIndice() {
           <div style={{ fontFamily: "Georgia, serif", fontSize: 20, letterSpacing: 1.5, color: COLOR.alba }}>
             {CONTACTO.marca}
           </div>
-          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocre, marginTop: 10 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocreClaro, marginTop: 10 }}>
             VERIFICACIÓN DE DOCUMENTO
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function PaginaVerificarIndice() {
             type="submit"
             className="mt-3 rounded px-6 py-3"
             style={{
-              background: COLOR.ocre, color: COLOR.alba, fontSize: 12,
+              background: COLOR.ocreProfundo, color: COLOR.alba, fontSize: 12,
               letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 700,
             }}
           >

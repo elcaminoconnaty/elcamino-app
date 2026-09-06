@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     padding: 12, borderRadius: 4, marginBottom: 18,
   },
   rotulo: {
-    fontSize: ESCALA_PDF.micro, color: COLOR.ocre,
+    fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo,
     textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 3,
   },
   fila: { flexDirection: "row", marginBottom: 4 },
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   huella: { fontSize: 7.5, letterSpacing: 0.3 },
 
   seccion: {
-    fontSize: ESCALA_PDF.micro, color: COLOR.ocre, textTransform: "uppercase",
+    fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo, textTransform: "uppercase",
     letterSpacing: 1.5, marginTop: 6, marginBottom: 10,
     borderBottomWidth: 0.5, borderBottomColor: COLOR.piedra, paddingBottom: 5,
   },
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   firmanteCabeza: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   firmanteNombre: { fontFamily: FUENTE.body, fontWeight: 700, fontSize: 10, color: COLOR.atlantico },
-  firmanteRol: { fontSize: ESCALA_PDF.micro, color: COLOR.ocre, textTransform: "uppercase", letterSpacing: 1.2 },
+  firmanteRol: { fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo, textTransform: "uppercase", letterSpacing: 1.2 },
   trazo: { height: 40, width: 150, objectFit: "contain", marginBottom: 6 },
   trazoMecanico: { fontFamily: FUENTE.serif, fontStyle: "italic", fontSize: 16, color: COLOR.noche, marginBottom: 8 },
   cols: { flexDirection: "row" },

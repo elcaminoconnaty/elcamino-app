@@ -25,7 +25,7 @@ export function Aviso({ contrato }: { contrato: ContratoParaFirmar }) {
         </p>
         {contrato.huella && (
           <div className="mt-5" style={{ fontSize: 12, color: COLOR.castano }}>
-            <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocre }}>
+            <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocreProfundo }}>
               Huella del documento
             </div>
             <code style={{ wordBreak: "break-all", fontSize: 11 }}>{contrato.huella}</code>

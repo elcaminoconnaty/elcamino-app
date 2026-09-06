@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
   },
   rateLabel: {
     fontSize: ESCALA_PDF.micro,
-    color: COLOR.castano,
+    color: COLOR.ocreProfundo,
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },

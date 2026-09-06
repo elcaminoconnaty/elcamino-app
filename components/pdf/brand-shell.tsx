@@ -111,7 +111,7 @@ export const base = StyleSheet.create({
     fontSize: ESCALA_PDF.micro,
     fontFamily: FUENTE.body,
     fontWeight: 700,
-    color: COLOR.ocre,
+    color: COLOR.ocreProfundo,
     textTransform: "uppercase",
     letterSpacing: 1.5,
     marginBottom: 7,

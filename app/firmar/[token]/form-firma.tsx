@@ -66,7 +66,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
           Nos vemos en el Camino. Cualquier cosa, {CONTACTO.whatsapp}.
         </p>
         <div className="mt-5" style={{ fontSize: 11, color: COLOR.castano }}>
-          <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocre }}>
+          <div style={{ letterSpacing: 1.4, textTransform: "uppercase", fontSize: 10, color: COLOR.ocreProfundo }}>
             Huella del documento
           </div>
           <code style={{ wordBreak: "break-all" }}>{firmado.huella}</code>
@@ -180,7 +180,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
 function Paso({ n, titulo }: { n: number; titulo: string }) {
   return (
-    <h2 className="mb-3" style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: COLOR.ocre }}>
+    <h2 className="mb-3" style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: COLOR.ocreProfundo }}>
       Paso {n} · {titulo}
     </h2>
   );
@@ -203,7 +203,7 @@ function Boton({ onClick, pendiente, children }: { onClick: () => void; pendient
       disabled={pendiente}
       className="rounded px-6 py-3 disabled:opacity-50"
       style={{
-        background: COLOR.ocre, color: COLOR.alba, fontSize: 12,
+        background: COLOR.ocreProfundo, color: COLOR.alba, fontSize: 12,
         letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 700,
       }}
     >

@@ -49,7 +49,7 @@ export function parrafos(texto: string, estilo: string = P): string {
 
 /** En correo un botón es un `<a>` con relleno. Nunca un `<button>`. */
 export function boton(texto: string, url: string): string {
-  return `<a href="${esc(url)}" class="cs-btn" style="display:inline-block;background:${COLOR.ocre};color:${COLOR.alba};text-decoration:none;font-family:${FUENTE_CORREO.body};font-size:12px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;padding:12px 24px;border-radius:4px;">${esc(texto)}</a>`;
+  return `<a href="${esc(url)}" class="cs-btn" style="display:inline-block;background:${COLOR.ocreProfundo};color:${COLOR.alba};text-decoration:none;font-family:${FUENTE_CORREO.body};font-size:12px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;padding:12px 24px;border-radius:4px;">${esc(texto)}</a>`;
 }
 
 /** Bloque de datos destacado, sobre Piedra con filo Ocre. */
@@ -58,7 +58,7 @@ export function ficha(filas: Array<[string, string]>): string {
     .map(
       ([k, v]) =>
         `<tr>
-           <td style="padding:4px 12px 4px 0;font-family:${FUENTE_CORREO.body};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${COLOR.castano};white-space:nowrap;">${esc(k)}</td>
+           <td style="padding:4px 12px 4px 0;font-family:${FUENTE_CORREO.body};font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${COLOR.ocreProfundo};white-space:nowrap;">${esc(k)}</td>
            <td style="padding:4px 0;font-family:${FUENTE_CORREO.body};font-size:14px;color:${COLOR.noche};">${esc(v)}</td>
          </tr>`
     )
@@ -127,7 +127,7 @@ export function envolturaCorreo(o: EnvolturaOpts): string {
   <tr><td class="cs-pad" style="background:${COLOR.atlantico};padding:26px 32px;">
     <div style="font-family:${FUENTE_CORREO.display};font-size:21px;letter-spacing:1.5px;color:${COLOR.alba};">${esc(CONTACTO.marca)}</div>
     <div style="font-family:${FUENTE_CORREO.body};font-size:11px;color:rgba(245,238,227,0.72);margin-top:5px;">Peregrinación consciente · ${esc(CONTACTO.sitio)}</div>
-    <div style="font-family:${FUENTE_CORREO.body};font-size:10px;color:${COLOR.ocre};letter-spacing:2.5px;margin-top:16px;">${esc(o.eyebrow.toUpperCase())}</div>
+    <div style="font-family:${FUENTE_CORREO.body};font-size:10px;color:${COLOR.ocreClaro};letter-spacing:2.5px;margin-top:16px;">${esc(o.eyebrow.toUpperCase())}</div>
   </td></tr>
 
   <tr><td style="height:28px;background:${COLOR.alba};font-size:0;line-height:0;">&nbsp;</td></tr>
@@ -137,7 +137,7 @@ ${o.contenido}
   <!-- PIE -->
   <tr><td class="cs-pad" style="background:${COLOR.atlantico};padding:18px 32px;">
     <div style="font-family:${FUENTE_CORREO.body};font-size:11px;color:rgba(245,238,227,0.85);">${esc(pie)}</div>
-    <div style="font-family:${FUENTE_CORREO.display};font-size:12px;font-style:italic;color:${COLOR.ocre};margin-top:8px;">Buen Camino</div>
+    <div style="font-family:${FUENTE_CORREO.display};font-size:12px;font-style:italic;color:${COLOR.ocreClaro};margin-top:8px;">Buen Camino</div>
   </td></tr>
 </table>
 </td></tr>

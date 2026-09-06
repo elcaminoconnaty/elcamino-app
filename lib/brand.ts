@@ -19,13 +19,31 @@ export const COLOR = {
   alba: "#F5EEE3",
   /** Secciones alternas y citas. */
   piedra: "#E8D9C0",
-  /** PRIMARIO. La flecha amarilla que guía al peregrino. Acentos y llamados a la acción. */
+  /**
+   * PRIMARIO. La flecha amarilla que guía al peregrino.
+   * Solo gráfico: filetes, iconos, marcas. **Nunca lleva texto sobre claro** — sobre alba
+   * da 2,77:1. Para texto y botones está `ocreProfundo`.
+   */
   ocre: "#C4822A",
-  /** Texto sobre fondos claros y cards intermedias. */
+  /**
+   * El ocre cuando tiene que leerse sobre claro: botones, enlaces y rótulos sobre alba
+   * (4,52:1). También sobre piedra, donde da 3,75:1 — válido de 16 px en adelante.
+   */
+  ocreProfundo: "#946220",
+  /**
+   * El ocre cuando tiene que leerse sobre oscuro. Sobre atlántico el ocre original solo da
+   * 2,28:1, así que los rótulos de las cabeceras van con este (4,50:1). Sobre noche da 8,65:1.
+   */
+  ocreClaro: "#E9C697",
+  /** Texto secundario sobre claro, de 16 px hacia arriba (4,31:1). */
   castano: "#8B6A3E",
   /** Secciones que evocan el paisaje: cards de experiencia, elementos del Camino. */
   musgo: "#4A5E47",
-  /** Texto secundario, etiquetas, elementos de fondo. NUNCA como color de acción. */
+  /**
+   * Filetes, separadores y estados inactivos. NUNCA como color de acción.
+   * **Corrección sobre la edición 2026**, que lo daba para texto secundario: sobre alba da
+   * 2,47:1 y no se lee. Como texto solo sobre noche (4,92:1); sobre claro, castaño.
+   */
   niebla: "#8B9E8F",
   /** SECUNDARIO. La profundidad, el océano al final del Camino. Cabeceras, pies, impacto. */
   atlantico: "#3D5A6E",
@@ -40,7 +58,7 @@ export const COLOR = {
  */
 export const ESTADO = {
   ok: COLOR.musgo,
-  alerta: COLOR.ocre,
+  alerta: COLOR.ocreProfundo,
   error: "#9B3D3D", // castaño llevado al rojo, misma familia cálida
 } as const;
 
@@ -133,8 +151,8 @@ export const CONTACTO = {
 export const COMBINACION = {
   /** Hero, cabeceras, secciones de impacto. La tríada base. */
   principal: { fondo: COLOR.atlantico, texto: COLOR.alba, acento: COLOR.ocre },
-  /** Cuerpo de página, blog, testimonios. */
-  clara: { fondo: COLOR.alba, texto: COLOR.atlantico, acento: COLOR.ocre },
+  /** Cuerpo de página, blog, testimonios. El acento lleva texto, así que va profundo. */
+  clara: { fondo: COLOR.alba, texto: COLOR.atlantico, acento: COLOR.ocreProfundo },
   /** Cards de experiencias y elementos de ruta. */
   naturaleza: { fondo: COLOR.musgo, texto: COLOR.alba, acento: COLOR.piedra },
 } as const;

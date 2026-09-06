@@ -28,7 +28,7 @@ export default async function PaginaFirmar({ params }: { params: { token: string
           <div style={{ fontFamily: "Georgia, serif", fontSize: 20, letterSpacing: 1.5, color: COLOR.alba }}>
             {CONTACTO.marca}
           </div>
-          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocre, marginTop: 10 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2.5, color: COLOR.ocreClaro, marginTop: 10 }}>
             CONTRATO DE VIAJE
           </div>
         </div>

@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   subtituloDoc: {
     fontSize: 11,
     fontFamily: FUENTE.display,
-    color: COLOR.ocre,
+    color: COLOR.ocreProfundo,
     textAlign: "center",
     letterSpacing: 2,
     marginTop: 4,
