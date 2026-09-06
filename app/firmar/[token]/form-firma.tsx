@@ -96,7 +96,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
       {/* 1 — Leer */}
       <section>
-        <Paso n={1} titulo="Leé el contrato" />
+        <Paso n={1} titulo="Lee el contrato" />
         <div className="rounded overflow-hidden border" style={{ borderColor: COLOR.piedra }}>
           <iframe
             src={`/api/pdf/contrato/publico/${token}#view=FitH`}
@@ -130,7 +130,7 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
 
       {/* 3 — Confirmar */}
       <section>
-        <Paso n={3} titulo="Confirmá con el código" />
+        <Paso n={3} titulo="Confirma con el código" />
         {!codigoPedido ? (
           <>
             <p className="text-sm mb-3" style={{ color: COLOR.castano }}>
