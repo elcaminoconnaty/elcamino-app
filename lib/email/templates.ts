@@ -206,3 +206,75 @@ export function correoCodigoDeFirma(o: { nombre: string; codigo: string; minutos
     ].join("\n"),
   };
 }
+
+/**
+ * El documento de viaje.
+ *
+ * Va el enlace, no el PDF: el documento cambia durante los meses de preparación y un
+ * adjunto queda viejo el día que Naty corrige un hotel. Desde la página se descarga, para
+ * quien lo quiera llevar sin señal en Galicia.
+ *
+ * Este correo cae en el hueco que el brandbook llama «los meses de espera» — entre el pago
+ * y la salida, que es donde una marca cara se cae si desaparece.
+ */
+export function correoDocumentoDeViaje(o: {
+  nombre: string;
+  camino: string;
+  recorrido: string | null;
+  km: number | null;
+  primeraFecha: string | null;
+  url: string;
+}): Correo {
+  const hola = primerNombre(o.nombre);
+  const cuando = o.primeraFecha
+    ? new Date(`${o.primeraFecha}T12:00:00Z`).toLocaleDateString("es-CO", {
+        day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+      })
+    : null;
+
+  const contenido =
+    fila(`<p style="${P_SERIF}">${esc(hola)}, ya está tu documento de viaje.</p>`) +
+    fila(
+      parrafos(
+        `Acá tienes el itinerario día por día y la información de cada alojamiento: dónde queda, a qué hora es la entrada y a qué hora el desayuno.
+
+Guárdalo a mano, que lo vas a mirar más de una vez. Si cambia algo entre hoy y la salida, el enlace se actualiza solo — no tienes que estar pendiente de si te llegó una versión nueva.
+
+Desde la misma página puedes descargarlo en PDF, por si quieres llevarlo en el celular sin depender de la señal.`
+      )
+    ) +
+    fila(
+      ficha(
+        [
+          ["Camino", o.camino],
+          o.recorrido ? (["Recorrido", `${o.recorrido}${o.km ? ` · ${o.km} km` : ""}`] as [string, string]) : null,
+          cuando ? (["Empieza", cuando] as [string, string]) : null,
+        ].filter(Boolean) as Array<[string, string]>
+      )
+    ) +
+    fila(`<p style="margin:6px 0 18px;">${boton("Ver mi documento de viaje", o.url)}</p>`);
+
+  return {
+    subject: `Tu documento de viaje · ${o.camino}`,
+    html: envolturaCorreo({
+      eyebrow: "Documento de viaje",
+      preheader: `El itinerario y los alojamientos de tu ${o.camino}.`,
+      contenido,
+    }),
+    text: [
+      `${hola}, ya está tu documento de viaje.`,
+      "",
+      `Acá tienes el itinerario día por día y la información de cada alojamiento: dónde queda, a qué hora es la entrada y a qué hora el desayuno.`,
+      "",
+      `Camino: ${o.camino}`,
+      o.recorrido ? `Recorrido: ${o.recorrido}${o.km ? ` · ${o.km} km` : ""}` : "",
+      cuando ? `Empieza: ${cuando}` : "",
+      "",
+      o.url,
+      "",
+      `Si cambia algo entre hoy y la salida, el enlace se actualiza solo.`,
+      "",
+      `${CONTACTO.marca} · ${CONTACTO.whatsapp} · ${CONTACTO.correo}`,
+    ].filter(Boolean).join("\n"),
+  };
+}

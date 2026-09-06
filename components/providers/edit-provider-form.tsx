@@ -34,6 +34,37 @@ export function EditProviderForm({ provider }: { provider: any }) {
       <div className="grid gap-2"><Label>Teléfono</Label><Input name="phone" defaultValue={provider.phone ?? ""} /></div>
       <div className="grid gap-2"><Label>Ciudad</Label><Input name="city" defaultValue={provider.city ?? ""} /></div>
       <div className="grid gap-2"><Label>País</Label><Input name="country" defaultValue={provider.country ?? ""} /></div>
+      {/* Lo que sale impreso en el documento de viaje del peregrino. Se carga una vez por
+          hotel y sirve para todos los caminos donde aparezca. */}
+      <div className="rounded-md border p-3 grid gap-3">
+        <div className="text-xs uppercase tracking-widest text-ocre-profundo">Para el documento de viaje</div>
+        <div className="grid gap-2">
+          <Label>Dirección</Label>
+          <Input name="address" defaultValue={provider.address ?? ""} placeholder="Rua Calvo Sotelo, 2" />
+        </div>
+        <div className="grid gap-2">
+          <Label>Código postal, provincia y país</Label>
+          <Input name="postal_code" defaultValue={provider.postal_code ?? ""} placeholder="27600 Sarria, Lugo, España" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label>Hora de entrada</Label>
+            <Input name="check_in_time" defaultValue={provider.check_in_time ?? ""} placeholder="3pm" />
+          </div>
+          <div className="grid gap-2">
+            <Label>Hora del desayuno</Label>
+            <Input name="breakfast_time" defaultValue={provider.breakfast_time ?? ""} placeholder="7 am" />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label>Enlace de Google Maps</Label>
+          <Input name="maps_url" defaultValue={provider.maps_url ?? ""} placeholder="https://maps.app.goo.gl/…" />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Si este grupo tiene otra hora, se puede pisar en la reserva. Acá va la habitual del hotel.
+        </p>
+      </div>
+
       <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} defaultValue={provider.notes ?? ""} /></div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="active" defaultChecked={provider.active} />

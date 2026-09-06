@@ -12,7 +12,10 @@
  */
 
 /** Rutas públicas que sirven un documento a alguien que no tiene sesión. */
-const RUTAS_POR_TOKEN = ["/firmar/:token*", "/verificar/:hash*", "/viaje/:slug*", "/correo/:token*"];
+const RUTAS_POR_TOKEN = [
+  "/firmar/:token*", "/verificar/:hash*", "/viaje/:token*", "/correo/:token*",
+  "/api/pdf/contrato/publico/:token*", "/api/pdf/viaje/:token*",
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

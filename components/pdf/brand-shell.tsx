@@ -18,7 +18,10 @@
  * Y una heredada de esta plataforma: no usar el signo menos U+2212 en un PDF. Guion ASCII.
  */
 import path from "node:path";
-import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import {
+  Circle, Document, Font, G, Image, Line, Page, Path, Rect,
+  StyleSheet, Svg, Text, Text as SvgText, View,
+} from "@react-pdf/renderer";
 import { COLOR, CONTACTO, ESCALA_PDF, FUENTE } from "@/lib/brand";
 
 const dirFuentes = path.join(process.cwd(), "lib", "fonts");
@@ -206,3 +209,5 @@ export function Pie({ nota }: { nota?: string }) {
 
 /** Reexportados para que los documentos no tengan que importar react-pdf por su cuenta. */
 export { Document, Page, StyleSheet, Text, View, Image, Font };
+/** Primitivas de dibujo, para el mapa de etapas del documento de viaje. */
+export { Svg, Line, Circle, Path, Rect, G };

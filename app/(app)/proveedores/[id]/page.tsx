@@ -8,6 +8,7 @@ import { formatEUR, formatDate } from "@/lib/utils";
 import { PROVIDER_TYPES } from "@/lib/constants";
 import { NewProviderPaymentDialog } from "@/components/providers/new-provider-payment-dialog";
 import { EditProviderForm } from "@/components/providers/edit-provider-form";
+import { HotelPhotos } from "@/components/providers/hotel-photos";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,16 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
     supabase.from("provider_payments").select("*, departures(name), reservations(type, location)").eq("provider_id", params.id).order("paid_at", { ascending: true }),
     supabase.from("departures").select("id, name").order("start_date"),
   ]);
+
+  // Las fotos solo tienen sentido para alojamientos: son las del documento de viaje.
+  const { data: fotos } = provider.type === "alojamiento"
+    ? await supabase.from("provider_photos")
+        .select("id, storage_path, caption").eq("provider_id", params.id).order("position")
+    : { data: [] as any[] };
+  const fotosConUrl = (fotos ?? []).map((f: any) => ({
+    ...f,
+    url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/brand/${f.storage_path}`,
+  }));
 
   const totalPaid = (payments ?? []).reduce((s: number, p: any) => s + Number(p.amount_eur || 0), 0);
 
@@ -37,6 +48,15 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
+          {provider.type === "alojamiento" && (
+            <Card>
+              <CardHeader><CardTitle>Fotos del alojamiento</CardTitle></CardHeader>
+              <CardContent>
+                <HotelPhotos providerId={params.id} fotos={fotosConUrl} />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle>Reservas</CardTitle></CardHeader>
             <CardContent className="p-0">

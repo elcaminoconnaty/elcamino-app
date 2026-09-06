@@ -101,6 +101,13 @@ export async function updateProvider(id: string, formData: FormData) {
     notes: formData.get("notes")?.toString() || null,
     active: formData.get("active") === "on",
   };
+
+  // Lo que sale impreso en el documento de viaje. Solo se escribe si el formulario lo trae,
+  // para que un formulario que no lo muestra no lo borre.
+  for (const campo of ["address", "postal_code", "maps_url", "description", "check_in_time", "breakfast_time"]) {
+    if (formData.has(campo)) payload[campo] = formData.get(campo)?.toString() || null;
+  }
+
   const { error } = await supabase.from("providers").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/proveedores/${id}`);
