@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { COLOR, CONTACTO } from "@/lib/brand";
 import { huellaLegible } from "@/lib/contracts/firma";
 
@@ -23,7 +23,7 @@ export default async function PaginaVerificar({ params }: { params: { hash: stri
   const hash = params.hash.toLowerCase().replace(/\s/g, "");
   const valido = /^[0-9a-f]{64}$/.test(hash);
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data: c } = valido
     ? await supabase
         .from("contracts")

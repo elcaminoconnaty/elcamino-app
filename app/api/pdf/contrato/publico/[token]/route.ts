@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { tokenPlausible } from "@/lib/contracts/firma";
 
 /**
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, { params }: { params: { token: string } }) {
   if (!tokenPlausible(params.token)) return new NextResponse("Enlace no válido.", { status: 404 });
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data: c } = await supabase
     .from("contracts")
     .select("pdf_signed_path, pdf_original_path, status, token_expires_at")

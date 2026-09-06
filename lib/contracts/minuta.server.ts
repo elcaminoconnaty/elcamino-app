@@ -1,5 +1,8 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+// Con la llave de servicio: la minuta se lee también durante la firma, que corre sin
+// sesión. Si cayera al texto de fábrica sin avisar, un contrato firmado podría usar una
+// versión distinta de la que Naty publicó — justo la desincronización que hay que evitar.
+import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { MINUTA_DE_FABRICA, type Minuta } from "./minuta";
 
 /**

@@ -1,5 +1,7 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+// El peregrino no tiene cuenta: todo este módulo corre sin sesión y se autoriza con el
+// token del enlace, que se comprueba antes de cada consulta. Ver lib/supabase/admin.ts.
+import { createAdminClient as createClient } from "@/lib/supabase/admin";
 import { minutaVigente } from "./minuta.server";
 import type { DatosContrato } from "./minuta";
 import { renderContrato } from "./render";

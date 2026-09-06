@@ -93,9 +93,15 @@ export type ArmadoContrato = {
  */
 export async function armarDatosContrato(
   registrationId: string,
-  opciones?: { anexo1Url?: string; formaDePagoManual?: string; fechaFirma?: string }
+  opciones?: {
+    anexo1Url?: string;
+    formaDePagoManual?: string;
+    fechaFirma?: string;
+    /** Cliente a usar. Por defecto el de la sesión; el flujo público pasa el de servicio. */
+    db?: ReturnType<typeof createClient>;
+  }
 ): Promise<ArmadoContrato> {
-  const supabase = createClient();
+  const supabase = opciones?.db ?? createClient();
   const pendientes: Pendiente[] = [];
   const avisos: string[] = [];
 
