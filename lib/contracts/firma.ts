@@ -62,3 +62,45 @@ export const TOKEN_VIGENCIA_DIAS = 21;
 // El texto del consentimiento vive aparte porque lo necesitan las dos orillas: el
 // formulario del navegador para mostrarlo y el servidor para archivarlo con la firma.
 export { CONSENTIMIENTO, textoConsentimiento } from "./consentimiento";
+
+/**
+ * Comprueba que el trazo de la firma sea un PNG que se pueda dibujar.
+ *
+ * No es paranoia: react-pdf **descarta una imagen corrupta en silencio**, así que un PNG
+ * malo produce un contrato sellado, hasheado y archivado con el espacio de la firma en
+ * blanco, y nadie se entera hasta que hace falta. Un canvas real siempre da un PNG válido;
+ * esto atrapa el caso en que algo se rompió por el camino.
+ */
+export function trazoValido(dataUrl: string): { ok: true; bytes: Buffer } | { ok: false; error: string } {
+  if (!/^data:image\/png;base64,/.test(dataUrl)) {
+    return { ok: false, error: "La firma no llegó como imagen PNG." };
+  }
+  if (dataUrl.length > 400_000) {
+    return { ok: false, error: "La firma pesa demasiado. Vuelve a dibujarla." };
+  }
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  } catch {
+    return { ok: false, error: "No pude leer la firma." };
+  }
+
+  // Firma del formato y bloque final. Un PNG cortado a la mitad pasa lo primero y no lo
+  // segundo, que es justo el caso que deja el contrato sin firma visible.
+  const CABECERA = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (bytes.length < 100 || !bytes.subarray(0, 8).equals(CABECERA)) {
+    return { ok: false, error: "La firma llegó dañada. Vuelve a dibujarla." };
+  }
+  if (!bytes.subarray(-8).includes(Buffer.from("IEND", "ascii"))) {
+    return { ok: false, error: "La firma llegó incompleta. Vuelve a dibujarla." };
+  }
+
+  // Ancho y alto viven en el bloque IHDR, justo después de la cabecera.
+  const ancho = bytes.readUInt32BE(16);
+  const alto = bytes.readUInt32BE(20);
+  if (ancho < 50 || alto < 20) {
+    return { ok: false, error: "La firma quedó demasiado pequeña. Vuelve a dibujarla." };
+  }
+
+  return { ok: true, bytes };
+}

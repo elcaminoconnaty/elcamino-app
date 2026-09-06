@@ -120,13 +120,21 @@ async function main() {
   if (sinCasillas.ok) return fallo("¡firmó sin marcar las casillas!");
   ok("sin las dos casillas, rechazado");
 
+  // Un PNG cortado a la mitad: react-pdf lo descartaría en silencio y el contrato quedaría
+  // sellado con el espacio de la firma en blanco.
+  const roto = await firmarContrato({
+    token, codigo: "000000", trazoDataUrl: TRAZO.slice(0, 200),
+    aceptaLectura: true, aceptaFirma: true,
+  });
+  if (roto.ok) return fallo("¡aceptó una firma corrupta!");
+  ok("firma corrupta, rechazada", roto.error);
+
   console.log("\n  Ahora hace falta el código real que llegó al correo.");
   console.log(`  Ejecutá:  OUT=${SALIDA} npx tsx --tsconfig scripts/tsconfig.json scripts/prueba-firmar.tsx ${token} <código>`);
   fs.writeFileSync(path.join(SALIDA, "prueba-token.txt"), token);
 }
 
-/** Un garabato mínimo en PNG, que hace de firma dibujada. */
-const TRAZO =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAYAAACqNX6+AAAAAXNSR0IArs4c6QAAAWJJREFUeF7t1AEJAAAMAsHZv/RyPNwSyDncOQInAudqKUZAgOQIBAgQIEAgR8DKcpQEAgQIECCQI2BlOUoCAQIECBDIEbCyHCWBAAECBAjkCFhZjpJAgAABAgRyBKwsR0kgQIAAAQI5AlaWoyQQIECAAIEcASvLURIIECBAgECOgJXlKAkECBAgQCBHwMpylAQCBAgQIJAjYGU5SgIBAgQIEMgRsLIcJYEAAQIECOQIWFmOkkCAAAECBHIErCxHSSBAgAABAjkCVpajJBAgQIAAgRwBK8tREggQIECAQI6AleUoCQQIECBAIEfAynKUBAIECBAgkCNgZTlKAgECBAgQyBGwshwlgQABAgQI5AhYWY6SQIAAAQIEcgSsLEdJIECAAAECOQJWlqMkECBAgACBHAEry1ESCBAgQIBAjoCV5SgJBAgQIEAgR8DKcpQEAgQIECCQI2BlOUoCAQIECBDIEfgBFRAAAV1kBIcAAAAASUVORK5CYII=";
+/** Una firma dibujada de verdad, del tamaño que produce el canvas (1120×360). */
+const TRAZO = fs.readFileSync("scripts/firma-de-prueba.txt", "utf8").trim();
 
 main().catch((e) => { console.error("\nFALLÓ:", e.message); process.exit(1); });

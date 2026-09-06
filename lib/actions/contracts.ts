@@ -282,3 +282,23 @@ export async function verificarIntegridad(contractId: string) {
 export async function avisarFirma(nombre: string, camino: string) {
   await avisoInterno(`Firmó ${nombre}`, `${nombre} acaba de firmar su contrato del ${camino}.`);
 }
+
+/**
+ * Guarda la firma de Naty. Se estampa en todos los contratos que emita, así que se captura
+ * una sola vez. Sin esto los contratos salen con su nombre en cursiva.
+ */
+export async function guardarFirmaOrganizador(trazoDataUrl: string) {
+  const { trazoValido } = await import("@/lib/contracts/firma");
+  const v = trazoValido(trazoDataUrl);
+  if (!v.ok) throw new Error(v.error);
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert(
+      { key: "org_signature", value: { data_url: trazoDataUrl, updated_at: new Date().toISOString() } },
+      { onConflict: "key" }
+    );
+  if (error) throw new Error(error.message);
+  revalidatePath("/configuracion");
+}

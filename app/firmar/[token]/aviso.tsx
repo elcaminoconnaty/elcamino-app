@@ -19,7 +19,7 @@ export function Aviso({ contrato }: { contrato: ContratoParaFirmar }) {
           Tu contrato ya está firmado
         </h1>
         <p style={{ color: COLOR.castano, marginTop: 12, lineHeight: 1.6 }}>
-          Lo firmaste el {contrato.firmadoEn}. Te mandamos una copia en PDF al correo{" "}
+          Lo firmaste el {contrato.firmadoEn} y te mandamos una copia en PDF al correo{" "}
           <strong>{contrato.email}</strong>; si no la ves, revisa el spam o escríbenos y te la
           reenviamos.
         </p>

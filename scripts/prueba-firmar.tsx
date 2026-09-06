@@ -18,8 +18,8 @@ const ok = (t: string, extra = "") => console.log(`  ✓ ${t}${extra ? ` — ${e
 const titulo = (t: string) => console.log(`\n${++paso}. ${t}`);
 const fallo = (t: string) => { console.error(`  ✗ ${t}`); process.exitCode = 1; };
 
-const TRAZO =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAYAAACqNX6+AAAAAXNSR0IArs4c6QAAAWJJREFUeF7t1AEJAAAMAsHZv/RyPNwSyDncOQInAudqKUZAgOQIBAgQIEAgR8DKcpQEAgQIECCQI2BlOUoCAQIECBDIEbCyHCWBAAECBAjkCFhZjpJAgAABAgRyBKwsR0kgQIAAAQI5AlaWoyQQIECAAIEcASvLURIIECBAgECOgJXlKAkECBAgQCBHwMpylAQCBAgQIJAjYGU5SgIBAgQIEMgRsLIcJYEAAQIECOQIWFmOkkCAAAECBHIErCxHSSBAgAABAjkCVpajJBAgQIAAgRwBK8tREggQIECAQI6AleUoCQQIECBAIEfAynKUBAIECBAgkCNgZTlKAgECBAgQyBGwshwlgQABAgQI5AhYWY6SQIAAAQIEcgSsLEdJIECAAAECOQJWlqMkECBAgACBHAEry1ESCBAgQIBAjoCV5SgJBAgQIEAgR8DKcpQEAgQIECCQI2BlOUoCAQIECBDIEfgBFRAAAV1kBIcAAAAASUVORK5CYII=";
+/** Una firma dibujada de verdad, del tamaño que produce el canvas (1120×360). */
+const TRAZO = fs.readFileSync("scripts/firma-de-prueba.txt", "utf8").trim();
 
 async function main() {
   if (!token || !codigo) throw new Error("Uso: prueba-firmar.tsx <token> <código>");

@@ -8,7 +8,7 @@ import { renderContrato } from "./render";
 import type { FirmanteInforme, InformeFirmasProps } from "@/components/pdf/informe-firmas";
 import {
   hashCodigo, huellaLegible, mismoHash, nuevoCodigo,
-  OTP_MAX_INTENTOS, OTP_VIGENCIA_MIN, textoConsentimiento, tokenPlausible,
+  OTP_MAX_INTENTOS, OTP_VIGENCIA_MIN, textoConsentimiento, tokenPlausible, trazoValido,
 } from "./firma";
 
 /**
@@ -203,9 +203,8 @@ export async function firmarContrato(args: {
   if (!aceptaLectura || !aceptaFirma) {
     return { ok: false, error: "Hay que marcar las dos casillas para poder firmar." };
   }
-  if (!/^data:image\/png;base64,/.test(trazoDataUrl) || trazoDataUrl.length > 400_000) {
-    return { ok: false, error: "La firma no llegó bien. Volvé a dibujarla." };
-  }
+  const trazo = trazoValido(trazoDataUrl);
+  if (!trazo.ok) return { ok: false, error: trazo.error };
 
   const supabase = createClient();
 
@@ -265,10 +264,9 @@ export async function firmarContrato(args: {
   // Se sube antes de sellar porque el PDF lo necesita; si el sellado falla, el objeto queda
   // huérfano, así que se limpia en el catch.
   const rutaTrazo = `${new Date().getFullYear()}/${c.id}/firma-viajero.png`;
-  const png = Buffer.from(trazoDataUrl.split(",")[1] ?? "", "base64");
   const { error: errTrazo } = await supabase.storage
     .from("contracts")
-    .upload(rutaTrazo, png, { contentType: "image/png", upsert: true });
+    .upload(rutaTrazo, trazo.bytes, { contentType: "image/png", upsert: true });
   if (errTrazo) return { ok: false, error: `No pude guardar la firma: ${errTrazo.message}` };
 
   try {
@@ -312,7 +310,7 @@ export async function firmarContrato(args: {
       creadoEn: enBogota(c.created_at),
       documento: `${minuta.titulo} · ${s.plan_descripcion}`,
       huellaOriginal: huellaLegible(primera.sha256),
-      urlVerificacion: `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/`,
+      urlVerificacion: `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar`,
       firmantes: fichas,
       paginas: primera.paginas + 1,
     };

@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
   firmanteNombre: { fontFamily: FUENTE.body, fontWeight: 700, fontSize: 10, color: COLOR.atlantico },
   firmanteRol: { fontSize: ESCALA_PDF.micro, color: COLOR.ocre, textTransform: "uppercase", letterSpacing: 1.2 },
   trazo: { height: 40, width: 150, objectFit: "contain", marginBottom: 6 },
+  trazoMecanico: { fontFamily: FUENTE.serif, fontStyle: "italic", fontSize: 16, color: COLOR.noche, marginBottom: 8 },
   cols: { flexDirection: "row" },
   col: { flex: 1, paddingRight: 10 },
 
@@ -131,7 +132,11 @@ export function PaginaInformeFirmas(p: InformeFirmasProps) {
               <Text style={styles.firmanteRol}>{f.rolTexto}</Text>
             </View>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf no acepta alt */}
-            {f.trazo ? <Image style={styles.trazo} src={f.trazo} /> : null}
+            {f.trazo ? (
+              <Image style={styles.trazo} src={f.trazo} />
+            ) : (
+              <Text style={styles.trazoMecanico}>{f.nombre}</Text>
+            )}
             <View style={styles.cols}>
               <View style={styles.col}>
                 <Fila k="Documento" v={f.documento} />
@@ -156,9 +161,10 @@ export function PaginaInformeFirmas(p: InformeFirmasProps) {
           acreditar la autoría y la integridad del documento. Cada firmante aceptó de forma expresa que este
           método constituye su firma y lo obliga en los mismos términos que una firma manuscrita.
           {"\n\n"}
-          Para comprobar que el archivo que tiene en sus manos es exactamente el que se firmó, entre en{" "}
-          {p.urlVerificacion} y compare la huella SHA-256. Si el documento hubiera sido alterado en un solo
-          carácter, la huella sería distinta.
+          Para comprobar que el archivo que tiene en sus manos es exactamente el que se firmó, calcule su
+          huella SHA-256 y péguela en {p.urlVerificacion}. Si el documento hubiera sido alterado en un solo
+          carácter, la huella sería distinta. (La huella del documento firmado no puede ir impresa dentro de
+          él mismo: calcularla sobre el archivo terminado y luego escribirla dentro lo cambiaría.)
           {"\n\n"}
           Este registro es parte integral del documento número {p.numero}.
         </Text>

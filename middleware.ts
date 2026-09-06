@@ -49,8 +49,14 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-/** Ver el comentario dentro de `middleware`. */
-const PUBLICAS = ["/firmar", "/verificar", "/viaje", "/correo"];
+/**
+ * Ver el comentario dentro de `middleware`.
+ *
+ * `/api/pdf/contrato/publico` va acá porque la página de firma muestra el contrato en un
+ * iframe: si la ruta del PDF pide sesión, el peregrino ve el recuadro vacío y no puede leer
+ * lo que está a punto de firmar. Se autentica con el mismo token que la página.
+ */
+const PUBLICAS = ["/firmar", "/verificar", "/viaje", "/correo", "/api/pdf/contrato/publico"];
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],

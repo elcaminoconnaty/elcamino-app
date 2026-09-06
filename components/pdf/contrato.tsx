@@ -76,9 +76,17 @@ const styles = StyleSheet.create({
 
   firmas: { flexDirection: "row", marginTop: 28, marginBottom: 8 },
   firmaCol: { flex: 1, paddingRight: 18 },
-  firmaTitulo: { fontSize: ESCALA_PDF.caption, color: COLOR.castano, marginBottom: 34 },
-  /** El trazo del canvas se dibuja justo encima de la raya. */
-  firmaTrazo: { height: 34, marginBottom: -32, objectFit: "contain" },
+  firmaTitulo: { fontSize: ESCALA_PDF.caption, color: COLOR.castano, marginBottom: 6 },
+  /* Hueco reservado sobre la raya, firmado o no, para que el bloque no cambie de alto.
+     La firma se apoya en el borde inferior, que es donde la pondría una mano. */
+  firmaHueco: { height: 42, justifyContent: "flex-end" },
+  firmaTrazo: { height: 40, objectFit: "contain", objectPosition: "0% 100%" },
+  /* Sin trazo capturado, el nombre en cursiva ocupa su lugar: la Ley 527 no exige un
+     garabato sino un método confiable, pero un bloque de firma vacío se lee a medio hacer. */
+  firmaMecanica: {
+    fontFamily: FUENTE.serif, fontStyle: "italic", fontSize: 13,
+    color: COLOR.noche, paddingBottom: 2,
+  },
   firmaRaya: { borderTopWidth: 0.8, borderTopColor: COLOR.noche, width: "88%", marginBottom: 4 },
   firmaNombre: { fontSize: ESCALA_PDF.caption, fontFamily: FUENTE.body, fontWeight: 700 },
   firmaDoc: { fontSize: ESCALA_PDF.micro, color: COLOR.castano },
@@ -174,8 +182,14 @@ function Firmas({ partes, trazos }: { partes: ParteFirma[]; trazos?: Partial<Rec
         return (
           <View key={i} style={styles.firmaCol}>
             <Text style={styles.firmaTitulo}>{p.titulo}</Text>
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf no acepta alt */}
-            {trazo ? <Image style={styles.firmaTrazo} src={trazo} /> : null}
+            <View style={styles.firmaHueco}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf no acepta alt */}
+              {trazo ? (
+                <Image style={styles.firmaTrazo} src={trazo} />
+              ) : (
+                <Text style={styles.firmaMecanica}>{p.nombre}</Text>
+              )}
+            </View>
             <View style={styles.firmaRaya} />
             <Text style={styles.firmaNombre}>{p.nombre}</Text>
             <Text style={styles.firmaDoc}>{p.documento}</Text>

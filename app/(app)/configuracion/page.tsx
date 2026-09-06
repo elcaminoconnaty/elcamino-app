@@ -3,12 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { RouteQuickCreate } from "@/app/(app)/caminos/nuevo/route-quick-create";
+import { FirmaOrganizador } from "@/components/contracts/firma-organizador";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfigPage() {
   const supabase = createClient();
   const { data: routes } = await supabase.from("routes").select("*").order("name");
+  const { data: firma } = await supabase
+    .from("app_settings").select("value").eq("key", "org_signature").maybeSingle();
 
   return (
     <div className="space-y-6">
@@ -16,6 +19,19 @@ export default async function ConfigPage() {
         <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Configuración</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Mi firma</CardTitle>
+          <CardDescription>
+            La firma que va en los contratos por El Camino con Naty. Se captura una vez y se
+            usa en todos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FirmaOrganizador yaCapturada={Boolean((firma?.value as any)?.data_url)} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
