@@ -10,7 +10,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        accent: "bg-camino-yellow text-camino-ink hover:bg-camino-deepYellow",
+        // La acción principal: ocre profundo con texto alba (4,52:1). El ocre plano con
+        // texto alba solo da 2,77:1, y con texto noche el hover a profundo caía a 2,68:1.
+        accent: "bg-ocre-profundo text-alba hover:bg-aviso-800",
         outline: "border border-input bg-background hover:bg-accent/10",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent/10",

@@ -21,7 +21,7 @@ export default async function CaminosListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Caminos</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-noche">Caminos</h1>
           <p className="text-sm text-muted-foreground">Salidas grupales con fecha</p>
           <div className="brand-yellow-bar mt-2" />
         </div>
@@ -40,7 +40,7 @@ export default async function CaminosListPage() {
         )}
         {departures.map((d) => (
           <Link key={d.departure_id} href={`/caminos/${d.departure_id}`}>
-            <Card className="hover:border-camino-yellow transition-colors h-full">
+            <Card className="hover:border-ocre transition-colors h-full">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>

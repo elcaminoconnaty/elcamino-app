@@ -149,7 +149,7 @@ export function NewPaymentDialog({
                   se convierte con ella y no con la TRM de hoy.
                 </p>
               ) : (
-                !trm && <p className="text-xs text-amber-700">No hay TRM cargada para {paidAt}. Ingresá una manual o cargá una en /trm.</p>
+                !trm && <p className="text-xs text-aviso-700">No hay TRM cargada para {paidAt}. Ingresá una manual o cargá una en /trm.</p>
               )}
             </div>
           )}

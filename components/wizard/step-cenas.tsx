@@ -48,10 +48,10 @@ export async function StepCenas({ departureId }: { departureId: string }) {
                 const isCena = r.meal_kind === "cena";
                 const isDes = r.meal_kind === "desayuno";
                 return (
-                  <div key={r.id} className="rounded-md border bg-cream-50/50 p-3 flex items-center justify-between gap-2 flex-wrap">
+                  <div key={r.id} className="rounded-md border bg-alba/50 p-3 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 min-w-0">
-                      {isCena && <UtensilsCrossed className="h-4 w-4 text-amber-700" />}
-                      {isDes && <Coffee className="h-4 w-4 text-amber-700" />}
+                      {isCena && <UtensilsCrossed className="h-4 w-4 text-aviso-700" />}
+                      {isDes && <Coffee className="h-4 w-4 text-aviso-700" />}
                       <span className="text-xs text-muted-foreground">{formatDate(r.check_in)}</span>
                       <span className="font-medium truncate">{r.providers?.name ?? "Restaurante"}</span>
                       <span className="text-xs text-muted-foreground">

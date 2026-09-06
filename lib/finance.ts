@@ -113,7 +113,7 @@ export function simulateScenario(f: DepartureFinance, nPagantes: number): Scenar
 export const SCALING_LABELS: Record<string, { label: string; color: string; description: string }> = {
   fijo_grupo: {
     label: "Fijo grupo",
-    color: "bg-blue-100 text-blue-900",
+    color: "bg-info-100 text-info-900",
     description: "Costo total del grupo, no escala con peregrinos (ej. alojamiento del grupo, bus completo)",
   },
   por_inscrito: {
@@ -123,12 +123,12 @@ export const SCALING_LABELS: Record<string, { label: string; color: string; desc
   },
   por_pagante: {
     label: "Por pagante",
-    color: "bg-green-100 text-green-900",
+    color: "bg-ok-100 text-ok-900",
     description: "Ítems por persona (credenciales, seguros, materiales). Los consumen todos los inscritos, incluido el equipo",
   },
   viatico_team: {
     label: "Viático equipo",
-    color: "bg-amber-100 text-amber-900",
+    color: "bg-aviso-100 text-aviso-900",
     description: "Costo personal de Naty + Nico para ir al camino (vuelos, hoteles Madrid, comidas)",
   },
 };

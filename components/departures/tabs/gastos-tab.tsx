@@ -27,7 +27,7 @@ export async function GastosTab({ departureId }: { departureId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md bg-cream-50 border px-4 py-2.5 text-xs text-muted-foreground">
+      <div className="rounded-md bg-alba border px-4 py-2.5 text-xs text-muted-foreground">
         Estos son gastos operativos sueltos del camino. Los <strong>pagos a proveedores</strong> y los <strong>abonos de peregrinos</strong> están en la pestaña <strong>Pagos</strong>.
       </div>
       <div className="flex justify-between items-center flex-wrap gap-2">

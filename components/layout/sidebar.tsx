@@ -31,11 +31,11 @@ export default function Sidebar({ role }: { role: string }) {
     <aside className="hidden md:flex flex-col w-60 shrink-0 border-r bg-background">
       <div className="px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-10 w-10 rounded-full border-2 border-camino-yellow bg-cream-100 flex items-center justify-center">
-            <span className="font-display text-camino-ink">EC</span>
+          <div className="h-10 w-10 rounded-full border-2 border-ocre bg-piedra-suave flex items-center justify-center">
+            <span className="font-display text-noche">EC</span>
           </div>
           <div>
-            <div className="text-sm font-display text-camino-ink leading-tight">El Camino</div>
+            <div className="text-sm font-display text-noche leading-tight">El Camino</div>
             <div className="text-xs text-muted-foreground leading-tight">con Naty</div>
           </div>
         </Link>
@@ -51,8 +51,8 @@ export default function Sidebar({ role }: { role: string }) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
                 active
-                  ? "bg-camino-yellow/20 text-camino-ink font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-cream-100"
+                  ? "bg-ocre/20 text-noche font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-piedra-suave"
               )}
             >
               <Icon className="h-4 w-4" />

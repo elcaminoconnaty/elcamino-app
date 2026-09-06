@@ -49,7 +49,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+      <div className="rounded-md bg-aviso-50 border border-aviso-200 px-4 py-3 text-sm text-aviso-900">
         <strong>Viáticos del equipo</strong> — gastos personales de Natalia y Nicolás (vuelos, hoteles Madrid antes/después, comidas, transporte). Se reparten entre los peregrinos pagantes al calcular la utilidad.
       </div>
 
@@ -60,16 +60,16 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
             <div className="font-display text-xl mt-1"><EurCop value={total} /></div>
           </CardContent>
         </Card>
-        <Card className="border-green-200">
+        <Card className="border-ok-200">
           <CardContent className="p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pagado</div>
-            <div className="font-display text-xl mt-1 text-green-700"><EurCop value={totalPagado} /></div>
+            <div className="font-display text-xl mt-1 text-ok-700"><EurCop value={totalPagado} /></div>
           </CardContent>
         </Card>
-        <Card className="border-amber-200">
+        <Card className="border-aviso-200">
           <CardContent className="p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Falta por pagar</div>
-            <div className="font-display text-xl mt-1 text-amber-800"><EurCop value={totalSaldo} /></div>
+            <div className="font-display text-xl mt-1 text-aviso-800"><EurCop value={totalSaldo} /></div>
           </CardContent>
         </Card>
         <Card>
@@ -121,7 +121,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
                     const unitCost = Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0);
                     const t = unitCost * Number(i.quantity);
                     return (
-                      <div key={i.id} className="flex items-start justify-between gap-2 py-1.5 text-sm hover:bg-cream-50 rounded-md px-2 -mx-2">
+                      <div key={i.id} className="flex items-start justify-between gap-2 py-1.5 text-sm hover:bg-alba rounded-md px-2 -mx-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span>{i.description}</span>
@@ -136,7 +136,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
                             const pay = payById.get(i.id);
                             if (!pay || pay.paid <= 0) return null;
                             return (
-                              <div className="text-xs text-green-700 mt-0.5">
+                              <div className="text-xs text-ok-700 mt-0.5">
                                 Pagado {formatEUR(pay.paid)}{pay.saldo > 0.01 ? ` · falta ${formatEUR(pay.saldo)}` : " · saldado"}
                               </div>
                             );

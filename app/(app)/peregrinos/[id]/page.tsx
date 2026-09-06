@@ -129,7 +129,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
         <Link href="/peregrinos" className="text-sm text-muted-foreground hover:underline">← Peregrinos</Link>
         <div className="flex items-start justify-between mt-2 gap-3 flex-wrap">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl text-camino-ink break-words">
+            <h1 className="font-display text-2xl sm:text-3xl text-noche break-words">
               {pilgrim.full_name}
               {pilgrim.deleted_at && <Badge variant="muted" className="ml-2 align-middle">Eliminado — abonos retenidos</Badge>}
             </h1>
@@ -185,7 +185,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
       <UpcomingPaymentsCard installments={upcomingInstallments} />
 
       <section>
-        <h2 className="font-display text-xl text-camino-ink mb-3">Inscripciones</h2>
+        <h2 className="font-display text-xl text-noche mb-3">Inscripciones</h2>
         <div className="grid gap-3 lg:grid-cols-2">
           {(registrations ?? []).map((r: any) => (
             <Card key={r.registration_id}>
@@ -206,7 +206,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                       <span>{Number(r.saldo_final_eur) < -0.5 ? "A favor del peregrino" : "Pendiente"}</span>
                       <span><EurCop value={Math.abs(Number(r.saldo_final_eur))} /></span>
                     </div>
-                    <div className="text-xs text-green-700 mt-1">
+                    <div className="text-xs text-ok-700 mt-1">
                       Tasa de cierre: {Number(r.settlement_trm).toLocaleString("es-CO")} COP/EUR ({formatDate(r.settlement_date)})
                     </div>
                   </>
@@ -261,7 +261,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
 
       {settlementByReg.size > 0 && (
         <section>
-          <h2 className="font-display text-xl text-camino-ink mb-3">Liquidación final</h2>
+          <h2 className="font-display text-xl text-noche mb-3">Liquidación final</h2>
           <div className="grid gap-3 lg:grid-cols-2">
             {(registrations ?? []).map((r: any) => {
               const s = settlementByReg.get(r.registration_id);
@@ -273,7 +273,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
 
       <section className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h2 className="font-display text-xl text-camino-ink mb-3">Pagos</h2>
+          <h2 className="font-display text-xl text-noche mb-3">Pagos</h2>
           <Card>
             <CardContent className="p-0">
               {pagos.length === 0 ? (
@@ -306,7 +306,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className={`text-right whitespace-nowrap ${esDevolucion ? "text-blue-800" : ""}`}>
+                          <TableCell className={`text-right whitespace-nowrap ${esDevolucion ? "text-info-800" : ""}`}>
                             {Number(p.amount).toLocaleString("es-CO")} {p.currency}
                           </TableCell>
                           <TableCell className="text-right">{p.trm_eur_cop ? Number(p.trm_eur_cop).toLocaleString("es-CO") : "—"}</TableCell>
@@ -317,7 +317,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                                 <>
                                   {formatEUR(p.amount_eur_cierre)}
                                   {Math.abs(difPago) >= 0.01 && (
-                                    <span className={`block text-[10px] ${difPago > 0 ? "text-green-700" : "text-red-700"}`}>
+                                    <span className={`block text-[10px] ${difPago > 0 ? "text-ok-700" : "text-error-700"}`}>
                                       {difPago > 0 ? "+" : "−"}{formatEUR(Math.abs(difPago))}
                                     </span>
                                   )}
@@ -334,7 +334,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                           <TableCell>
                             <div className="flex items-center justify-end gap-1">
                               <EditPaymentDialog payment={p} />
-                              <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-camino-deepYellow hover:underline text-xs flex items-center gap-1 px-2">
+                              <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-ocre-profundo hover:underline text-xs flex items-center gap-1 px-2">
                                 <Download className="h-3 w-3" /> PDF
                               </a>
                             </div>

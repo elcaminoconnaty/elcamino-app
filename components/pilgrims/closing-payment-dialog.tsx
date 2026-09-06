@@ -144,7 +144,7 @@ export function ClosingPaymentDialog({
         </DialogHeader>
 
         {/* Cómo se llegó a este monto */}
-        <div className="rounded-md border border-camino-yellow bg-cream-50 p-3 space-y-1 text-sm">
+        <div className="rounded-md border border-ocre bg-alba p-3 space-y-1 text-sm">
           <Fila label="Total del viaje" value={formatEUR(settlement.net_total_eur)} />
           <Fila
             label={conRecalculo ? "Abonos re-valorados a la tasa de cierre" : "Ya abonado"}
@@ -157,7 +157,7 @@ export function ClosingPaymentDialog({
           />
           <div className="flex justify-between pt-1.5 border-t font-medium">
             <span>{esDevolucion ? "A favor del peregrino" : "Falta por pagar"}</span>
-            <span className={esDevolucion ? "text-blue-800" : "text-amber-800"}>
+            <span className={esDevolucion ? "text-info-800" : "text-aviso-800"}>
               {formatEUR(eurSugerido)}
               {conRecalculo && <span className="text-xs text-muted-foreground ml-1">· {formatCOP(copSugerido)}</span>}
             </span>
@@ -202,13 +202,13 @@ export function ClosingPaymentDialog({
                   <strong>{formatEUR(eurEquivalente)}</strong>.
                 </p>
               ) : (
-                <p className="text-xs text-amber-700">No hay TRM cargada para {paidAt}. Escribila a mano o cargala en /trm.</p>
+                <p className="text-xs text-aviso-700">No hay TRM cargada para {paidAt}. Escribila a mano o cargala en /trm.</p>
               )}
             </div>
           )}
 
           {Math.abs(saldoRestante) > 0.5 && (
-            <p className={`text-xs rounded-md p-2 ${saldoRestante > 0 ? "bg-amber-50 text-amber-900" : "bg-blue-50 text-blue-900"}`}>
+            <p className={`text-xs rounded-md p-2 ${saldoRestante > 0 ? "bg-aviso-50 text-aviso-900" : "bg-info-50 text-info-900"}`}>
               {saldoRestante > 0
                 ? `Con este monto quedarían ${formatEUR(saldoRestante)} sin ${esDevolucion ? "devolver" : "cobrar"}.`
                 : `Este monto excede en ${formatEUR(-saldoRestante)} lo que ${esDevolucion ? "hay a favor" : "falta por cobrar"}.`}

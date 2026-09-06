@@ -138,14 +138,14 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
           </div>
 
           {goingToPaid && item.reservation_id && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <div className="rounded-md border border-aviso-200 bg-aviso-50 p-3 text-xs text-aviso-900">
               Esta partida está vinculada a una <strong>reserva</strong>. El pago real se registra en la pestaña
               Reservas (botón "Pago"), para no contarlo dos veces. Acá solo se cambia el estado.
             </div>
           )}
 
           {goingToPaid && !item.reservation_id && (
-            <div className="rounded-md border border-green-200 bg-green-50/60 p-3 space-y-3">
+            <div className="rounded-md border border-ok-200 bg-ok-50/60 p-3 space-y-3">
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                 <input type="checkbox" checked={registrarPago} onChange={(e) => setRegistrarPago(e.target.checked)} />
                 <CreditCard className="h-4 w-4" /> Registrar el pago real en gastos

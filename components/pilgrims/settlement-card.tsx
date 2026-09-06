@@ -41,12 +41,12 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
   }
 
   return (
-    <Card className={sinTasa ? "" : "border-camino-yellow border-2"}>
+    <Card className={sinTasa ? "" : "border-ocre border-2"}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div>
             <CardTitle className="text-base flex items-center gap-1.5">
-              <Scale className="h-4 w-4 text-camino-deepYellow" /> Liquidación final
+              <Scale className="h-4 w-4 text-ocre-profundo" /> Liquidación final
             </CardTitle>
             <CardDescription className="mt-0.5">
               {!conRecalculo ? (
@@ -102,7 +102,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
 
               <div className="flex justify-between pt-1.5 border-t font-medium text-base">
                 <span>{s.saldo_final_eur >= 0 ? "Falta por pagar" : "A favor del peregrino"}</span>
-                <span className={s.saldo_final_eur > 0.5 ? "text-amber-800" : s.saldo_final_eur < -0.5 ? "text-blue-800" : "text-green-700"}>
+                <span className={s.saldo_final_eur > 0.5 ? "text-aviso-800" : s.saldo_final_eur < -0.5 ? "text-info-800" : "text-ok-700"}>
                   {formatEUR(Math.abs(s.saldo_final_eur))}
                   {s.saldo_final_cop != null && (
                     <span className="text-xs text-muted-foreground ml-1.5 font-normal">
@@ -115,8 +115,8 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
 
             {/* Lo que hay que hacer */}
             {s.estado_liquidacion === "por_cobrar" && (
-              <div className="rounded-md bg-amber-50 p-3 space-y-2">
-                <p className="text-sm text-amber-900">
+              <div className="rounded-md bg-aviso-50 p-3 space-y-2">
+                <p className="text-sm text-aviso-900">
                   Último pago del viaje:{" "}
                   <strong>{s.por_cobrar_cop != null ? formatCOP(s.por_cobrar_cop) : formatEUR(s.por_cobrar_eur)}</strong>
                   {s.por_cobrar_cop != null && ` (${formatEUR(s.por_cobrar_eur)})`}.
@@ -125,8 +125,8 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
               </div>
             )}
             {s.estado_liquidacion === "por_devolver" && (
-              <div className="rounded-md bg-blue-50 p-3 space-y-2">
-                <p className="text-sm text-blue-900">
+              <div className="rounded-md bg-info-50 p-3 space-y-2">
+                <p className="text-sm text-info-900">
                   Pagó de más: hay que girarle{" "}
                   <strong>{s.por_devolver_cop != null ? formatCOP(s.por_devolver_cop) : formatEUR(s.por_devolver_eur)}</strong>
                   {s.por_devolver_cop != null && ` (${formatEUR(s.por_devolver_eur)})`}.
@@ -136,7 +136,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
               </div>
             )}
             {(s.estado_liquidacion === "liquidado" || s.estado_liquidacion === "devuelto") && (
-              <div className="rounded-md bg-green-50 p-3 text-sm text-green-900">
+              <div className="rounded-md bg-ok-50 p-3 text-sm text-ok-900">
                 {s.estado_liquidacion === "devuelto"
                   ? `Se le devolvieron ${s.devuelto_cop > 0 ? formatCOP(s.devuelto_cop) : formatEUR(s.devuelto_eur)} y el saldo quedó en cero.`
                   : conRecalculo
@@ -154,7 +154,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
                 </div>
                 <div className="flex justify-between">
                   <span>Diferencia en cambio {dif > 0 ? "(la absorbe el negocio)" : "(a favor del negocio)"}</span>
-                  <span className={dif > 0 ? "text-red-700" : "text-green-700"}>
+                  <span className={dif > 0 ? "text-error-700" : "text-ok-700"}>
                     {dif > 0 ? "−" : "+"}{formatEUR(Math.abs(dif))}
                   </span>
                 </div>

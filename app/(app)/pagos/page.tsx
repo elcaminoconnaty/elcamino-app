@@ -85,8 +85,8 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-wider text-camino-deepYellow font-medium">Pagos de peregrinos</p>
-        <h1 className="font-display text-3xl text-camino-ink">Quién debe y cuándo</h1>
+        <p className="text-xs uppercase tracking-wider text-ocre-profundo font-medium">Pagos de peregrinos</p>
+        <h1 className="font-display text-3xl text-noche">Quién debe y cuándo</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
 
@@ -108,8 +108,8 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
               className={cn(
                 "rounded-full border px-3 py-1 text-sm transition-colors",
                 filtro === f.key
-                  ? "bg-camino-yellow text-camino-ink border-camino-yellow font-medium"
-                  : "text-muted-foreground hover:bg-cream-100"
+                  ? "bg-ocre text-noche border-ocre font-medium"
+                  : "text-muted-foreground hover:bg-piedra-suave"
               )}
             >
               {f.label}
@@ -152,7 +152,7 @@ export default async function PagosPage({ searchParams }: { searchParams: { filt
                       <TableCell className="text-right whitespace-nowrap">{formatEUR(r.paid_eur)}</TableCell>
                       <TableCell className="text-right whitespace-nowrap font-medium">
                         {Number(r.saldo_final_eur) < -0.5 ? (
-                          <span className="text-blue-800" title="Pagó de más">
+                          <span className="text-info-800" title="Pagó de más">
                             −{formatEUR(Math.abs(Number(r.saldo_final_eur)))}
                           </span>
                         ) : (
@@ -182,7 +182,7 @@ function ProximaCuota({ cuota }: { cuota: UpcomingInstallment | null }) {
   return (
     <div>
       <div className="text-sm">{cuota.label ?? "Cuota"} · {formatEUR(cuota.amount_eur)}</div>
-      <div className={cn("text-xs", isOverdue ? "text-red-700 font-medium" : isSoon ? "text-amber-700" : "text-muted-foreground")}>
+      <div className={cn("text-xs", isOverdue ? "text-error-700 font-medium" : isSoon ? "text-aviso-700" : "text-muted-foreground")}>
         {formatDate(cuota.due_date)}{isOverdue ? ` · ${-days}d vencida` : days === 0 ? " · hoy" : ` · en ${days}d`}
       </div>
     </div>
@@ -191,7 +191,7 @@ function ProximaCuota({ cuota }: { cuota: UpcomingInstallment | null }) {
 
 function KPI({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: boolean }) {
   return (
-    <Card className={accent ? "border-camino-yellow border-2" : undefined}>
+    <Card className={accent ? "border-ocre border-2" : undefined}>
       <CardContent className="pt-6">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="text-2xl font-semibold mt-1 font-display">{value}</div>

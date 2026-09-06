@@ -81,15 +81,15 @@ export function ReservationPaymentScheduleEditor({
   const diff = totalCost - totalSchedule;
 
   return (
-    <div className="rounded-md border bg-cream-50 p-3 space-y-2">
+    <div className="rounded-md border bg-alba p-3 space-y-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <Label className="text-sm font-medium flex items-center gap-1.5">
           <Calendar className="h-4 w-4" /> Plan de pagos al proveedor
         </Label>
         <div className="flex gap-1 text-[11px]">
-          <button type="button" onClick={() => applyPreset("100")} className="px-2 py-1 rounded bg-white border hover:bg-cream-100">100%</button>
-          <button type="button" onClick={() => applyPreset("50_50")} className="px-2 py-1 rounded bg-white border hover:bg-cream-100">50/50</button>
-          <button type="button" onClick={() => applyPreset("30_70")} className="px-2 py-1 rounded bg-white border hover:bg-cream-100">30/70</button>
+          <button type="button" onClick={() => applyPreset("100")} className="px-2 py-1 rounded bg-white border hover:bg-piedra-suave">100%</button>
+          <button type="button" onClick={() => applyPreset("50_50")} className="px-2 py-1 rounded bg-white border hover:bg-piedra-suave">50/50</button>
+          <button type="button" onClick={() => applyPreset("30_70")} className="px-2 py-1 rounded bg-white border hover:bg-piedra-suave">30/70</button>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export function ReservationPaymentScheduleEditor({
       ) : (
         <div className="space-y-1.5">
           {items.map((it, i) => (
-            <div key={i} className={`grid grid-cols-12 gap-1.5 items-center rounded-md p-2 ${it.paid ? "bg-green-50 border border-green-200" : "bg-white border"}`}>
+            <div key={i} className={`grid grid-cols-12 gap-1.5 items-center rounded-md p-2 ${it.paid ? "bg-ok-50 border border-ok-200" : "bg-white border"}`}>
               <Input
                 type="date"
                 value={it.due_date}
@@ -125,11 +125,11 @@ export function ReservationPaymentScheduleEditor({
               />
               <div className="col-span-2 sm:col-span-1 flex justify-end gap-0.5">
                 {it.paid ? (
-                  <div className="h-7 w-7 flex items-center justify-center text-green-700" title={`Pagada ${it.paid_at ? formatDate(it.paid_at) : ""}`}>
+                  <div className="h-7 w-7 flex items-center justify-center text-ok-700" title={`Pagada ${it.paid_at ? formatDate(it.paid_at) : ""}`}>
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                 ) : (
-                  <button type="button" onClick={() => removeItem(i)} className="h-7 w-7 flex items-center justify-center text-red-700 hover:bg-red-50 rounded" title="Eliminar cuota">
+                  <button type="button" onClick={() => removeItem(i)} className="h-7 w-7 flex items-center justify-center text-error-700 hover:bg-error-50 rounded" title="Eliminar cuota">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -140,7 +140,7 @@ export function ReservationPaymentScheduleEditor({
       )}
 
       <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
-        <button type="button" onClick={() => addItem()} className="text-xs text-camino-deepYellow hover:underline flex items-center gap-1">
+        <button type="button" onClick={() => addItem()} className="text-xs text-ocre-profundo hover:underline flex items-center gap-1">
           <Plus className="h-3.5 w-3.5" /> Agregar cuota
         </button>
         <div className="text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ export function ReservationPaymentScheduleEditor({
           {totalCost > 0 && (
             <> de <strong>{formatEUR(totalCost)}</strong>
               {Math.abs(diff) > 0.01 && (
-                <span className={diff > 0 ? "text-amber-700 ml-1" : "text-red-700 ml-1"}>
+                <span className={diff > 0 ? "text-aviso-700 ml-1" : "text-error-700 ml-1"}>
                   ({diff > 0 ? "falta" : "sobra"} {formatEUR(Math.abs(diff))})
                 </span>
               )}

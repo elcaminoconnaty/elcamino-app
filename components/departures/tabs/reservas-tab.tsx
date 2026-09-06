@@ -91,7 +91,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                   const hasInsufficientCapacity = r.beds_count != null && inscritos > 0 && r.beds_count < inscritos;
                   const rooms = roomsByReservation.get(r.id) ?? [];
                   return (
-                    <TableRow key={r.id} className={r.is_critical ? "bg-amber-50" : undefined}>
+                    <TableRow key={r.id} className={r.is_critical ? "bg-aviso-50" : undefined}>
                       <TableCell>{r.day_number ?? "—"}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         <div>{formatDate(r.check_in)}</div>
@@ -100,8 +100,8 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                       <TableCell>
                         <div className="font-medium flex items-center gap-1.5">
                           {r.providers?.name ?? "—"}
-                          {rooms.some((rr) => rr.includes_breakfast) && <Coffee className="h-3.5 w-3.5 text-amber-700" />}
-                          {(rooms.some((rr) => rr.includes_dinner) || r.meal_kind === "cena") && <UtensilsCrossed className="h-3.5 w-3.5 text-amber-700" />}
+                          {rooms.some((rr) => rr.includes_breakfast) && <Coffee className="h-3.5 w-3.5 text-aviso-700" />}
+                          {(rooms.some((rr) => rr.includes_dinner) || r.meal_kind === "cena") && <UtensilsCrossed className="h-3.5 w-3.5 text-aviso-700" />}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {r.meal_kind ? `${r.meal_kind} · ${r.meal_persons ?? "?"}p × ${r.meal_price_per_person_eur ?? 0} €` : (r.location ?? r.type)}
@@ -119,7 +119,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                       <TableCell className="text-right">
                         <div>{r.beds_count ?? "—"}</div>
                         {hasInsufficientCapacity && (
-                          <div className="text-[10px] text-red-700 font-medium">⚠ &lt; {inscritos}</div>
+                          <div className="text-[10px] text-error-700 font-medium">⚠ &lt; {inscritos}</div>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -132,7 +132,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                           const fullyPaid = pay.paid_pct >= 100;
                           return (
                             <div>
-                              <div className={`text-xs font-medium ${fullyPaid ? "text-green-700" : "text-amber-700"}`}>{pay.paid_pct}%</div>
+                              <div className={`text-xs font-medium ${fullyPaid ? "text-ok-700" : "text-aviso-700"}`}>{pay.paid_pct}%</div>
                               <div className="text-[10px] text-muted-foreground">{formatEUR(pay.paid_eur)}</div>
                             </div>
                           );
@@ -141,7 +141,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                       <TableCell><Badge variant={r.status === "pagado" ? "success" : r.status === "reservado" ? "accent" : "muted"}>{r.status}</Badge></TableCell>
                       <TableCell className="max-w-[280px]">
                         <div className="flex items-start gap-1">
-                          {(r.is_critical || hasInsufficientCapacity) && <AlertTriangle className="h-3.5 w-3.5 text-amber-700 mt-0.5 shrink-0" />}
+                          {(r.is_critical || hasInsufficientCapacity) && <AlertTriangle className="h-3.5 w-3.5 text-aviso-700 mt-0.5 shrink-0" />}
                           <span className="text-xs text-muted-foreground line-clamp-2">{r.notes ?? "—"}</span>
                         </div>
                       </TableCell>

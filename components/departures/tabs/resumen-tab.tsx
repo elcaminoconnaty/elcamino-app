@@ -65,8 +65,8 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
 }
 
 function KPI({ label, value, hint, accent, positive, negative }: { label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: boolean; positive?: boolean; negative?: boolean }) {
-  const cls = negative ? "border-red-200 border-2" : positive ? "border-green-200 border-2" : accent ? "border-camino-yellow border-2" : "";
-  const textCls = negative ? "text-red-700" : positive ? "text-green-700" : "";
+  const cls = negative ? "border-error-200 border-2" : positive ? "border-ok-200 border-2" : accent ? "border-ocre border-2" : "";
+  const textCls = negative ? "text-error-700" : positive ? "text-ok-700" : "";
   return (
     <Card className={cls}>
       <CardContent className="pt-5 pb-4">

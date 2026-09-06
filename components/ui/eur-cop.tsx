@@ -66,7 +66,7 @@ export function TrmSelector({ small }: { small?: boolean }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${isOverride ? "bg-amber-100 text-amber-900" : "bg-cream-100 text-muted-foreground hover:bg-cream-200"} ${small ? "" : "h-7"}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${isOverride ? "bg-aviso-100 text-aviso-900" : "bg-piedra-suave text-muted-foreground hover:bg-piedra"} ${small ? "" : "h-7"}`}
       title={isOverride ? "TRM editada — toca para ajustar o reset" : "TRM actual — toca para simular otra"}
     >
       <span>1 € = {trm > 0 ? trm.toLocaleString("es-CO") : "—"} COP</span>

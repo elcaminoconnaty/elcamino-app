@@ -103,10 +103,10 @@ export async function StepViaticos({ departureId, phase }: { departureId: string
                 0
               );
               return (
-                <div key={d.day_offset} className="rounded-md border bg-cream-50/40 p-3 space-y-2">
+                <div key={d.day_offset} className="rounded-md border bg-alba/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] bg-cream-100 px-1.5 py-0.5 rounded">
+                      <span className="font-mono text-[10px] bg-piedra-suave px-1.5 py-0.5 rounded">
                         D{d.day_offset >= 0 ? `+${d.day_offset}` : d.day_offset}
                       </span>
                       <span className="text-xs text-muted-foreground">{formatDate(d.date)}</span>
@@ -121,7 +121,7 @@ export async function StepViaticos({ departureId, phase }: { departureId: string
                       {dayItems.map((i: any) => {
                         const total = Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0) * Number(i.quantity);
                         return (
-                          <div key={i.id} className="flex items-center justify-between text-sm py-1 hover:bg-cream-50 rounded-md px-2 -mx-2">
+                          <div key={i.id} className="flex items-center justify-between text-sm py-1 hover:bg-alba rounded-md px-2 -mx-2">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="truncate">{i.description}</span>
@@ -148,7 +148,7 @@ export async function StepViaticos({ departureId, phase }: { departureId: string
 
             {/* Items sin fecha — siempre visibles */}
             {(items ?? []).filter((i: any) => !i.item_date).length > 0 && (
-              <div className="rounded-md border-2 border-dashed bg-amber-50/30 p-3 space-y-2">
+              <div className="rounded-md border-2 border-dashed bg-aviso-50/30 p-3 space-y-2">
                 <div className="text-sm font-medium">Sin fecha asignada</div>
                 {(items ?? []).filter((i: any) => !i.item_date).map((i: any) => {
                   const total = Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0) * Number(i.quantity);

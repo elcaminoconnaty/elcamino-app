@@ -37,8 +37,8 @@ export function PaymentSummary({ payments, totalEur }: { payments: any[]; totalE
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Avance</span>
             <span className="text-sm font-medium">{pct}%</span>
           </div>
-          <div className="h-2.5 bg-cream-100 rounded-full overflow-hidden">
-            <div className="h-full bg-camino-yellow" style={{ width: `${Math.min(100, pct)}%` }} />
+          <div className="h-2.5 bg-piedra-suave rounded-full overflow-hidden">
+            <div className="h-full bg-ocre" style={{ width: `${Math.min(100, pct)}%` }} />
           </div>
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>{formatEUR(totalEurEquivalent)}</span>
@@ -67,7 +67,7 @@ export function PaymentSummary({ payments, totalEur }: { payments: any[]; totalE
           )}
           <div className="flex justify-between font-medium pt-1.5 border-t mt-1.5">
             <span>Pendiente EUR</span>
-            <span className={totalEur - totalEurEquivalent > 0 ? "text-amber-700" : "text-green-700"}>
+            <span className={totalEur - totalEurEquivalent > 0 ? "text-aviso-700" : "text-ok-700"}>
               {formatEUR(totalEur - totalEurEquivalent)}
             </span>
           </div>

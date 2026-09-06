@@ -155,7 +155,7 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
           </CardContent>
         </Card>
 
-        <Card className="border-camino-yellow border-2">
+        <Card className="border-ocre border-2">
           <CardHeader>
             <CardTitle className="text-base">Costo TOTAL prorrateado por peregrino</CardTitle>
             <CardDescription>
@@ -181,14 +181,14 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
               <span><EurCop value={totalFijoCamino} /></span>
             </div>
             {totalDesperdicio > 0 && (
-              <div className="flex justify-between text-xs text-red-700 pl-3 mt-1">
+              <div className="flex justify-between text-xs text-error-700 pl-3 mt-1">
                 <span>⚠ De ese total, desperdicio en camas vacías</span>
                 <span><EurCop value={totalDesperdicio} /></span>
               </div>
             )}
             <div className="border-t pt-2 mt-2 flex justify-between font-semibold text-base">
               <span>÷ {pagantes || "?"} pagantes =</span>
-              <span className="text-camino-deepYellow"><EurCop value={costoPorPaganteProrrateado} /></span>
+              <span className="text-ocre-profundo"><EurCop value={costoPorPaganteProrrateado} /></span>
             </div>
             {pagantes > 0 && (
               <div className="text-xs text-muted-foreground pt-1">
@@ -200,8 +200,8 @@ export async function PerPilgrimCostCard({ departureId }: { departureId: string 
       </div>
 
       {totalDesperdicio > 0 && (
-        <Card className="border-amber-300 bg-amber-50">
-          <CardContent className="py-3 px-4 text-sm text-amber-900">
+        <Card className="border-aviso-300 bg-aviso-50">
+          <CardContent className="py-3 px-4 text-sm text-aviso-900">
             <strong>⚠ Desperdicio en alojamientos / cenas:</strong> {formatEUR(totalDesperdicio)} —
             tenés más plazas reservadas que inscritos ({pagantes + team}). Si no liberás esas plazas, la agencia las paga igual.
             Editá las reservas y bajá el número de habitaciones, o agregá más peregrinos.

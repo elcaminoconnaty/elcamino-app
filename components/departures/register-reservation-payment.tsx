@@ -101,28 +101,28 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
         </DialogHeader>
 
         <div className="grid gap-3 grid-cols-3 text-sm">
-          <div className="rounded-md border bg-cream-50 p-3">
+          <div className="rounded-md border bg-alba p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Costo</div>
             <div className="font-semibold">{formatEUR(cost)}</div>
           </div>
-          <div className="rounded-md border bg-green-50 border-green-200 p-3">
-            <div className="text-[10px] uppercase tracking-wider text-green-900">Pagado ({pct}%)</div>
-            <div className="font-semibold text-green-900">{formatEUR(paid)}</div>
+          <div className="rounded-md border bg-ok-50 border-ok-200 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-ok-900">Pagado ({pct}%)</div>
+            <div className="font-semibold text-ok-900">{formatEUR(paid)}</div>
           </div>
-          <div className={`rounded-md border p-3 ${saldo > 0 ? "bg-amber-50 border-amber-200" : "bg-cream-50"}`}>
+          <div className={`rounded-md border p-3 ${saldo > 0 ? "bg-aviso-50 border-aviso-200" : "bg-alba"}`}>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo</div>
             <div className="font-semibold">{formatEUR(saldo)}</div>
           </div>
         </div>
 
-        <div className="h-2 bg-cream-100 rounded-full overflow-hidden">
-          <div className="h-full bg-green-500" style={{ width: `${pct}%` }} />
+        <div className="h-2 bg-piedra-suave rounded-full overflow-hidden">
+          <div className="h-full bg-ok-500" style={{ width: `${pct}%` }} />
         </div>
 
         {payments && payments.length > 0 && (
           <div className="border rounded-md max-h-48 overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="bg-cream-50 text-muted-foreground">
+              <thead className="bg-alba text-muted-foreground">
                 <tr><th className="text-left p-2">Fecha</th><th className="text-left p-2">Cuenta</th><th className="text-right p-2">Monto</th><th className="text-right p-2">EUR</th><th></th></tr>
               </thead>
               <tbody>
@@ -132,7 +132,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
                     <td className="p-2 text-muted-foreground">{p.account ?? "—"}</td>
                     <td className="p-2 text-right">{Number(p.amount).toLocaleString("es-CO")} {p.currency}</td>
                     <td className="p-2 text-right">{formatEUR(p.amount_eur)}</td>
-                    <td className="p-2"><button type="button" onClick={() => onDelete(p.id)} className="text-red-700 hover:text-red-900"><Trash2 className="h-3 w-3" /></button></td>
+                    <td className="p-2"><button type="button" onClick={() => onDelete(p.id)} className="text-error-700 hover:text-error-900"><Trash2 className="h-3 w-3" /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -141,11 +141,11 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
         )}
 
         {schedule && schedule.length > 0 && (
-          <div className="border rounded-md p-3 bg-cream-50 space-y-1.5">
+          <div className="border rounded-md p-3 bg-alba space-y-1.5">
             <div className="text-xs font-medium flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Plan de pagos</div>
             <div className="space-y-1">
               {schedule.map((s) => (
-                <div key={s.id} className={`flex items-center justify-between text-xs gap-2 p-1.5 rounded ${s.paid ? "bg-green-50 text-green-900" : ""}`}>
+                <div key={s.id} className={`flex items-center justify-between text-xs gap-2 p-1.5 rounded ${s.paid ? "bg-ok-50 text-ok-900" : ""}`}>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium">{formatDate(s.due_date)}</span>
                     {s.label && <span className="text-muted-foreground ml-1.5">· {s.label}</span>}
@@ -153,12 +153,12 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
                   <div className="font-semibold whitespace-nowrap">{formatEUR(s.amount_eur)}</div>
                   <div className="w-20 text-right">
                     {s.paid ? (
-                      <span className="text-green-700 text-[10px]">✓ pagada</span>
+                      <span className="text-ok-700 text-[10px]">✓ pagada</span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => { setSelectedScheduleId(s.id); setAmount(String(s.amount_eur)); }}
-                        className="text-camino-deepYellow hover:underline text-[10px]"
+                        className="text-ocre-profundo hover:underline text-[10px]"
                       >
                         usar
                       </button>
@@ -168,7 +168,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
               ))}
             </div>
             {selectedScheduleId && (
-              <div className="text-[10px] text-amber-700 mt-1">→ El pago quedará asociado a la cuota seleccionada y se marcará pagada.</div>
+              <div className="text-[10px] text-aviso-700 mt-1">→ El pago quedará asociado a la cuota seleccionada y se marcará pagada.</div>
             )}
           </div>
         )}

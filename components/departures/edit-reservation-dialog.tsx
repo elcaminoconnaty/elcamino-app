@@ -285,7 +285,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
           </div>
 
           {isMeal && (
-            <div className="rounded-md border bg-amber-50/40 p-3 space-y-3">
+            <div className="rounded-md border bg-aviso-50/40 p-3 space-y-3">
               <Label className="text-sm font-medium">Detalle de la comida</Label>
               <div className="grid gap-2 sm:grid-cols-3">
                 <div><Label className="text-xs">Tipo</Label>
@@ -301,12 +301,12 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
           )}
 
           {isTransport && (
-            <div className="rounded-md border bg-blue-50/40 p-3 space-y-3">
+            <div className="rounded-md border bg-info-50/40 p-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-sm font-medium">Detalle del transporte</Label>
                 <div className="flex gap-1 text-xs">
-                  <button type="button" onClick={() => setPricingMode("total")} className={`px-3 py-1 rounded-md ${pricingMode === "total" ? "bg-camino-yellow text-camino-ink font-medium" : "bg-cream-100 text-muted-foreground"}`}>Total fijo (privado)</button>
-                  <button type="button" onClick={() => setPricingMode("per_person")} className={`px-3 py-1 rounded-md ${pricingMode === "per_person" ? "bg-camino-yellow text-camino-ink font-medium" : "bg-cream-100 text-muted-foreground"}`}>Por persona (tren)</button>
+                  <button type="button" onClick={() => setPricingMode("total")} className={`px-3 py-1 rounded-md ${pricingMode === "total" ? "bg-ocre text-noche font-medium" : "bg-piedra-suave text-muted-foreground"}`}>Total fijo (privado)</button>
+                  <button type="button" onClick={() => setPricingMode("per_person")} className={`px-3 py-1 rounded-md ${pricingMode === "per_person" ? "bg-ocre text-noche font-medium" : "bg-piedra-suave text-muted-foreground"}`}>Por persona (tren)</button>
                 </div>
               </div>
               {pricingMode === "total" ? (
@@ -332,7 +332,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
           )}
 
           {isLodging && (
-            <div className="rounded-md border bg-cream-50 p-3 space-y-2">
+            <div className="rounded-md border bg-alba p-3 space-y-2">
               <Label className="text-sm font-medium">🏛 Tasa turística (opcional)</Label>
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
@@ -381,13 +381,13 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
           </div>
 
           {goingToPaid && paidTotal !== null && saldoReserva <= 0.01 && (
-            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-xs text-green-900">
+            <div className="rounded-md border border-ok-200 bg-ok-50 p-3 text-xs text-ok-900">
               Esta reserva ya tiene el 100% pagado registrado ({formatEUR(paidTotal)}). Solo se actualiza el estado.
             </div>
           )}
 
           {mostrarBloquePago && (
-            <div className="rounded-md border border-green-200 bg-green-50/60 p-3 space-y-3">
+            <div className="rounded-md border border-ok-200 bg-ok-50/60 p-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                   <input type="checkbox" checked={registrarPago} onChange={(e) => setRegistrarPago(e.target.checked)} />
@@ -428,9 +428,9 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
               )}
             </div>
           )}
-          <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-md bg-amber-50 border border-amber-200">
+          <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-md bg-aviso-50 border border-aviso-200">
             <input type="checkbox" checked={isCritical} onChange={(e) => setIsCritical(e.target.checked)} />
-            <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <AlertTriangle className="h-4 w-4 text-aviso-700" />
             <span>Marcar como crítica</span>
           </label>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" defaultValue={reservation.notes ?? ""} rows={3} /></div>

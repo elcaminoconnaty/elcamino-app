@@ -7,19 +7,19 @@ export function BreakEvenCard({ finance }: { finance: DepartureFinance }) {
   const missing = be.n != null ? Math.max(0, be.n - finance.pagantes_count) : null;
 
   return (
-    <Card className={reached ? "border-green-300 border-2" : be.reachable ? "border-camino-yellow border-2" : "border-red-200 border-2"}>
+    <Card className={reached ? "border-ok-300 border-2" : be.reachable ? "border-ocre border-2" : "border-error-200 border-2"}>
       <CardContent className="p-4 space-y-1">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Punto de equilibrio</div>
         {!be.reachable ? (
           <>
-            <div className="text-lg font-display font-semibold text-red-700">No alcanza</div>
+            <div className="text-lg font-display font-semibold text-error-700">No alcanza</div>
             <div className="text-xs text-muted-foreground">
               Aunque se llene la capacidad, los costos fijos no se cubren. Revisá el precio o los viáticos.
             </div>
           </>
         ) : reached ? (
           <>
-            <div className="text-lg font-display font-semibold text-green-700">✓ Alcanzado con {be.n} pagantes</div>
+            <div className="text-lg font-display font-semibold text-ok-700">✓ Alcanzado con {be.n} pagantes</div>
             <div className="text-xs text-muted-foreground">Cada peregrino adicional suma a la utilidad.</div>
           </>
         ) : (

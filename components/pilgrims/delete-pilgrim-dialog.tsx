@@ -47,7 +47,7 @@ export function DeletePilgrimDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMode(""); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-red-700 border-red-200 hover:bg-red-50">
+        <Button variant="outline" size="sm" className="text-error-700 border-error-200 hover:bg-error-50">
           <Trash2 className="h-4 w-4" /> Eliminar
         </Button>
       </DialogTrigger>
@@ -63,7 +63,7 @@ export function DeletePilgrimDialog({
 
         {tieneAbonos && (
           <div className="space-y-2">
-            <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer text-sm has-[:checked]:border-camino-yellow has-[:checked]:bg-cream-100">
+            <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer text-sm has-[:checked]:border-ocre has-[:checked]:bg-piedra-suave">
               <input
                 type="radio"
                 name="abonos"
@@ -78,7 +78,7 @@ export function DeletePilgrimDialog({
                 </span>
               </span>
             </label>
-            <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer text-sm has-[:checked]:border-camino-yellow has-[:checked]:bg-cream-100">
+            <label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer text-sm has-[:checked]:border-ocre has-[:checked]:bg-piedra-suave">
               <input
                 type="radio"
                 name="abonos"

@@ -39,7 +39,7 @@ export function Global66Fields({
   const diffPct = rate && market > 0 ? ((rate - market) / market) * 100 : null;
 
   return (
-    <div className="rounded-md border border-camino-yellow bg-cream-50 p-3 space-y-2">
+    <div className="rounded-md border border-ocre bg-alba p-3 space-y-2">
       <div className="text-xs font-medium flex items-center gap-1.5">
         {GLOBAL66} · cambio COP <ArrowRight className="h-3 w-3" /> EUR
       </div>
@@ -76,7 +76,7 @@ export function Global66Fields({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-aviso-700">
           Cargá el monto en COP y los euros recibidos para calcular la tasa de {GLOBAL66}.
         </p>
       )}

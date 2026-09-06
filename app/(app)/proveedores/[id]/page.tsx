@@ -28,7 +28,7 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
     <div className="space-y-6">
       <div>
         <Link href="/proveedores" className="text-sm text-muted-foreground hover:underline">← Proveedores</Link>
-        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink mt-2 break-words">{provider.name}</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-noche mt-2 break-words">{provider.name}</h1>
         <div className="text-sm text-muted-foreground mt-1">
           {PROVIDER_TYPES.find((t) => t.value === provider.type)?.label} · {[provider.city, provider.country].filter(Boolean).join(", ")}
         </div>

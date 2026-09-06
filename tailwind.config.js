@@ -14,16 +14,29 @@ module.exports = {
     },
     extend: {
       colors: {
-        cream: {
-          50: "#fdfaf3",
-          100: "#faf3e3",
-          200: "#f3e6c3",
-        },
-        camino: {
-          yellow: "#f5c518",
-          deepYellow: "#d9a800",
-          ink: "#1a1a1a",
-        },
+        /* ── La paleta del brandbook (edición 2027) ──────────────────────────
+           Es la misma que `lib/brand.ts`, que es la que usan los PDFs y los
+           correos. Si cambia una, cambia la otra: son la misma marca.       */
+        alba: "#F5EEE3",        // fondo principal. Nunca blanco puro.
+        piedra: "#E8D9C0",      // bloques y secciones alternas
+        "piedra-suave": "#EFE5D6",
+        ocre: "#C4822A",        // la flecha que guía. SOLO gráfico: filetes, iconos, fondos.
+        "ocre-profundo": "#946220", // el ocre cuando lleva texto sobre claro (4,52:1)
+        "ocre-claro": "#E9C697",    // el ocre cuando lleva texto sobre atlántico o noche
+        castano: "#8B6A3E",     // texto secundario sobre claro, de 16px en adelante
+        musgo: "#4A5E47",
+        niebla: "#8B9E8F",      // filetes e inactivos. Como texto, solo sobre noche.
+        atlantico: "#3D5A6E",   // cabeceras, pies y texto principal
+        noche: "#1A2E3D",       // fondo profundo y dato duro
+
+        /* ── Estado ──────────────────────────────────────────────────────────
+           Derivados de la paleta, no de Tailwind: un rojo de framework en
+           medio de esta papelería se ve prestado. Todos los 700 pasan AA
+           sobre su propio 50 y sobre alba.                                   */
+        aviso: { "50": "#FAF2E8", "100": "#F4E4D0", "200": "#E7CEAC", "300": "#D9B17D", "500": "#C3822A", "700": "#956320", "800": "#784F1A", "900": "#5E3F14" },
+        ok: { "50": "#F0F3EF", "100": "#DFE5DE", "200": "#C5CFC3", "300": "#A4B4A1", "500": "#4A5E47", "700": "#3D4D3A", "800": "#313E2F", "900": "#263024" },
+        error: { "50": "#F6EBEB", "100": "#EDD7D7", "200": "#DBB8B8", "300": "#C88E8E", "500": "#9A3C3C", "700": "#9A3C3C", "800": "#7C3131", "900": "#5F2525" },
+        info: { "50": "#EDF2F5", "100": "#DAE3E9", "200": "#BDCCD6", "300": "#98AEBE", "500": "#3E5B70", "700": "#3E5B70", "800": "#2D4352", "900": "#202F39" },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -64,8 +77,10 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        /* Las tres voces del brandbook: lo cotidiano, lo poético y lo sagrado. */
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],       // DM Sans: cuerpo y UI
+        display: ["var(--font-display)", "Georgia", "serif"],        // Cormorant: titulares y citas
+        seal: ["var(--font-seal)", "Georgia", "serif"],              // Cinzel: solo sello, mayúsculas espaciadas
       },
       keyframes: {
         "accordion-down": {

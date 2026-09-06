@@ -248,12 +248,12 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
   };
 
   return (
-    <Card className="border-amber-300 border-2 bg-amber-50">
+    <Card className="border-aviso-300 border-2 bg-aviso-50">
       <CardContent className="py-3 px-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-aviso-700 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-amber-900 mb-2">
+            <div className="font-medium text-aviso-900 mb-2">
               {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} — revisá antes de avanzar
             </div>
             <div className="space-y-2">
@@ -261,12 +261,12 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
                 const items = grouped.get(kind)!;
                 return (
                   <div key={kind}>
-                    <div className="text-xs font-semibold text-amber-900 uppercase tracking-wider">{KIND_LABEL[kind] ?? kind} ({items.length})</div>
-                    <ul className="text-sm text-amber-900 space-y-0.5 mt-0.5">
+                    <div className="text-xs font-semibold text-aviso-900 uppercase tracking-wider">{KIND_LABEL[kind] ?? kind} ({items.length})</div>
+                    <ul className="text-sm text-aviso-900 space-y-0.5 mt-0.5">
                       {items.map((a, i) => (
                         <li key={i}>
                           ⚠ {a.title}
-                          {a.detail && <span className="text-amber-800 text-xs ml-1">— {a.detail}</span>}
+                          {a.detail && <span className="text-aviso-800 text-xs ml-1">— {a.detail}</span>}
                         </li>
                       ))}
                     </ul>

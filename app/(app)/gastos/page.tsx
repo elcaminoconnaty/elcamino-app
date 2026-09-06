@@ -114,7 +114,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Gastos y movimientos</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-noche">Gastos y movimientos</h1>
           <p className="text-sm text-muted-foreground">{movements?.length ?? 0} movimientos · gastos + pagos a proveedores</p>
           <div className="brand-yellow-bar mt-2" />
         </div>
@@ -131,12 +131,12 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
       </div>
 
       <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-5">
-        <Card className="border-green-200 border-2">
+        <Card className="border-ok-200 border-2">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-green-900">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-ok-900">
               <TrendingUp className="h-3 w-3" /> Ingresado
             </div>
-            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-green-900"><EurCop value={collected} /></div>
+            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-ok-900"><EurCop value={collected} /></div>
             <div className="text-[11px] sm:text-xs text-muted-foreground">cobros peregrinos</div>
           </CardContent>
         </Card>
@@ -149,25 +149,25 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
             <div className="text-[11px] sm:text-xs text-muted-foreground">+ <EurCop value={opsExpenses} /> operativos</div>
           </CardContent>
         </Card>
-        <Card className="border-amber-300 border-2">
+        <Card className="border-aviso-300 border-2">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-900">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-aviso-900">
               <AlertCircle className="h-3 w-3" /> Pendiente por pagar
             </div>
-            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-amber-900"><EurCop value={totalPorPagar} /></div>
+            <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-aviso-900"><EurCop value={totalPorPagar} /></div>
             <div className="text-[11px] sm:text-xs text-muted-foreground">reservas + viáticos + tiquetes del presupuesto</div>
           </CardContent>
         </Card>
-        <Card className={realizedProfit >= 0 ? "border-green-200 border-2" : "border-red-200 border-2"}>
+        <Card className={realizedProfit >= 0 ? "border-ok-200 border-2" : "border-error-200 border-2"}>
           <CardContent className="p-3 sm:p-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilidad realizada</div>
-            <div className={`text-lg sm:text-2xl font-display font-semibold mt-1 ${realizedProfit >= 0 ? "text-green-700" : "text-red-700"}`}><EurCop value={realizedProfit} /></div>
+            <div className={`text-lg sm:text-2xl font-display font-semibold mt-1 ${realizedProfit >= 0 ? "text-ok-700" : "text-error-700"}`}><EurCop value={realizedProfit} /></div>
             <div className="text-[11px] sm:text-xs text-muted-foreground">ingreso − proveedores − operativo</div>
           </CardContent>
         </Card>
-        <Card className="border-camino-yellow border-2 col-span-2 lg:col-span-1">
+        <Card className="border-ocre border-2 col-span-2 lg:col-span-1">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-camino-ink">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-noche">
               <Wallet className="h-3 w-3" /> Caja disponible
             </div>
             <div className="text-lg sm:text-2xl font-display font-semibold mt-1"><EurCop value={cashAvailable} /></div>
@@ -181,11 +181,11 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
         breakdown={(accountsByCurrency as AccountCurrencyBreakdown[]) ?? []}
       />
 
-      <Card className="border-amber-300 border-2">
+      <Card className="border-aviso-300 border-2">
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
-            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-amber-700" /> Pendiente por pagar a proveedores</span>
-            <span className="text-sm text-muted-foreground">Total: <strong className="text-amber-900"><EurCop value={totalPending} /></strong></span>
+            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-aviso-700" /> Pendiente por pagar a proveedores</span>
+            <span className="text-sm text-muted-foreground">Total: <strong className="text-aviso-900"><EurCop value={totalPending} /></strong></span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -213,15 +213,15 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                   const overdue = days !== null && days < 0;
                   const soon = days !== null && days >= 0 && days <= 14;
                   return (
-                    <TableRow key={p.reservation_id} className={overdue ? "bg-red-50" : soon ? "bg-amber-50" : undefined}>
+                    <TableRow key={p.reservation_id} className={overdue ? "bg-error-50" : soon ? "bg-aviso-50" : undefined}>
                       <TableCell className="whitespace-nowrap text-sm">
                         {p.next_due_date ? (
                           <>
-                            <div className={`font-medium ${overdue ? "text-red-700" : soon ? "text-amber-700" : ""}`}>{formatDate(p.next_due_date)}</div>
+                            <div className={`font-medium ${overdue ? "text-error-700" : soon ? "text-aviso-700" : ""}`}>{formatDate(p.next_due_date)}</div>
                             <div className="text-[10px] text-muted-foreground">
                               {p.next_due_label ? `${p.next_due_label} · ` : ""}<EurCop value={p.next_due_amount_eur} hideZeroCop />
                               {days !== null && (
-                                <span className={`ml-1 ${overdue ? "text-red-700" : ""}`}>
+                                <span className={`ml-1 ${overdue ? "text-error-700" : ""}`}>
                                   ({overdue ? `${Math.abs(days)}d vencido` : days === 0 ? "hoy" : `en ${days}d`})
                                 </span>
                               )}
@@ -242,14 +242,14 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                       <TableCell className="text-right text-sm">
                         {Number(p.paid_eur) > 0 ? (
                           <>
-                            <div className="text-green-700"><EurCop value={p.paid_eur} hideZeroCop /></div>
+                            <div className="text-ok-700"><EurCop value={p.paid_eur} hideZeroCop /></div>
                             <div className="text-[10px] text-muted-foreground">{Number(p.paid_pct).toFixed(1)}%</div>
                           </>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-amber-900"><EurCop value={p.saldo_eur} /></TableCell>
+                      <TableCell className="text-right font-semibold text-aviso-900"><EurCop value={p.saldo_eur} /></TableCell>
                     </TableRow>
                   );
                 })}
@@ -259,11 +259,11 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
         </CardContent>
       </Card>
 
-      <Card className="border-amber-200 border">
+      <Card className="border-aviso-200 border">
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
-            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-amber-700" /> Pendiente del presupuesto (viáticos, tiquetes, materiales…)</span>
-            <span className="text-sm text-muted-foreground">Total: <strong className="text-amber-900"><EurCop value={budgetPendingTotal} /></strong></span>
+            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-aviso-700" /> Pendiente del presupuesto (viáticos, tiquetes, materiales…)</span>
+            <span className="text-sm text-muted-foreground">Total: <strong className="text-aviso-900"><EurCop value={budgetPendingTotal} /></strong></span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -292,8 +292,8 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                     <TableCell className="text-sm">{depByid.get(b.departure_id) ?? "—"}</TableCell>
                     <TableCell>{b.scaling === "viatico_team" ? <Badge variant="warning">Viático equipo</Badge> : <Badge variant="muted">{b.scaling}</Badge>}</TableCell>
                     <TableCell className="text-right text-sm"><EurCop value={b.line_total_eur} /></TableCell>
-                    <TableCell className="text-right text-sm">{Number(b.paid_eur) > 0 ? <span className="text-green-700"><EurCop value={b.paid_eur} hideZeroCop /></span> : <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="text-right font-semibold text-amber-900"><EurCop value={b.saldo_eur} /></TableCell>
+                    <TableCell className="text-right text-sm">{Number(b.paid_eur) > 0 ? <span className="text-ok-700"><EurCop value={b.paid_eur} hideZeroCop /></span> : <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-right font-semibold text-aviso-900"><EurCop value={b.saldo_eur} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -334,7 +334,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
               </TableHeader>
               <TableBody>
                 {movements.map((m: any) => (
-                  <TableRow key={m.row_id} className={m.source === "provider_payment" ? "bg-cream-50/50" : undefined}>
+                  <TableRow key={m.row_id} className={m.source === "provider_payment" ? "bg-alba/50" : undefined}>
                     <TableCell className="whitespace-nowrap">{formatDate(m.movement_date)}</TableCell>
                     <TableCell><Badge variant={KIND_BADGE[m.kind] ?? "muted"}>{KIND_LABEL[m.kind] ?? m.kind}</Badge></TableCell>
                     <TableCell>{m.category ?? "—"}</TableCell>
@@ -360,7 +360,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                           notes: m.notes,
                         }} departures={departures ?? []} />
                       ) : m.provider_id ? (
-                        <Link href={`/proveedores/${m.provider_id}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-camino-ink hover:underline">
+                        <Link href={`/proveedores/${m.provider_id}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-noche hover:underline">
                           <ExternalLink className="h-3 w-3" /> ver
                         </Link>
                       ) : null}

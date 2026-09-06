@@ -34,7 +34,7 @@ export function Toaster() {
           className={cn(
             "group pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border p-4 shadow-lg",
             m.variant === "destructive" && "bg-destructive text-destructive-foreground border-destructive",
-            m.variant === "success" && "bg-green-50 border-green-200 text-green-900",
+            m.variant === "success" && "bg-ok-50 border-ok-200 text-ok-900",
             (!m.variant || m.variant === "default") && "bg-background"
           )}
         >

@@ -79,7 +79,7 @@ export default async function WizardPage({
           <Link href={`/caminos/${departure.id}`} className="text-sm text-muted-foreground hover:underline">← Volver al camino</Link>
           <div className="flex items-start justify-between mt-2 flex-wrap gap-2">
             <div>
-              <h1 className="font-display text-2xl md:text-3xl text-camino-ink">Wizard · {departure.name}</h1>
+              <h1 className="font-display text-2xl md:text-3xl text-noche">Wizard · {departure.name}</h1>
               <p className="text-sm text-muted-foreground mt-1">Armá todo el camino paso a paso</p>
               <div className="brand-yellow-bar mt-2" />
             </div>

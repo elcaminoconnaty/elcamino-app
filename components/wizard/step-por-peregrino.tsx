@@ -85,7 +85,7 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
             {items.map((i: any) => {
               const cost = Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0);
               return (
-                <div key={i.id} className="flex items-center justify-between text-sm py-2 px-2 hover:bg-cream-50 rounded-md">
+                <div key={i.id} className="flex items-center justify-between text-sm py-2 px-2 hover:bg-alba rounded-md">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span>{i.description}</span>

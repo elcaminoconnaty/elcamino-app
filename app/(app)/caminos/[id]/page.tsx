@@ -70,7 +70,7 @@ export default async function DepartureDetailPage({
         <Link href="/caminos" className="text-sm text-muted-foreground hover:underline">← Caminos</Link>
         <div className="flex items-start justify-between mt-2 gap-3 flex-wrap">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl sm:text-3xl text-camino-ink break-words">{d.name}</h1>
+            <h1 className="font-display text-2xl sm:text-3xl text-noche break-words">{d.name}</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               {formatDate(d.start_date)} – {formatDate(d.end_date)}
               {days !== null && days >= 0 && ` · faltan ${days} días`}
@@ -79,7 +79,7 @@ export default async function DepartureDetailPage({
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <TrmSelector />
-            <Link href={`/caminos/${d.id}/wizard`} className="inline-flex items-center gap-1 bg-camino-yellow text-camino-ink rounded-md px-3 py-1.5 text-sm font-medium hover:bg-camino-deepYellow">
+            <Link href={`/caminos/${d.id}/wizard`} className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-3 py-1.5 text-sm font-medium hover:bg-ocre-profundo">
               ✨ Wizard
             </Link>
             <Badge variant="muted">{d.status}</Badge>
@@ -95,21 +95,21 @@ export default async function DepartureDetailPage({
       <CriticalAlertsBanner departureId={d.id} inscritosTotal={f?.inscritos_total ?? 0} />
       <MealCoverageBanner departureId={d.id} />
       {needsFreeze && activeTab !== "liquidacion" && (
-        <Card className="border-camino-yellow border-2 bg-camino-yellow/10">
+        <Card className="border-ocre border-2 bg-ocre/10">
           <CardContent className="py-3 flex items-center justify-between gap-3 flex-wrap text-sm">
             <span>
               La salida es en {days} días: es momento de fijar la <strong>tasa de cierre</strong> y recalcular los
               abonos en pesos.
             </span>
-            <Link href={`/caminos/${d.id}?tab=liquidacion`} className="inline-flex items-center gap-1 bg-camino-yellow text-camino-ink rounded-md px-3 py-1.5 font-medium hover:bg-camino-deepYellow whitespace-nowrap">
+            <Link href={`/caminos/${d.id}?tab=liquidacion`} className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-3 py-1.5 font-medium hover:bg-ocre-profundo whitespace-nowrap">
               Ir a la liquidación
             </Link>
           </CardContent>
         </Card>
       )}
       {conRecalculo && d.trm_frozen_at_date && activeTab !== "liquidacion" && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="py-3 text-sm text-green-900 flex items-center justify-between gap-3 flex-wrap">
+        <Card className="border-ok-200 bg-ok-50">
+          <CardContent className="py-3 text-sm text-ok-900 flex items-center justify-between gap-3 flex-wrap">
             <span>
               ✓ Tasa de cierre en <strong>{Number(d.trm_frozen_value).toLocaleString("es-CO")} COP/EUR</strong> desde el {formatDate(d.trm_frozen_at_date)}
             </span>
@@ -127,7 +127,7 @@ export default async function DepartureDetailPage({
               className={cn(
                 "px-3 sm:px-4 py-2.5 text-sm border-b-2 transition-colors whitespace-nowrap shrink-0",
                 activeTab === t.value
-                  ? "border-camino-yellow text-camino-ink font-medium"
+                  ? "border-ocre text-noche font-medium"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >

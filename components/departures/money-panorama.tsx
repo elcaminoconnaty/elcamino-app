@@ -51,7 +51,7 @@ export function MoneyPanorama({
     <div className="space-y-3">
       {/* Tira superior: inscritos + utilidad */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-        <Card className="border-camino-yellow border-2">
+        <Card className="border-ocre border-2">
           <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-3">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Peregrinos inscritos</div>
@@ -62,8 +62,8 @@ export function MoneyPanorama({
             </div>
             {capacity ? (
               <div className="w-24 shrink-0">
-                <div className="h-1.5 bg-cream-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-camino-yellow" style={{ width: `${capacityProgress}%` }} />
+                <div className="h-1.5 bg-piedra-suave rounded-full overflow-hidden">
+                  <div className="h-full bg-ocre" style={{ width: `${capacityProgress}%` }} />
                 </div>
                 <div className="text-[10px] text-muted-foreground text-right mt-1">{capacityProgress}% del cupo</div>
               </div>
@@ -71,10 +71,10 @@ export function MoneyPanorama({
           </CardContent>
         </Card>
 
-        <Card className={utilPositive ? "border-green-200 border-2" : "border-red-200 border-2"}>
+        <Card className={utilPositive ? "border-ok-200 border-2" : "border-error-200 border-2"}>
           <CardContent className="p-3 sm:p-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilidad proyectada</div>
-            <div className={`text-xl sm:text-2xl font-display font-semibold mt-1 ${utilPositive ? "text-green-700" : "text-red-700"}`}>
+            <div className={`text-xl sm:text-2xl font-display font-semibold mt-1 ${utilPositive ? "text-ok-700" : "text-error-700"}`}>
               <EurCop value={f.utilidad_total_eur} />
             </div>
             <div className="text-xs text-muted-foreground"><EurCop value={f.utilidad_por_pagante_eur} /> por peregrino · ingresos − costo total</div>
@@ -85,29 +85,29 @@ export function MoneyPanorama({
       {/* Dos lados: lo que entra vs lo que sale */}
       <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
         {/* ENTRA */}
-        <Card className="border-green-200 border-2">
+        <Card className="border-ok-200 border-2">
           <CardContent className="p-4">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-green-900">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-ok-900">
               <TrendingUp className="h-4 w-4" /> Lo que entra — peregrinos
             </div>
             <div className={`mt-3 grid gap-2 ${hayCierre ? "grid-cols-4" : "grid-cols-3"}`}>
               <MoneyCell label="Esperado" value={<EurCop value={esperado} />} />
-              <MoneyCell label="Cobrado" value={<EurCop value={cobrado} />} strong="text-green-700" />
+              <MoneyCell label="Cobrado" value={<EurCop value={cobrado} />} strong="text-ok-700" />
               <MoneyCell
                 label={hayCierre ? "Falta (liquidado)" : "Falta por cobrar"}
                 value={<EurCop value={faltaCobrar} />}
-                strong="text-amber-700"
+                strong="text-aviso-700"
               />
               {hayCierre && (
-                <MoneyCell label="Por devolver" value={<EurCop value={porDevolver} />} strong="text-blue-800" />
+                <MoneyCell label="Por devolver" value={<EurCop value={porDevolver} />} strong="text-info-800" />
               )}
             </div>
-            <div className="mt-3 h-2 bg-cream-100 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500" style={{ width: `${cobradoPct}%` }} />
+            <div className="mt-3 h-2 bg-piedra-suave rounded-full overflow-hidden">
+              <div className="h-full bg-ok-500" style={{ width: `${cobradoPct}%` }} />
             </div>
             <div className="text-[10px] text-muted-foreground text-right mt-1 flex justify-between">
               {hayCierre && Math.abs(difCambio) > 0.5 ? (
-                <span className={difCambio > 0 ? "text-red-700" : "text-green-700"}>
+                <span className={difCambio > 0 ? "text-error-700" : "text-ok-700"}>
                   dif. en cambio {difCambio > 0 ? "−" : "+"}
                   <EurCop value={Math.abs(difCambio)} hideZeroCop />
                 </span>
@@ -118,18 +118,18 @@ export function MoneyPanorama({
         </Card>
 
         {/* SALE */}
-        <Card className="border-amber-200 border-2">
+        <Card className="border-aviso-200 border-2">
           <CardContent className="p-4">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-900">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-aviso-900">
               <TrendingDown className="h-4 w-4" /> Lo que sale — proveedores + equipo
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               <MoneyCell label="Costo total" value={<EurCop value={costo} />} />
-              <MoneyCell label="Pagado" value={<EurCop value={pagado} />} strong="text-green-700" />
-              <MoneyCell label="Falta por pagar" value={<EurCop value={faltaPagar} />} strong="text-amber-700" />
+              <MoneyCell label="Pagado" value={<EurCop value={pagado} />} strong="text-ok-700" />
+              <MoneyCell label="Falta por pagar" value={<EurCop value={faltaPagar} />} strong="text-aviso-700" />
             </div>
-            <div className="mt-3 h-2 bg-cream-100 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500" style={{ width: `${pagadoPct}%` }} />
+            <div className="mt-3 h-2 bg-piedra-suave rounded-full overflow-hidden">
+              <div className="h-full bg-aviso-500" style={{ width: `${pagadoPct}%` }} />
             </div>
             <div className="text-[10px] text-muted-foreground text-right mt-1">{pagadoPct}% pagado</div>
           </CardContent>

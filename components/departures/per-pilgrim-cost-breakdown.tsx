@@ -49,18 +49,18 @@ export function PerPilgrimCostBreakdown({ categories, total }: { categories: Net
       {categories.map((c) => {
         const isOpen = open[c.category] !== false;
         return (
-          <div key={c.category} className="text-sm border border-cream-200 rounded-md overflow-hidden">
+          <div key={c.category} className="text-sm border border-piedra rounded-md overflow-hidden">
             <button
               type="button"
               onClick={() => setOpen((prev) => ({ ...prev, [c.category]: !isOpen }))}
-              className="w-full flex items-center justify-between gap-2 py-2 px-3 bg-cream-50/60 hover:bg-cream-100 text-left transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between gap-2 py-2 px-3 bg-alba/60 hover:bg-piedra-suave text-left transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-1.5 min-w-0">
                 {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
                 <span className="font-medium text-foreground">{c.category}</span>
                 <span className="text-xs text-muted-foreground">({c.items.filter((i) => !i.duplicate).length})</span>
                 {c.duplicatesIgnored > 0 && (
-                  <span title={`${c.duplicatesIgnored} items duplicados ignorados`} className="inline-flex items-center gap-0.5 text-amber-700 text-[10px]">
+                  <span title={`${c.duplicatesIgnored} items duplicados ignorados`} className="inline-flex items-center gap-0.5 text-aviso-700 text-[10px]">
                     <AlertTriangle className="h-3 w-3" /> {c.duplicatesIgnored} dup
                   </span>
                 )}
@@ -70,10 +70,10 @@ export function PerPilgrimCostBreakdown({ categories, total }: { categories: Net
             {isOpen && (
               <div className="px-3 py-2 space-y-1.5 text-xs bg-background">
                 {c.items.map((it, idx) => (
-                  <div key={idx} className={`flex items-start justify-between gap-3 py-1 ${idx < c.items.length - 1 ? "border-b border-cream-100" : ""} ${it.duplicate ? "opacity-50" : ""}`}>
+                  <div key={idx} className={`flex items-start justify-between gap-3 py-1 ${idx < c.items.length - 1 ? "border-b border-piedra-suave" : ""} ${it.duplicate ? "opacity-50" : ""}`}>
                     <div className="min-w-0 flex-1">
                       <div className="break-words">
-                        {it.duplicate && <span className="text-amber-700 mr-1" title="Duplicado ignorado">⚠</span>}
+                        {it.duplicate && <span className="text-aviso-700 mr-1" title="Duplicado ignorado">⚠</span>}
                         <span className={it.duplicate ? "line-through" : ""}>{it.label}</span>
                       </div>
                       {it.detail && <div className="text-muted-foreground text-[10px] mt-0.5">{it.detail}</div>}
@@ -91,7 +91,7 @@ export function PerPilgrimCostBreakdown({ categories, total }: { categories: Net
                   </div>
                 ))}
                 {c.duplicatesIgnored > 0 && (
-                  <div className="text-[10px] text-amber-700 pt-1 mt-1 border-t border-cream-100">
+                  <div className="text-[10px] text-aviso-700 pt-1 mt-1 border-t border-piedra-suave">
                     ⚠ {c.duplicatesIgnored} item{c.duplicatesIgnored > 1 ? "s" : ""} duplicado{c.duplicatesIgnored > 1 ? "s" : ""} apunta{c.duplicatesIgnored > 1 ? "n" : ""} a la misma reserva — los ignoramos para no doble-contar. Revisalos en la pestaña Presupuesto y borralos.
                   </div>
                 )}

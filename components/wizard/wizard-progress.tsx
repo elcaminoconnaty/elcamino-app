@@ -23,9 +23,9 @@ export function WizardProgress({ departureId, completion }: { departureId: strin
                   href={`/caminos/${departureId}/wizard?step=${s.key}`}
                   className={cn(
                     "block rounded-md px-3 py-2 text-xs transition-colors",
-                    active && "bg-camino-yellow text-camino-ink font-medium",
-                    !active && done && "bg-green-100 text-green-900 hover:bg-green-200",
-                    !active && !done && "bg-cream-100 text-muted-foreground hover:bg-cream-200"
+                    active && "bg-ocre text-noche font-medium",
+                    !active && done && "bg-ok-100 text-ok-900 hover:bg-ok-200",
+                    !active && !done && "bg-piedra-suave text-muted-foreground hover:bg-piedra"
                   )}
                 >
                   <div className="flex items-center gap-1.5">
@@ -34,7 +34,7 @@ export function WizardProgress({ departureId, completion }: { departureId: strin
                     ) : (
                       <span className={cn(
                         "h-4 w-4 rounded-full flex items-center justify-center text-[10px] shrink-0",
-                        active ? "bg-camino-ink text-camino-yellow" : "bg-background"
+                        active ? "bg-noche text-ocre" : "bg-background"
                       )}>
                         {i + 1}
                       </span>
@@ -79,14 +79,14 @@ export function WizardNav({ departureId, currentKey }: { departureId: string; cu
         {next ? (
           <Link
             href={`/caminos/${departureId}/wizard?step=${next.key}`}
-            className="inline-flex items-center gap-1 bg-camino-yellow text-camino-ink rounded-md px-4 py-2 text-sm font-medium hover:bg-camino-deepYellow"
+            className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-4 py-2 text-sm font-medium hover:bg-ocre-profundo"
           >
             Siguiente · {next.shortLabel} →
           </Link>
         ) : (
           <Link
             href={`/caminos/${departureId}`}
-            className="inline-flex items-center gap-1 bg-camino-yellow text-camino-ink rounded-md px-4 py-2 text-sm font-medium hover:bg-camino-deepYellow"
+            className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-4 py-2 text-sm font-medium hover:bg-ocre-profundo"
           >
             Finalizar wizard ✓
           </Link>

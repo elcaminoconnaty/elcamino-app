@@ -31,7 +31,7 @@ export function UpcomingPaymentsCard({ installments }: { installments: UpcomingI
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-medium">{formatEUR(i.amount_eur)}</div>
-                    <div className={`text-xs ${isOverdue ? "text-red-700 font-medium" : isSoon ? "text-amber-700" : "text-muted-foreground"}`}>
+                    <div className={`text-xs ${isOverdue ? "text-error-700 font-medium" : isSoon ? "text-aviso-700" : "text-muted-foreground"}`}>
                       {formatDate(i.due_date)}{isOverdue ? ` · ${-days}d vencida` : days === 0 ? " · hoy" : ` · en ${days}d`}
                     </div>
                   </div>

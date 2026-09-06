@@ -2,37 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Los tokens de la interfaz salen de la paleta del brandbook (edición 2027), la misma que
+ * usan `lib/brand.ts`, los PDFs y los correos. Van en HSL porque es lo que espera el sistema
+ * de componentes; el hex de referencia va al lado de cada uno.
+ */
 @layer base {
   :root {
-    --background: 42 60% 97%;
-    --foreground: 24 10% 12%;
+    --background: 37 47% 93%;        /* alba #F5EEE3 — nunca blanco puro */
+    --foreground: 206 40% 17%;       /* noche #1A2E3D */
 
-    --card: 0 0% 100%;
-    --card-foreground: 24 10% 12%;
+    /* Las tarjetas se levantan del papel un punto, no con blanco. */
+    --card: 36 44% 96%;
+    --card-foreground: 206 40% 17%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 24 10% 12%;
+    --popover: 36 44% 96%;
+    --popover-foreground: 206 40% 17%;
 
-    --primary: 24 10% 12%;
-    --primary-foreground: 42 60% 97%;
+    --primary: 204 29% 34%;          /* atlántico #3D5A6E */
+    --primary-foreground: 37 47% 93%;
 
-    --secondary: 42 50% 92%;
-    --secondary-foreground: 24 10% 12%;
+    --secondary: 37 47% 83%;         /* piedra #E8D9C0 */
+    --secondary-foreground: 206 40% 17%;
 
-    --muted: 42 30% 94%;
-    --muted-foreground: 24 8% 40%;
+    --muted: 36 44% 89%;             /* piedra suave #EFE5D6 */
+    --muted-foreground: 34 38% 39%;  /* castaño #8B6A3E — 4,31:1 sobre alba */
 
-    --accent: 47 92% 53%;
-    --accent-foreground: 24 10% 12%;
+    /*
+     * El acento es la flecha que guía. Como fondo va el ocre; el texto que se apoya en él
+     * es alba, y por eso el fondo tiene que ser el ocre profundo: el ocre plano con texto
+     * alba da 2,77:1 y no se lee.
+     */
+    --accent: 34 64% 35%;            /* ocre profundo #946220 */
+    --accent-foreground: 37 47% 93%;
 
-    --destructive: 0 70% 45%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 44% 42%;        /* #9A3C3C, el rojo de la paleta */
+    --destructive-foreground: 37 47% 93%;
 
-    --border: 36 20% 86%;
-    --input: 36 20% 86%;
-    --ring: 47 92% 53%;
+    --border: 38 35% 81%;            /* #DFD2BC */
+    --input: 38 35% 81%;
+    --ring: 34 64% 35%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;              /* la marca es sobria: menos redondeo */
   }
 }
 
@@ -42,10 +53,25 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Las cifras en columna se alinean. */
+  table, .tabular { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
+  /*
+   * El filete que abre una sección. Ocre plano: es gráfico, no lleva texto.
+   * Conserva el nombre antiguo para no romper las dieciocho pantallas que ya lo usan.
+   */
   .brand-yellow-bar {
-    @apply h-1 w-12 bg-camino-yellow rounded-full;
+    @apply h-[3px] w-14 bg-ocre;
+  }
+
+  /*
+   * El sello: la palabra de marca en Cinzel. Mayúscula y espaciada siempre — es una capital
+   * romana lapidaria y por debajo de 11px o en minúscula deja de funcionar.
+   */
+  .sello {
+    @apply font-seal uppercase tracking-[0.18em] text-atlantico;
+    font-size: max(11px, 0.8rem);
   }
 }

@@ -160,7 +160,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
           </div>
 
           {isMeal && (
-            <div className="rounded-md border bg-amber-50/40 p-3 space-y-3">
+            <div className="rounded-md border bg-aviso-50/40 p-3 space-y-3">
               <Label className="text-sm font-medium">🍽 Detalle de la comida</Label>
               <div className="grid gap-2 sm:grid-cols-3">
                 <div>
@@ -180,12 +180,12 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
           )}
 
           {isTransport && (
-            <div className="rounded-md border bg-blue-50/40 p-3 space-y-3">
+            <div className="rounded-md border bg-info-50/40 p-3 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-sm font-medium">🚌 Detalle del transporte</Label>
                 <div className="flex gap-1 text-xs">
-                  <button type="button" onClick={() => setPricingMode("total")} className={`px-3 py-1 rounded-md ${pricingMode === "total" ? "bg-camino-yellow text-camino-ink font-medium" : "bg-cream-100 text-muted-foreground"}`}>Total fijo (privado)</button>
-                  <button type="button" onClick={() => setPricingMode("per_person")} className={`px-3 py-1 rounded-md ${pricingMode === "per_person" ? "bg-camino-yellow text-camino-ink font-medium" : "bg-cream-100 text-muted-foreground"}`}>Por persona (tren)</button>
+                  <button type="button" onClick={() => setPricingMode("total")} className={`px-3 py-1 rounded-md ${pricingMode === "total" ? "bg-ocre text-noche font-medium" : "bg-piedra-suave text-muted-foreground"}`}>Total fijo (privado)</button>
+                  <button type="button" onClick={() => setPricingMode("per_person")} className={`px-3 py-1 rounded-md ${pricingMode === "per_person" ? "bg-ocre text-noche font-medium" : "bg-piedra-suave text-muted-foreground"}`}>Por persona (tren)</button>
                 </div>
               </div>
               {pricingMode === "total" ? (
@@ -213,7 +213,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
                 initial={[]}
                 onChange={(rs, totals) => { setRooms(rs); setRoomTotals(totals); }}
               />
-              <div className="rounded-md border bg-cream-50 p-3 space-y-2">
+              <div className="rounded-md border bg-alba p-3 space-y-2">
                 <Label className="text-sm font-medium">🏛 Tasa turística (opcional)</Label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div>

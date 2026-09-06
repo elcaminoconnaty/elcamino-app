@@ -69,8 +69,8 @@ export function BudgetByCategory({
               className={cn(
                 "px-3 py-1.5 rounded-full text-sm transition-colors",
                 isActive
-                  ? "bg-camino-yellow text-camino-ink font-medium"
-                  : "bg-cream-50 text-muted-foreground hover:bg-cream-100"
+                  ? "bg-ocre text-noche font-medium"
+                  : "bg-alba text-muted-foreground hover:bg-piedra-suave"
               )}
             >
               {c} {total > 0 && <span className="text-xs opacity-70 ml-1">{formatEUR(total)}</span>}
@@ -98,7 +98,7 @@ export function BudgetByCategory({
                   <button
                     key={d.name}
                     onClick={() => setActive(d.name)}
-                    className="w-full flex items-center justify-between hover:bg-cream-50 rounded-md p-2 -mx-2 text-left"
+                    className="w-full flex items-center justify-between hover:bg-alba rounded-md p-2 -mx-2 text-left"
                   >
                     <span>{d.name}</span>
                     <span>

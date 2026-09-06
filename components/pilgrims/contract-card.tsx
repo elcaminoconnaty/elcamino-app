@@ -89,7 +89,7 @@ export function ContractCard({
       </div>
 
       {avisos.map((a, i) => (
-        <p key={i} className="text-xs flex gap-2 items-start mb-2 text-amber-800">
+        <p key={i} className="text-xs flex gap-2 items-start mb-2 text-aviso-800">
           <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <span>{a}</span>
         </p>

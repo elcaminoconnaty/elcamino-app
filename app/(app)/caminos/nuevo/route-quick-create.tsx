@@ -14,7 +14,7 @@ export function RouteQuickCreate() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="text-xs h-7 self-start text-camino-deepYellow">+ Nueva ruta</Button>
+        <Button type="button" variant="ghost" size="sm" className="text-xs h-7 self-start text-ocre-profundo">+ Nueva ruta</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

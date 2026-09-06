@@ -100,7 +100,7 @@ export function SettlementRateDialog({
             <Label htmlFor="freeze-trm">Tasa EUR/COP</Label>
             <Input id="freeze-trm" type="number" step="0.01" value={trm} onChange={(e) => setTrm(e.target.value)} placeholder="3896.80" />
             {!trm && (
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-aviso-700">
                 No hay TRM cargada para esa fecha. Escribí la tasa a mano o cargala en /trm.
               </p>
             )}
@@ -141,10 +141,10 @@ export function FreezeTrmBanner({
   urgente?: boolean;
 }) {
   return (
-    <Card className={urgente ? "border-camino-yellow border-2 bg-camino-yellow/10" : ""}>
+    <Card className={urgente ? "border-ocre border-2 bg-ocre/10" : ""}>
       <CardContent className="py-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <AlertTriangle className={`h-5 w-5 mt-0.5 shrink-0 ${urgente ? "text-camino-deepYellow" : "text-muted-foreground"}`} />
+          <AlertTriangle className={`h-5 w-5 mt-0.5 shrink-0 ${urgente ? "text-ocre-profundo" : "text-muted-foreground"}`} />
           <div>
             <div className="font-medium">Este camino todavía no tiene tasa de cierre</div>
             <p className="text-sm text-muted-foreground">

@@ -20,7 +20,7 @@ export default async function PilgrimsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Peregrinos</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-noche">Peregrinos</h1>
           <p className="text-sm text-muted-foreground">{pilgrims?.length ?? 0} en total</p>
           <div className="brand-yellow-bar mt-2" />
         </div>

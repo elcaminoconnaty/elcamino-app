@@ -111,7 +111,7 @@ export function RoomsEditor({
   }
 
   return (
-    <div className="space-y-2 rounded-md border bg-cream-50/40 p-3">
+    <div className="space-y-2 rounded-md border bg-alba/40 p-3">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Habitaciones</Label>
         <div className="text-xs text-muted-foreground">

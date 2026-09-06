@@ -68,11 +68,11 @@ export function SettlementModeDialog({
                 type="button"
                 onClick={() => setMode(m)}
                 className={`w-full text-left rounded-md border p-3 transition-colors ${
-                  seleccionado ? "border-camino-yellow border-2 bg-cream-50" : "hover:bg-cream-50"
+                  seleccionado ? "border-ocre border-2 bg-alba" : "hover:bg-alba"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 ${seleccionado ? "border-camino-deepYellow bg-camino-yellow" : "border-muted-foreground"}`} />
+                  <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 ${seleccionado ? "border-ocre-profundo bg-ocre" : "border-muted-foreground"}`} />
                   <span className="font-medium text-sm">{info.label}</span>
                   {m === currentMode && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">actual</span>}
                 </div>
@@ -83,7 +83,7 @@ export function SettlementModeDialog({
         </div>
 
         {mode !== currentMode && (
-          <p className="text-xs rounded-md bg-amber-50 text-amber-900 p-2">
+          <p className="text-xs rounded-md bg-aviso-50 text-aviso-900 p-2">
             {mode === "sin_recalculo"
               ? "Los saldos van a pasar a calcularse sin re-valorar: cada abono valdrá los euros que valió el día que se hizo. La tasa de cierre que tenga el camino queda guardada pero sin efecto."
               : "Los saldos van a pasar a calcularse re-valorando los abonos en pesos a la tasa de cierre. Si el camino todavía no tiene tasa, habrá que fijarla."}

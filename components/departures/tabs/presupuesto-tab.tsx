@@ -39,7 +39,7 @@ export async function PresupuestoTab({ departureId }: { departureId: string }) {
             </CardContent>
           </Card>
         ))}
-        <Card className="flex-1 min-w-[140px] border-camino-yellow border-2">
+        <Card className="flex-1 min-w-[140px] border-ocre border-2">
           <CardContent className="p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total presupuesto</div>
             <div className="text-lg font-display font-semibold mt-1">{formatEUR(totalAll)}</div>

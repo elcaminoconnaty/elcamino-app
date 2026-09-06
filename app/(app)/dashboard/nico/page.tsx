@@ -26,18 +26,18 @@ export default async function NicoDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-wider text-camino-deepYellow font-medium">Dashboard de Nico</p>
-        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Logística y operación</h1>
+        <p className="text-xs uppercase tracking-wider text-ocre-profundo font-medium">Dashboard de Nico</p>
+        <h1 className="font-display text-2xl sm:text-3xl text-noche">Logística y operación</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
 
       <section>
-        <h2 className="font-display text-xl text-camino-ink mb-4">Caminos abiertos</h2>
+        <h2 className="font-display text-xl text-noche mb-4">Caminos abiertos</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {departures.length === 0 && (
             <Card className="md:col-span-2">
               <CardContent className="py-12 text-center text-muted-foreground">
-                No hay caminos. <Link href="/caminos/nuevo" className="underline text-camino-deepYellow">Crear uno</Link>.
+                No hay caminos. <Link href="/caminos/nuevo" className="underline text-ocre-profundo">Crear uno</Link>.
               </CardContent>
             </Card>
           )}
@@ -46,7 +46,7 @@ export default async function NicoDashboard() {
             const needsFreeze = days !== null && days <= 30 && days >= 0 && !d.trm_frozen_at_date;
             return (
               <Link key={d.departure_id} href={`/caminos/${d.departure_id}`}>
-                <Card className="hover:border-camino-yellow transition-colors h-full">
+                <Card className="hover:border-ocre transition-colors h-full">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -84,7 +84,7 @@ export default async function NicoDashboard() {
       </section>
 
       <section>
-        <h2 className="font-display text-xl text-camino-ink mb-4">Reservas pendientes</h2>
+        <h2 className="font-display text-xl text-noche mb-4">Reservas pendientes</h2>
         <Card>
           <CardContent className="p-0">
             {(!pendingReservations || pendingReservations.length === 0) ? (

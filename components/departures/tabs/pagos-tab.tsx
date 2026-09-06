@@ -68,8 +68,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
       {/* ===== INGRESOS ===== */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-green-700" />
-          <h2 className="font-display text-lg text-camino-ink">Lo que entra — abonos de peregrinos</h2>
+          <TrendingUp className="h-5 w-5 text-ok-700" />
+          <h2 className="font-display text-lg text-noche">Lo que entra — abonos de peregrinos</h2>
         </div>
         <div className={`grid gap-3 ${hayCierre ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"}`}>
           <SummaryCard label="Esperado" value={<EurCop value={esperado} />} />
@@ -86,7 +86,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
         {hayCierre && Math.abs(difCambio) > 0.5 && (
           <p className="text-xs text-muted-foreground">
             Diferencia en cambio de la salida:{" "}
-            <strong className={difCambio > 0 ? "text-red-700" : "text-green-700"}>
+            <strong className={difCambio > 0 ? "text-error-700" : "text-ok-700"}>
               {difCambio > 0 ? "−" : "+"}{formatEUR(Math.abs(difCambio))}
             </strong>{" "}
             — lo que se movió la tasa entre el día de cada abono y el cierre. Ver{" "}
@@ -120,16 +120,16 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                           <Link href={`/peregrinos/${r.pilgrim_id}`} className="hover:underline font-medium">{r.pilgrim_name}</Link>
                         </TableCell>
                         <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
-                        <TableCell className="text-right text-green-700">{formatEUR(r.paid_eur)}</TableCell>
+                        <TableCell className="text-right text-ok-700">{formatEUR(r.paid_eur)}</TableCell>
                         <TableCell className="text-right">
                           {saldado ? (
                             <Badge variant="success">al día</Badge>
                           ) : devolver ? (
-                            <span className="text-blue-800 font-medium" title="Pagó de más a la tasa de cierre">
+                            <span className="text-info-800 font-medium" title="Pagó de más a la tasa de cierre">
                               −{formatEUR(Math.abs(saldo))}
                             </span>
                           ) : (
-                            <span className="text-amber-700 font-medium">{formatEUR(saldo)}</span>
+                            <span className="text-aviso-700 font-medium">{formatEUR(saldo)}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -148,8 +148,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
       {/* ===== EGRESOS ===== */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <TrendingDown className="h-5 w-5 text-amber-700" />
-          <h2 className="font-display text-lg text-camino-ink">Lo que sale — pagos a proveedores y equipo</h2>
+          <TrendingDown className="h-5 w-5 text-aviso-700" />
+          <h2 className="font-display text-lg text-noche">Lo que sale — pagos a proveedores y equipo</h2>
         </div>
         <div className="grid gap-3 grid-cols-3">
           <SummaryCard label="Costo total" value={<EurCop value={costo} />} />
@@ -189,12 +189,12 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                         <TableCell className="text-right">
                           {pay && pay.paid_eur > 0 ? (
                             <div>
-                              <div className="text-green-700 text-sm">{formatEUR(pay.paid_eur)}</div>
+                              <div className="text-ok-700 text-sm">{formatEUR(pay.paid_eur)}</div>
                               <div className="text-[10px] text-muted-foreground">{pay.paid_pct}%</div>
                             </div>
                           ) : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-amber-800">{saldo > 0.01 ? <EurCop value={saldo} /> : <Badge variant="success">pagado</Badge>}</TableCell>
+                        <TableCell className="text-right font-medium text-aviso-800">{saldo > 0.01 ? <EurCop value={saldo} /> : <Badge variant="success">pagado</Badge>}</TableCell>
                         <TableCell><Badge variant={r.status === "pagado" ? "success" : r.status === "reservado" ? "accent" : "muted"}>{r.status}</Badge></TableCell>
                         <TableCell className="text-right"><RegisterReservationPayment reservation={r} /></TableCell>
                       </TableRow>
@@ -234,8 +234,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                         </TableCell>
                         <TableCell>{b.scaling === "viatico_team" ? <Badge variant="warning">Viático equipo</Badge> : <Badge variant="muted">{b.category}</Badge>}</TableCell>
                         <TableCell className="text-right"><EurCop value={pay.total} /></TableCell>
-                        <TableCell className="text-right">{pay.paid > 0 ? <span className="text-green-700 text-sm">{formatEUR(pay.paid)}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                        <TableCell className="text-right font-medium text-amber-800"><EurCop value={pay.saldo} /></TableCell>
+                        <TableCell className="text-right">{pay.paid > 0 ? <span className="text-ok-700 text-sm">{formatEUR(pay.paid)}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
+                        <TableCell className="text-right font-medium text-aviso-800"><EurCop value={pay.saldo} /></TableCell>
                         <TableCell className="text-right"><EditBudgetItemDialog item={b} providers={providers ?? []} departureId={departureId} lockScaling={b.scaling === "viatico_team"} /></TableCell>
                       </TableRow>
                     );
@@ -251,8 +251,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
 }
 
 function SummaryCard({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "green" | "amber" }) {
-  const cls = tone === "green" ? "border-green-200" : tone === "amber" ? "border-amber-200" : "";
-  const txt = tone === "green" ? "text-green-700" : tone === "amber" ? "text-amber-800" : "";
+  const cls = tone === "green" ? "border-ok-200" : tone === "amber" ? "border-aviso-200" : "";
+  const txt = tone === "green" ? "text-ok-700" : tone === "amber" ? "text-aviso-800" : "";
   return (
     <Card className={cls}>
       <CardContent className="p-3">

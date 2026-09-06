@@ -62,7 +62,7 @@ export function PassportUpload({ pilgrim }: { pilgrim: any }) {
     <div className="space-y-2 text-sm">
       {hasPassport ? (
         <>
-          <div className="flex items-center gap-2 text-green-700">
+          <div className="flex items-center gap-2 text-ok-700">
             <FileCheck2 className="h-4 w-4" />
             <span className="text-xs">Pasaporte cargado</span>
           </div>
@@ -76,27 +76,27 @@ export function PassportUpload({ pilgrim }: { pilgrim: any }) {
           )}
           <div className="flex gap-1 flex-wrap pt-1">
             <Button variant="outline" size="sm" onClick={viewPassport}><Eye className="h-3.5 w-3.5" /> Ver</Button>
-            <label className="inline-flex items-center gap-1 text-xs h-8 px-3 rounded-md border border-input bg-background hover:bg-cream-100 cursor-pointer">
+            <label className="inline-flex items-center gap-1 text-xs h-8 px-3 rounded-md border border-input bg-background hover:bg-piedra-suave cursor-pointer">
               <Upload className="h-3.5 w-3.5" /> Reemplazar
               <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={uploading} />
             </label>
           </div>
         </>
       ) : (
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-camino-yellow/40 rounded-md p-4 hover:bg-camino-yellow/5 cursor-pointer">
+        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ocre/40 rounded-md p-4 hover:bg-ocre/5 cursor-pointer">
           {stage === "uploading" ? (
             <>
-              <Upload className="h-5 w-5 text-camino-deepYellow animate-pulse" />
+              <Upload className="h-5 w-5 text-ocre-profundo animate-pulse" />
               <span className="text-xs">Subiendo...</span>
             </>
           ) : stage === "analyzing" ? (
             <>
-              <Sparkles className="h-5 w-5 text-camino-deepYellow animate-pulse" />
+              <Sparkles className="h-5 w-5 text-ocre-profundo animate-pulse" />
               <span className="text-xs">Analizando con Claude...</span>
             </>
           ) : (
             <>
-              <Upload className="h-5 w-5 text-camino-deepYellow" />
+              <Upload className="h-5 w-5 text-ocre-profundo" />
               <span className="text-xs text-center">Subir foto del pasaporte<br/><span className="text-muted-foreground">Sin límite de peso · Claude extrae los datos</span></span>
             </>
           )}

@@ -52,13 +52,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-alba px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-camino-yellow bg-cream-100">
-            <span className="font-display text-2xl text-camino-ink">EC</span>
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-ocre bg-piedra-suave">
+            <span className="font-display text-2xl text-noche">EC</span>
           </div>
-          <h1 className="font-display text-3xl text-camino-ink">El Camino con Naty</h1>
+          <h1 className="font-display text-3xl text-noche">El Camino con Naty</h1>
           <div className="brand-yellow-bar mx-auto mt-3" />
         </div>
 

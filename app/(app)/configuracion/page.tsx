@@ -16,7 +16,7 @@ export default async function ConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl sm:text-3xl text-camino-ink">Configuración</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-noche">Configuración</h1>
         <div className="brand-yellow-bar mt-2" />
       </div>
 
@@ -76,7 +76,7 @@ export default async function ConfigPage() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>Para invitar a Naty: en Supabase → Auth → Invite users con su email. Luego desde SQL editor actualizar su rol en <code>elcamino.profiles</code>:</p>
-          <pre className="bg-cream-100 p-3 rounded text-xs overflow-x-auto">
+          <pre className="bg-piedra-suave p-3 rounded text-xs overflow-x-auto">
 {`update elcamino.profiles set app_role = 'naty' where email = 'naty@correo.com';`}
           </pre>
         </CardContent>

@@ -57,10 +57,10 @@ export async function StepTransportes({ departureId }: { departureId: string }) 
 
         <div className="space-y-2">
           {slotRows.map(({ slot, matches }, idx) => (
-            <div key={idx} className="rounded-md border bg-cream-50/50 p-3">
+            <div key={idx} className="rounded-md border bg-alba/50 p-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono text-[10px] bg-cream-100 px-1.5 py-0.5 rounded">D{slot.day_offset! >= 0 ? `+${slot.day_offset}` : slot.day_offset}</span>
+                  <span className="font-mono text-[10px] bg-piedra-suave px-1.5 py-0.5 rounded">D{slot.day_offset! >= 0 ? `+${slot.day_offset}` : slot.day_offset}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(slot.date)}</span>
                   <span className="font-medium truncate">{slot.description}</span>
                 </div>
@@ -88,9 +88,9 @@ export async function StepTransportes({ departureId }: { departureId: string }) 
           ))}
 
           {extras.map((r: any) => (
-            <div key={r.id} className="rounded-md border-2 border-dashed bg-amber-50/30 p-3 flex items-center justify-between gap-2 flex-wrap">
+            <div key={r.id} className="rounded-md border-2 border-dashed bg-aviso-50/30 p-3 flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-[10px] bg-amber-100 px-1.5 py-0.5 rounded">Extra</span>
+                <span className="font-mono text-[10px] bg-aviso-100 px-1.5 py-0.5 rounded">Extra</span>
                 <span className="text-xs text-muted-foreground">{formatDate(r.check_in)}</span>
                 <span className="font-medium truncate">{r.providers?.name ?? "Transporte extra"}</span>
               </div>

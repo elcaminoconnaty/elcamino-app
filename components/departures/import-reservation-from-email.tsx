@@ -127,19 +127,19 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
             action={onSave}
             className="space-y-3 max-h-[60vh] overflow-y-auto pr-1"
           >
-            <div className="rounded-md bg-cream-100 p-3 text-xs flex items-center justify-between">
+            <div className="rounded-md bg-piedra-suave p-3 text-xs flex items-center justify-between">
               <span>Confianza de extracción: <strong>{parsed.confidence}</strong></span>
-              <button type="button" onClick={reset} className="text-camino-deepYellow hover:underline">← Pegar otro correo</button>
+              <button type="button" onClick={reset} className="text-ocre-profundo hover:underline">← Pegar otro correo</button>
             </div>
 
             <div className="space-y-2">
               <Label>Proveedor</Label>
               {providerMode === "existing" ? (
-                <div className="rounded-md border-2 border-green-200 bg-green-50 p-3 space-y-2">
+                <div className="rounded-md border-2 border-ok-200 bg-ok-50 p-3 space-y-2">
                   <div className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-ok-700 mt-0.5 shrink-0" />
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-green-900">Proveedor existente</div>
+                      <div className="text-sm font-medium text-ok-900">Proveedor existente</div>
                       <div className="text-sm">{providers.find((p) => p.id === providerId)?.name ?? "(seleccioná)"}</div>
                     </div>
                   </div>
@@ -153,14 +153,14 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
                       <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => { setProviderMode("new"); setProviderId(""); }} className="text-xs text-camino-deepYellow hover:underline">
+                  <button type="button" onClick={() => { setProviderMode("new"); setProviderId(""); }} className="text-xs text-ocre-profundo hover:underline">
                     O crear uno nuevo en lugar de este
                   </button>
                 </div>
               ) : (
-                <div className="rounded-md border-2 border-camino-yellow bg-camino-yellow/10 p-3 space-y-2">
+                <div className="rounded-md border-2 border-ocre bg-ocre/10 p-3 space-y-2">
                   <div className="flex items-start gap-2">
-                    <PlusCircle className="h-5 w-5 text-camino-deepYellow mt-0.5 shrink-0" />
+                    <PlusCircle className="h-5 w-5 text-ocre-profundo mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm font-medium">Se creará un proveedor nuevo al guardar</div>
                       <div className="text-xs text-muted-foreground">Confirmá nombre y email</div>
@@ -177,7 +177,7 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
                     </div>
                   </div>
                   {providers.length > 0 && (
-                    <button type="button" onClick={() => { setProviderMode("existing"); setProviderId(""); }} className="text-xs text-camino-deepYellow hover:underline">
+                    <button type="button" onClick={() => { setProviderMode("existing"); setProviderId(""); }} className="text-xs text-ocre-profundo hover:underline">
                       O elegir uno existente en lugar de crear nuevo
                     </button>
                   )}

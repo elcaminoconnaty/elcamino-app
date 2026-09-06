@@ -67,7 +67,7 @@ export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }
           totalEur={totalEur}
           departureStartDate={departureStartDate}
           current={installments}
-          trigger={<button className="text-camino-deepYellow hover:underline">Editar</button>}
+          trigger={<button className="text-ocre-profundo hover:underline">Editar</button>}
         />
       </div>
       <div className="text-xs text-muted-foreground">{paidCount}/{installments.length} cuotas pagadas · {formatEUR(totalPlan)}</div>
@@ -80,16 +80,16 @@ export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }
             <div key={i.id} className="flex items-center justify-between text-xs gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 {isPaid ? (
-                  <Check className="h-3.5 w-3.5 text-green-700 shrink-0" />
+                  <Check className="h-3.5 w-3.5 text-ok-700 shrink-0" />
                 ) : (
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${isOverdue ? "bg-red-500" : "bg-camino-yellow"}`} />
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${isOverdue ? "bg-error-500" : "bg-ocre"}`} />
                 )}
                 <span className="truncate">
                   {i.label || `Cuota ${i.position}`} · {formatDate(i.due_date)}
                   {isPartial && <span className="text-muted-foreground"> · faltan {formatEUR(i.remaining_eur)}</span>}
                 </span>
               </div>
-              <span className={isPaid ? "line-through text-muted-foreground shrink-0" : isOverdue ? "text-red-700 font-medium shrink-0" : "shrink-0"}>{formatEUR(i.amount_eur)}</span>
+              <span className={isPaid ? "line-through text-muted-foreground shrink-0" : isOverdue ? "text-error-700 font-medium shrink-0" : "shrink-0"}>{formatEUR(i.amount_eur)}</span>
             </div>
           );
         })}
@@ -239,7 +239,7 @@ function PaymentPlanDialog({
           <Plus className="h-3.5 w-3.5" /> Agregar cuota
         </Button>
 
-        <div className={`text-sm rounded-md p-2 ${Math.abs(diff) < 0.01 ? "bg-green-50 text-green-900" : "bg-amber-50 text-amber-900"}`}>
+        <div className={`text-sm rounded-md p-2 ${Math.abs(diff) < 0.01 ? "bg-ok-50 text-ok-900" : "bg-aviso-50 text-aviso-900"}`}>
           Total del plan: <strong>{formatEUR(total)}</strong>
           {Math.abs(diff) >= 0.01 && (
             <> · diferencia con total acordado: <strong>{formatEUR(diff)}</strong></>

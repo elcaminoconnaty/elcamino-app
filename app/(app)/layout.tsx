@@ -40,13 +40,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <TrmProvider defaultTrm={globalTrm}>
-    <div className="min-h-screen flex bg-cream-50">
+    <div className="min-h-screen flex bg-alba">
       <Sidebar role={role} />
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b bg-background/80 backdrop-blur sticky top-0 z-30 flex items-center justify-between px-3 md:px-6">
           <div className="flex items-center gap-2 md:gap-3">
             <MobileMenu role={role} />
-            <Link href="/" className="font-display text-base md:text-lg text-camino-ink">
+            <Link href="/" className="font-display text-base md:text-lg text-noche">
               El Camino con Naty
             </Link>
             <div className="brand-yellow-bar hidden sm:block" />

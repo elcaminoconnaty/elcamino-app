@@ -70,10 +70,10 @@ export async function StepAlojamientos({ departureId }: { departureId: string })
           <div className="space-y-2">
             {/* Slots de la plantilla — para cada uno mostrar reserva si existe */}
             {slotRows.map(({ slot, matches }, idx) => (
-              <div key={idx} className="rounded-md border bg-cream-50/50 p-3 space-y-2">
+              <div key={idx} className="rounded-md border bg-alba/50 p-3 space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-[10px] bg-cream-100 px-1.5 py-0.5 rounded shrink-0">
+                    <span className="font-mono text-[10px] bg-piedra-suave px-1.5 py-0.5 rounded shrink-0">
                       D{slot.day_offset! >= 0 ? `+${slot.day_offset}` : slot.day_offset}
                     </span>
                     <span className="text-xs text-muted-foreground shrink-0">{formatDate(slot.date)}</span>
@@ -91,8 +91,8 @@ export async function StepAlojamientos({ departureId }: { departureId: string })
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="text-sm min-w-0 truncate">{reservation.providers?.name ?? "Sin proveedor"}</span>
                         <div className="flex items-center gap-2">
-                          {hasBreakfast && <Coffee className="h-3.5 w-3.5 text-amber-700" />}
-                          {hasDinner && <UtensilsCrossed className="h-3.5 w-3.5 text-amber-700" />}
+                          {hasBreakfast && <Coffee className="h-3.5 w-3.5 text-aviso-700" />}
+                          {hasDinner && <UtensilsCrossed className="h-3.5 w-3.5 text-aviso-700" />}
                           <Badge variant={reservation.status === "reservado" ? "accent" : "muted"} className="text-[10px]">{reservation.status}</Badge>
                           <EditReservationDialog reservation={reservation} providers={providers ?? []} departureId={departureId} />
                         </div>
@@ -112,10 +112,10 @@ export async function StepAlojamientos({ departureId }: { departureId: string })
               const rs = roomsByRes.get(r.id) ?? [];
               const beds = rs.reduce((s, x) => s + Number(x.rooms_count) * Number(x.capacity_per_room), 0);
               return (
-                <div key={r.id} className="rounded-md border-2 border-dashed bg-amber-50/30 p-3 space-y-2">
+                <div key={r.id} className="rounded-md border-2 border-dashed bg-aviso-50/30 p-3 space-y-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-[10px] bg-amber-100 px-1.5 py-0.5 rounded">Extra</span>
+                      <span className="font-mono text-[10px] bg-aviso-100 px-1.5 py-0.5 rounded">Extra</span>
                       <span className="text-xs text-muted-foreground">{formatDate(r.check_in)}</span>
                       <span className="font-medium truncate">{r.providers?.name ?? "Reserva extra"}</span>
                     </div>

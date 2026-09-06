@@ -60,10 +60,10 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                       {hayCierre && (
                         <TableCell className="text-right">{conCierre ? formatEUR(r.paid_eur_cierre) : "—"}</TableCell>
                       )}
-                      <TableCell className={`text-right ${devolver ? "text-blue-800" : ""}`}>
+                      <TableCell className={`text-right ${devolver ? "text-info-800" : ""}`}>
                         {devolver ? `−${formatEUR(Math.abs(saldo))}` : formatEUR(Math.max(0, saldo))}
                       </TableCell>
-                      <TableCell className={`text-right ${devolver ? "text-blue-800" : "text-muted-foreground"}`}>
+                      <TableCell className={`text-right ${devolver ? "text-info-800" : "text-muted-foreground"}`}>
                         {conCierre && r.saldo_final_cop != null
                           ? (devolver ? `−${formatCOP(Math.abs(Number(r.saldo_final_cop)))}` : formatCOP(Math.max(0, Number(r.saldo_final_cop))))
                           : formatCOP(r.pending_cop_reference)}

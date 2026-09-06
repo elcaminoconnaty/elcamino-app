@@ -82,16 +82,16 @@ export function AccountBalancesCard({
                     </TableCell>
                     {variant === "full" && (
                       <>
-                        <TableCell className="text-right text-green-700 align-top"><EurCop value={a.ingresos_eur} /></TableCell>
+                        <TableCell className="text-right text-ok-700 align-top"><EurCop value={a.ingresos_eur} /></TableCell>
                         <TableCell className="text-right align-top"><EurCop value={a.egresos_proveedores_eur} /></TableCell>
                         <TableCell className="text-right align-top"><EurCop value={a.egresos_operativos_eur} /></TableCell>
                         <TableCell className="text-right text-muted-foreground align-top"><EurCop value={a.egresos_personales_eur} /></TableCell>
                       </>
                     )}
                     {variant === "compact" && (
-                      <TableCell className="text-right text-green-700 align-top"><EurCop value={a.ingresos_eur} /></TableCell>
+                      <TableCell className="text-right text-ok-700 align-top"><EurCop value={a.ingresos_eur} /></TableCell>
                     )}
-                    <TableCell className={`text-right font-semibold align-top ${saldo < 0 ? "text-red-700" : "text-foreground"}`}>
+                    <TableCell className={`text-right font-semibold align-top ${saldo < 0 ? "text-error-700" : "text-foreground"}`}>
                       <EurCop value={saldo} />
                     </TableCell>
                   </TableRow>

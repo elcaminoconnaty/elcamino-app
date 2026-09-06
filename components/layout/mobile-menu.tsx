@@ -36,7 +36,7 @@ export function MobileMenu({ role }: { role: string }) {
       <Dialog.Trigger asChild>
         <button
           aria-label="Abrir menú"
-          className="md:hidden h-10 w-10 rounded-md hover:bg-cream-100 flex items-center justify-center"
+          className="md:hidden h-10 w-10 rounded-md hover:bg-piedra-suave flex items-center justify-center"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -47,15 +47,15 @@ export function MobileMenu({ role }: { role: string }) {
           <Dialog.Title className="sr-only">Menú principal</Dialog.Title>
           <div className="px-5 py-4 flex items-center justify-between border-b">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-full border-2 border-camino-yellow bg-cream-100 flex items-center justify-center">
-                <span className="font-display text-sm text-camino-ink">EC</span>
+              <div className="h-9 w-9 rounded-full border-2 border-ocre bg-piedra-suave flex items-center justify-center">
+                <span className="font-display text-sm text-noche">EC</span>
               </div>
               <div>
-                <div className="text-sm font-display text-camino-ink leading-tight">El Camino</div>
+                <div className="text-sm font-display text-noche leading-tight">El Camino</div>
                 <div className="text-xs text-muted-foreground leading-tight">con Naty</div>
               </div>
             </Link>
-            <Dialog.Close className="h-8 w-8 rounded-md hover:bg-cream-100 flex items-center justify-center">
+            <Dialog.Close className="h-8 w-8 rounded-md hover:bg-piedra-suave flex items-center justify-center">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
@@ -70,8 +70,8 @@ export function MobileMenu({ role }: { role: string }) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
                     active
-                      ? "bg-camino-yellow/20 text-camino-ink font-medium"
-                      : "text-muted-foreground hover:bg-cream-100"
+                      ? "bg-ocre/20 text-noche font-medium"
+                      : "text-muted-foreground hover:bg-piedra-suave"
                   )}
                 >
                   <Icon className="h-4 w-4" />

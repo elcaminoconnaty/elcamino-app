@@ -138,10 +138,10 @@ export function StepBasicos({
               ))}
             </select>
             {!departure.route_id && (
-              <p className="text-xs text-amber-700">⚠ Este camino no tiene ruta asignada. Elegí una y tocá "Guardar".</p>
+              <p className="text-xs text-aviso-700">⚠ Este camino no tiene ruta asignada. Elegí una y tocá "Guardar".</p>
             )}
             {hasRouteMismatch && (
-              <p className="text-xs text-amber-700">Hay un cambio pendiente — tocá "Guardar datos básicos" para confirmar.</p>
+              <p className="text-xs text-aviso-700">Hay un cambio pendiente — tocá "Guardar datos básicos" para confirmar.</p>
             )}
           </div>
           <div className="grid gap-2">
@@ -202,7 +202,7 @@ export function StepBasicos({
             </div>
           </div>
           {(!contratoInicio || !contratoFin) && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-aviso-700">
               Si las dejás vacías, el contrato usa las fechas de operación
               {startDate ? ` (${formatDate(startDate)}${endDate ? ` a ${formatDate(endDate)}` : ""})` : ""} y avisa en la tarjeta del peregrino.
             </p>
@@ -246,9 +246,9 @@ export function StepBasicos({
           ) : (
             <div className="space-y-1">
               {days.map((d) => (
-                <div key={d.day_offset} className="flex items-center justify-between text-sm px-2 py-1.5 hover:bg-cream-50 rounded-md">
+                <div key={d.day_offset} className="flex items-center justify-between text-sm px-2 py-1.5 hover:bg-alba rounded-md">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-[10px] bg-cream-100 px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[10px] bg-piedra-suave px-1.5 py-0.5 rounded">
                       D{d.day_offset >= 0 ? `+${d.day_offset}` : d.day_offset}
                     </span>
                     <span className="text-xs text-muted-foreground w-24">{DAY_KIND_LABELS[d.day_kind] ?? d.day_kind}</span>
@@ -263,20 +263,20 @@ export function StepBasicos({
         </CardContent>
       </Card>
 
-      <Card className="border-camino-yellow border-2">
+      <Card className="border-ocre border-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-camino-deepYellow" /> Aplicar plantilla de la ruta</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-ocre-profundo" /> Aplicar plantilla de la ruta</CardTitle>
           <CardDescription>
             Crea automáticamente los viáticos del equipo (vuelos, hoteles Madrid/Oporto, comidas) y los items por peregrino (mochilas, materiales, vino, credenciales, seguro) con valores base. Lo afinás en los siguientes pasos.
-            {hasItems && <span className="block text-amber-700 mt-1">⚠ Ya hay items cargados. Aplicar solo agrega los que falten.</span>}
+            {hasItems && <span className="block text-aviso-700 mt-1">⚠ Ya hay items cargados. Aplicar solo agrega los que falten.</span>}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!departure.route_id && (
-            <div className="text-sm text-amber-700 mb-2">⚠ Primero asigná la ruta arriba y tocá "Guardar datos básicos".</div>
+            <div className="text-sm text-aviso-700 mb-2">⚠ Primero asigná la ruta arriba y tocá "Guardar datos básicos".</div>
           )}
           {departure.route_id && !startDate && (
-            <div className="text-sm text-amber-700 mb-2">⚠ Falta la fecha de inicio.</div>
+            <div className="text-sm text-aviso-700 mb-2">⚠ Falta la fecha de inicio.</div>
           )}
           <Button variant="accent" onClick={onApplyTemplate} disabled={applying || !startDate || !departure.route_id}>
             <Sparkles className="h-4 w-4" /> {applying ? "Aplicando..." : hasItems ? "Aplicar items faltantes" : "Aplicar plantilla"}

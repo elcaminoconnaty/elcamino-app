@@ -58,7 +58,7 @@ export function CostBreakdownCard({ finance }: { finance: DepartureFinance }) {
           <span className="text-muted-foreground">Precio promedio</span>
           <span><EurCop value={precioPagante} /></span>
         </div>
-        <div className={`flex justify-between font-semibold pt-1 border-t ${utilidadPagante >= 0 ? "text-green-700" : "text-red-700"}`}>
+        <div className={`flex justify-between font-semibold pt-1 border-t ${utilidadPagante >= 0 ? "text-ok-700" : "text-error-700"}`}>
           <span>Utilidad por pagante</span>
           <span><EurCop value={utilidadPagante} /></span>
         </div>

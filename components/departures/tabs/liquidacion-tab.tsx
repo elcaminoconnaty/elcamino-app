@@ -76,10 +76,10 @@ export async function LiquidacionTab({ departureId }: { departureId: string }) {
       )}
 
       {hayTasa && (
-        <Card className="border-camino-yellow border-2">
+        <Card className="border-ocre border-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-1.5">
-              <Scale className="h-4 w-4 text-camino-deepYellow" /> Tasa de cierre {trm.toLocaleString("es-CO")} COP/EUR
+              <Scale className="h-4 w-4 text-ocre-profundo" /> Tasa de cierre {trm.toLocaleString("es-CO")} COP/EUR
             </CardTitle>
             <CardDescription>
               Fijada el {formatDate(d!.trm_frozen_at_date)}. Todos los abonos que se quedaron en pesos se re-valoran con
@@ -166,22 +166,22 @@ export async function LiquidacionTab({ departureId }: { departureId: string }) {
                           <span className="block text-[10px] text-muted-foreground">+ {formatEUR(r.eur_fijo)} en EUR</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-green-700 whitespace-nowrap">
+                      <TableCell className="text-right text-ok-700 whitespace-nowrap">
                         {formatEUR(conRecalculo ? r.paid_eur_cierre : r.paid_eur_historico)}
                         {conRecalculo && Math.abs(dif) > 0.005 && (
                           <span className="block text-[10px] text-muted-foreground">entraron {formatEUR(r.paid_eur_historico)}</span>
                         )}
                       </TableCell>
                       {conRecalculo && (
-                        <TableCell className={`text-right text-xs ${dif > 0.005 ? "text-red-700" : dif < -0.005 ? "text-green-700" : "text-muted-foreground"}`}>
+                        <TableCell className={`text-right text-xs ${dif > 0.005 ? "text-error-700" : dif < -0.005 ? "text-ok-700" : "text-muted-foreground"}`}>
                           {Math.abs(dif) <= 0.005 ? "—" : `${dif > 0 ? "−" : "+"}${formatEUR(Math.abs(dif))}`}
                         </TableCell>
                       )}
                       <TableCell className="text-right whitespace-nowrap font-medium">
                         {Math.abs(saldo) <= 0.5 ? (
-                          <span className="text-green-700">{formatEUR(0)}</span>
+                          <span className="text-ok-700">{formatEUR(0)}</span>
                         ) : (
-                          <span className={saldo > 0 ? "text-amber-800" : "text-blue-800"}>
+                          <span className={saldo > 0 ? "text-aviso-800" : "text-info-800"}>
                             {saldo < 0 && "−"}{formatEUR(Math.abs(saldo))}
                             {r.saldo_final_cop != null && (
                               <span className="block text-[10px] text-muted-foreground font-normal">
@@ -242,10 +242,10 @@ function Cifra({
   tone?: "amber" | "blue" | "red" | "green";
 }) {
   const txt =
-    tone === "amber" ? "text-amber-800"
-    : tone === "blue" ? "text-blue-800"
-    : tone === "red" ? "text-red-700"
-    : tone === "green" ? "text-green-700"
+    tone === "amber" ? "text-aviso-800"
+    : tone === "blue" ? "text-info-800"
+    : tone === "red" ? "text-error-700"
+    : tone === "green" ? "text-ok-700"
     : "";
   return (
     <div className="min-w-0">

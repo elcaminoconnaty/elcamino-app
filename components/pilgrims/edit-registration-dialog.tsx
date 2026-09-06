@@ -92,7 +92,7 @@ export function EditRegistrationDialog({
             ))}
           </select>
           {cambiaCamino && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-aviso-700">
               Los abonos y el plan de pagos se mueven con la inscripción al nuevo camino. Revisá que las fechas de las cuotas sigan teniendo sentido.
             </p>
           )}

@@ -9,10 +9,12 @@ const badgeVariants = cva(
       variant: {
         default: "border-transparent bg-primary text-primary-foreground",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
-        accent: "border-transparent bg-camino-yellow text-camino-ink",
+        // Piedra con filete de ocre: la insignia señala sin gastar el acento, que el
+        // brandbook reserva para una sola acción por pantalla. 6,88:1.
+        accent: "border-ocre/50 bg-piedra text-aviso-900",
         outline: "text-foreground",
-        success: "border-transparent bg-green-100 text-green-900",
-        warning: "border-transparent bg-amber-100 text-amber-900",
+        success: "border-transparent bg-ok-100 text-ok-900",
+        warning: "border-transparent bg-aviso-100 text-aviso-900",
         destructive: "border-transparent bg-destructive text-destructive-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",
       },
