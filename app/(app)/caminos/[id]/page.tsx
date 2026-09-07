@@ -21,6 +21,7 @@ import { MoneyPanorama } from "@/components/departures/money-panorama";
 import { type DepartureFinance } from "@/lib/finance";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
 import type { Departure } from "@/types/db";
+import { BedDouble, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,22 @@ export default async function DepartureDetailPage({
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <TrmSelector />
+            <a
+              href={`/api/export/caminos/${d.id}/habitaciones`}
+              download
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
+              title="Excel con la distribución de habitaciones por hospedaje y día"
+            >
+              <BedDouble className="h-4 w-4" /> Habitaciones
+            </a>
+            <a
+              href={`/api/export/caminos/${d.id}/peregrinos`}
+              download
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
+              title="Excel con los datos de contacto y pasaporte de cada peregrino"
+            >
+              <Users className="h-4 w-4" /> Peregrinos
+            </a>
             <Link href={`/caminos/${d.id}/wizard`} className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-3 py-1.5 text-sm font-medium hover:bg-ocre-profundo">
               ✨ Wizard
             </Link>

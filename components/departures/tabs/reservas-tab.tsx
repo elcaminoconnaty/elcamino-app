@@ -8,6 +8,7 @@ import { AddReservation } from "@/components/departures/add-reservation";
 import { ImportReservationFromEmail } from "@/components/departures/import-reservation-from-email";
 import { EditReservationDialog } from "@/components/departures/edit-reservation-dialog";
 import { RegisterReservationPayment } from "@/components/departures/register-reservation-payment";
+import { RoomingDialog } from "@/components/departures/rooming-dialog";
 import { ROOM_TYPE_LABELS } from "@/lib/data/rooms";
 import { AlertTriangle, Coffee, UtensilsCrossed } from "lucide-react";
 import { formatEUR } from "@/lib/utils";
@@ -24,7 +25,7 @@ const SHORT_LABEL: Record<string, string> = {
 
 export async function ReservasTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: reservations }, { data: providers }, { data: finance }, { data: roomsAll }, { data: paymentsAgg }] = await Promise.all([
+  const [{ data: reservations }, { data: providers }, { data: finance }, { data: roomsAll }, { data: paymentsAgg }, { data: assignments }] = await Promise.all([
     supabase
       .from("reservations")
       .select("*, providers(name, type)")
@@ -35,6 +36,10 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
     supabase.from("v_departure_finance").select("inscritos_total").eq("departure_id", departureId).maybeSingle(),
     supabase.from("reservation_rooms").select("*").order("position"),
     supabase.from("v_reservation_payments").select("reservation_id, paid_eur, paid_pct, saldo_eur").eq("departure_id", departureId),
+    supabase
+      .from("room_assignments")
+      .select("reservation_id, pilgrim_id, reservations!inner(departure_id)")
+      .eq("reservations.departure_id", departureId),
   ]);
 
   const inscritos = Number((finance as any)?.inscritos_total ?? 0);
@@ -51,6 +56,11 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
       paid_pct: Number(p.paid_pct ?? 0),
       saldo_eur: Number(p.saldo_eur ?? 0),
     });
+  });
+
+  const asignadosPorReserva = new Map<string, number>();
+  (assignments ?? []).forEach((a: any) => {
+    asignadosPorReserva.set(a.reservation_id, (asignadosPorReserva.get(a.reservation_id) ?? 0) + 1);
   });
 
   function describeRooms(rooms: any[]): string {
@@ -79,6 +89,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                   <TableHead>Proveedor / Lugar</TableHead>
                   <TableHead>Habitaciones</TableHead>
                   <TableHead className="text-right">Plazas</TableHead>
+                  <TableHead className="text-right">Repartidos</TableHead>
                   <TableHead className="text-right">Costo</TableHead>
                   <TableHead className="text-right">Pagado</TableHead>
                   <TableHead>Estado</TableHead>
@@ -122,6 +133,21 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                           <div className="text-[10px] text-error-700 font-medium">⚠ &lt; {inscritos}</div>
                         )}
                       </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        {rooms.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        ) : (
+                          (() => {
+                            const asignados = asignadosPorReserva.get(r.id) ?? 0;
+                            const completo = inscritos > 0 && asignados >= inscritos;
+                            return (
+                              <span className={`text-xs font-medium ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}>
+                                {asignados}{inscritos > 0 ? `/${inscritos}` : ""}
+                              </span>
+                            );
+                          })()
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <EurCop value={r.confirmed_cost_eur ?? r.estimated_cost_eur} />
                       </TableCell>
@@ -148,6 +174,13 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                       <TableCell>
                         <div className="flex gap-1">
                           <EditReservationDialog reservation={r} providers={providers ?? []} departureId={departureId} />
+                          {rooms.length > 0 && (
+                            <RoomingDialog
+                              reservationId={r.id}
+                              departureId={departureId}
+                              providerName={r.providers?.name}
+                            />
+                          )}
                           <RegisterReservationPayment reservation={r} />
                         </div>
                       </TableCell>

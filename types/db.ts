@@ -34,10 +34,30 @@ export type Pilgrim = {
   phone: string | null;
   country: string | null;
   document_id: string | null;
+  document_kind: string | null;
   birth_date: string | null;
+  nationality: string | null;
+  sex: string | null;
+  address: string | null;
+  passport_number: string | null;
+  passport_issue_date: string | null;
+  passport_expiry_date: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   dietary_notes: string | null;
+  is_team: boolean | null;
+  deleted_at: string | null;
+  notes: string | null;
+};
+
+/** Quién duerme en cuál habitación física de una reserva. */
+export type RoomAssignment = {
+  id: string;
+  reservation_id: string;
+  reservation_room_id: string;
+  /** Cuál de las N habitaciones iguales de esa fila (1-indexado). */
+  room_index: number;
+  pilgrim_id: string;
   notes: string | null;
 };
 
