@@ -14,6 +14,7 @@ import { LiquidacionTab } from "@/components/departures/tabs/liquidacion-tab";
 import { PresupuestoTab } from "@/components/departures/tabs/presupuesto-tab";
 import { ViaticosTab } from "@/components/departures/tabs/viaticos-tab";
 import { ReservasTab } from "@/components/departures/tabs/reservas-tab";
+import { HabitacionesTab } from "@/components/departures/tabs/habitaciones-tab";
 import { GastosTab } from "@/components/departures/tabs/gastos-tab";
 import { DocumentoTab } from "@/components/departures/tabs/documento-tab";
 import { ContratosTab } from "@/components/departures/tabs/contratos-tab";
@@ -34,6 +35,7 @@ const TABS = [
   { value: "presupuesto", label: "Presupuesto" },
   { value: "viaticos", label: "Viáticos equipo" },
   { value: "reservas", label: "Reservas" },
+  { value: "habitaciones", label: "Habitaciones" },
   { value: "gastos", label: "Otros gastos" },
   { value: "documento", label: "Documento de viaje" },
 ];
@@ -166,6 +168,7 @@ export default async function DepartureDetailPage({
         {activeTab === "presupuesto" && <PresupuestoTab departureId={d.id} />}
         {activeTab === "viaticos" && <ViaticosTab departureId={d.id} />}
         {activeTab === "reservas" && <ReservasTab departureId={d.id} />}
+        {activeTab === "habitaciones" && <HabitacionesTab departureId={d.id} />}
         {activeTab === "gastos" && <GastosTab departureId={d.id} />}
         {activeTab === "contratos" && <ContratosTab departureId={d.id} />}
         {activeTab === "documento" && <DocumentoTab departureId={d.id} />}

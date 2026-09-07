@@ -17,7 +17,16 @@ const check = (ok, m) => { console.log(`${ok ? "  ✓" : "  ✗"} ${m}`); if (!o
 
 for (const [tab, esperados] of [
   ["resumen", ["Habitaciones", "Peregrinos", `/api/export/caminos/${DEP}/habitaciones`, `/api/export/caminos/${DEP}/peregrinos`]],
-  ["reservas", ["Repartidos", "Distribución de habitaciones", "Pensión Portomiño"]],
+  ["reservas", ["Repartidos", "tab=habitaciones", "Pensión Portomiño"]],
+  ["habitaciones", [
+    "rooming list de toda la ruta",
+    "Replicar una noche a todas",
+    "Pensión Portomiño",
+    "Parador Santiago",
+    "noches repartidas",
+    "cama libre",
+    "Beatriz Garzón",
+  ]],
 ]) {
   const res = await fetch(`http://localhost:3011/caminos/${DEP}?tab=${tab}`, { headers: { cookie }, redirect: "manual" });
   const html = await res.text();

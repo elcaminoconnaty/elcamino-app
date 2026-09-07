@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -8,7 +9,6 @@ import { AddReservation } from "@/components/departures/add-reservation";
 import { ImportReservationFromEmail } from "@/components/departures/import-reservation-from-email";
 import { EditReservationDialog } from "@/components/departures/edit-reservation-dialog";
 import { RegisterReservationPayment } from "@/components/departures/register-reservation-payment";
-import { RoomingDialog } from "@/components/departures/rooming-dialog";
 import { ROOM_TYPE_LABELS } from "@/lib/data/rooms";
 import { AlertTriangle, Coffee, UtensilsCrossed } from "lucide-react";
 import { formatEUR } from "@/lib/utils";
@@ -141,9 +141,13 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                             const asignados = asignadosPorReserva.get(r.id) ?? 0;
                             const completo = inscritos > 0 && asignados >= inscritos;
                             return (
-                              <span className={`text-xs font-medium ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}>
+                              <Link
+                                href={`/caminos/${departureId}?tab=habitaciones`}
+                                title="Repartir la gente en las habitaciones"
+                                className={`text-xs font-medium hover:underline ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}
+                              >
                                 {asignados}{inscritos > 0 ? `/${inscritos}` : ""}
-                              </span>
+                              </Link>
                             );
                           })()
                         )}
@@ -174,13 +178,6 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                       <TableCell>
                         <div className="flex gap-1">
                           <EditReservationDialog reservation={r} providers={providers ?? []} departureId={departureId} />
-                          {rooms.length > 0 && (
-                            <RoomingDialog
-                              reservationId={r.id}
-                              departureId={departureId}
-                              providerName={r.providers?.name}
-                            />
-                          )}
                           <RegisterReservationPayment reservation={r} />
                         </div>
                       </TableCell>

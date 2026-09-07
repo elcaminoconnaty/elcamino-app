@@ -39,6 +39,22 @@ export function appendSheet(wb: XLSX.WorkBook, name: string, rows: Record<string
   XLSX.utils.book_append_sheet(wb, ws, sheetName(name));
 }
 
+/**
+ * Hoja armada fila por fila, para las que llevan un encabezado antes de la tabla
+ * (la que se le manda a cada hotel). El ancho sale del contenido real de cada
+ * columna, ignorando las filas de título, que si no lo desbordan todo.
+ */
+export function appendAoaSheet(wb: XLSX.WorkBook, name: string, aoa: (string | number)[][]) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const columnas = Math.max(...aoa.map((f) => f.length), 1);
+  const filasTabla = aoa.filter((f) => f.length > 2);
+  ws["!cols"] = Array.from({ length: columnas }, (_, c) => {
+    const largest = filasTabla.reduce((max, f) => Math.max(max, String(f[c] ?? "").length), 8);
+    return { wch: Math.min(largest + 2, 40) };
+  });
+  XLSX.utils.book_append_sheet(wb, ws, sheetName(name));
+}
+
 export function xlsxResponse(wb: XLSX.WorkBook, filename: string) {
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
   return new NextResponse(new Uint8Array(buf), {
