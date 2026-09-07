@@ -99,6 +99,20 @@ function configuracion() {
   return { apiKey, remitente };
 }
 
+/**
+ * ¿Está el correo configurado? Se pregunta antes de un envío en lote: sin esto, una clave
+ * que falta se ve como trece fallos idénticos e ilegibles, uno por peregrino, después de
+ * haber generado trece contratos.
+ */
+export async function problemaDeConfiguracion(): Promise<string | null> {
+  try {
+    configuracion();
+    return null;
+  } catch (e: any) {
+    return e?.message ?? "El correo no está configurado.";
+  }
+}
+
 function extension(nombre: string): string {
   const i = nombre.lastIndexOf(".");
   return i < 0 ? "" : nombre.slice(i).toLowerCase();

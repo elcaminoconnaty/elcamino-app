@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ContractCard, type EstadoContrato } from "@/components/pilgrims/contract-card";
 import { revisarContrato } from "@/lib/actions/contracts";
 import type { RevisionContrato } from "@/lib/contracts/datos";
+import { EnvioMasivoContratos } from "@/components/contracts/envio-masivo";
 
 /**
  * Los contratos de un camino, todos en una pantalla.
@@ -102,7 +103,10 @@ export async function ContratosTab({ departureId }: { departureId: string }) {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Contratos del camino</CardTitle>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base">Contratos del camino</CardTitle>
+            <EnvioMasivoContratos departureId={departureId} />
+          </div>
           <CardDescription>
             {firmados.length} firmado{firmados.length === 1 ? "" : "s"} · {emitidos.length} emitido
             {emitidos.length === 1 ? "" : "s"} · {listos.length} listo{listos.length === 1 ? "" : "s"} para

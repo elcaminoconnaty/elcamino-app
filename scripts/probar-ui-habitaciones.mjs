@@ -18,6 +18,7 @@ const check = (ok, m) => { console.log(`${ok ? "  ✓" : "  ✗"} ${m}`); if (!o
 for (const [tab, esperados] of [
   ["resumen", ["Habitaciones", "Peregrinos", `/api/export/caminos/${DEP}/habitaciones`, `/api/export/caminos/${DEP}/peregrinos`]],
   ["reservas", ["Repartidos", "tab=habitaciones", "Pensión Portomiño"]],
+  ["contratos", ["Contratos del camino", "Enviar a todos"]],
   ["habitaciones", [
     "rooming list de toda la ruta",
     "Replicar una noche a todas",
