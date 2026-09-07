@@ -49,6 +49,31 @@ export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
           {/* La dirección y el tipo de documento son lo que el contrato necesita y la ficha
               no guardaba: la cláusula 23 fija dónde se notifica al viajero, y la cláusula de
               partes dice si se identifica con pasaporte o con cédula. */}
+          {/* El pasaporte y el sexo salían solo del OCR, y mientras el peregrino no subiera la
+              foto no había dónde escribirlos: el contrato quedaba bloqueado sin salida. El
+              sexo usa las mismas letras que lee Claude del pasaporte (M/F), para que subirlo
+              después no choque con lo que se escribió a mano. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Pasaporte</Label>
+              <Input name="passport_number" defaultValue={pilgrim.passport_number ?? ""} placeholder="Número" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Sexo</Label>
+              <select
+                name="sex"
+                defaultValue={pilgrim.sex ?? ""}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Sin dato</option>
+                <option value="F">Femenino</option>
+                <option value="M">Masculino</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                El contrato dice «identificada» o «identificado» según esto. Sin el dato no se puede emitir.
+              </p>
+            </div>
+          </div>
           <div className="grid gap-2">
             <Label>Dirección de notificaciones</Label>
             <Input name="address" defaultValue={pilgrim.address ?? ""} placeholder="Calle, número, ciudad y país" />

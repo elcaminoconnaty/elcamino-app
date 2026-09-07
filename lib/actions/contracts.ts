@@ -26,6 +26,17 @@ import { CONTACTO } from "@/lib/brand";
 
 const RUTA_PEREGRINO = (id: string) => `/peregrinos/${id}`;
 
+/**
+ * El contrato se ve en dos sitios: la ficha del peregrino y la pestaña Contratos del camino.
+ * Se revalidan los dos siempre, porque desde la pestaña se emite igual que desde la ficha y
+ * si no se queda mostrando el estado anterior. Va el patrón de la ruta —no un id— porque acá
+ * no sabemos de qué salida es la inscripción.
+ */
+function revalidarContrato(pilgrimId: string) {
+  revalidatePath(RUTA_PEREGRINO(pilgrimId));
+  revalidatePath("/caminos/[id]", "page");
+}
+
 function baseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
@@ -159,7 +170,7 @@ export async function generarContrato(
   ]);
 
   await anotar(creado.id, "creado", { detail: { version, minuta: minuta.version, sha256: huella } });
-  revalidatePath(RUTA_PEREGRINO(pilgrimId));
+  revalidarContrato(pilgrimId);
   return { contractId: creado.id, codigo, version };
 }
 
@@ -218,7 +229,7 @@ export async function enviarContratoAFirmar(contractId: string, pilgrimId: strin
     .eq("id", contractId);
 
   await anotar(contractId, "enviado", { detail: { to: s.viajero_email, messageId: r.messageId } });
-  revalidatePath(RUTA_PEREGRINO(pilgrimId));
+  revalidarContrato(pilgrimId);
   return { ok: true as const };
 }
 
@@ -234,7 +245,7 @@ export async function anularContrato(contractId: string, pilgrimId: string, moti
     .update({ status: "anulado", revoked_at: new Date().toISOString() })
     .eq("id", contractId);
   await anotar(contractId, "anulado", { detail: { motivo: motivo ?? null } });
-  revalidatePath(RUTA_PEREGRINO(pilgrimId));
+  revalidarContrato(pilgrimId);
 }
 
 /** URL firmada de corta vida para descargar el PDF. Nada se sirve directo desde Storage. */

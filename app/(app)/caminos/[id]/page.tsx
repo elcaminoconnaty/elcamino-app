@@ -16,6 +16,7 @@ import { ViaticosTab } from "@/components/departures/tabs/viaticos-tab";
 import { ReservasTab } from "@/components/departures/tabs/reservas-tab";
 import { GastosTab } from "@/components/departures/tabs/gastos-tab";
 import { DocumentoTab } from "@/components/departures/tabs/documento-tab";
+import { ContratosTab } from "@/components/departures/tabs/contratos-tab";
 import { MoneyPanorama } from "@/components/departures/money-panorama";
 import { type DepartureFinance } from "@/lib/finance";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
@@ -28,6 +29,7 @@ const TABS = [
   { value: "pagos", label: "Pagos" },
   { value: "liquidacion", label: "Liquidación" },
   { value: "peregrinos", label: "Peregrinos" },
+  { value: "contratos", label: "Contratos" },
   { value: "presupuesto", label: "Presupuesto" },
   { value: "viaticos", label: "Viáticos equipo" },
   { value: "reservas", label: "Reservas" },
@@ -148,6 +150,7 @@ export default async function DepartureDetailPage({
         {activeTab === "viaticos" && <ViaticosTab departureId={d.id} />}
         {activeTab === "reservas" && <ReservasTab departureId={d.id} />}
         {activeTab === "gastos" && <GastosTab departureId={d.id} />}
+        {activeTab === "contratos" && <ContratosTab departureId={d.id} />}
         {activeTab === "documento" && <DocumentoTab departureId={d.id} />}
       </div>
     </div>

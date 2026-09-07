@@ -14,6 +14,11 @@ export async function createPilgrim(formData: FormData) {
     // Con qué documento se identifica en el contrato. En null se deduce: pasaporte si hay
     // número de pasaporte cargado.
     document_kind: formData.get("document_kind")?.toString() || null,
+    // Pasaporte y sexo también se escriben a mano: hasta ahora solo los llenaba el OCR, así
+    // que un peregrino que no subiera la foto dejaba el contrato bloqueado sin salida. El
+    // sexo decide si el contrato dice "identificado" o "identificada".
+    passport_number: formData.get("passport_number")?.toString() || null,
+    sex: formData.get("sex")?.toString() || null,
     // Dirección de notificaciones de la cláusula 23. Sin esto no se puede emitir contrato.
     address: formData.get("address")?.toString() || null,
     birth_date: formData.get("birth_date")?.toString() || null,
@@ -39,6 +44,11 @@ export async function updatePilgrim(id: string, formData: FormData) {
     // Con qué documento se identifica en el contrato. En null se deduce: pasaporte si hay
     // número de pasaporte cargado.
     document_kind: formData.get("document_kind")?.toString() || null,
+    // Pasaporte y sexo también se escriben a mano: hasta ahora solo los llenaba el OCR, así
+    // que un peregrino que no subiera la foto dejaba el contrato bloqueado sin salida. El
+    // sexo decide si el contrato dice "identificado" o "identificada".
+    passport_number: formData.get("passport_number")?.toString() || null,
+    sex: formData.get("sex")?.toString() || null,
     // Dirección de notificaciones de la cláusula 23. Sin esto no se puede emitir contrato.
     address: formData.get("address")?.toString() || null,
     birth_date: formData.get("birth_date")?.toString() || null,
