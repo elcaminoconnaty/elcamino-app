@@ -32,7 +32,7 @@ const fallo = (t: string) => { console.error(`  ✗ ${t}`); process.exitCode = 1
 
 async function main() {
   if (!REG) throw new Error("Falta el id de la inscripción.");
-  for (const v of ["SUPABASE_SERVICE_ROLE_KEY", "GMAIL_APP_PASSWORD", "NEXT_PUBLIC_APP_URL"]) {
+  for (const v of ["SUPABASE_SERVICE_ROLE_KEY", "BREVO_API_KEY", "BREVO_SENDER_EMAIL", "NEXT_PUBLIC_APP_URL"]) {
     if (!process.env[v]) throw new Error(`Falta ${v} en .env.local`);
   }
   const db = createAdminClient();
