@@ -67,7 +67,7 @@ if (fatal) {
 
 const dominio = remitente.split("@")[1];
 
-console.log(`\n2. DNS de ${dominio}`);
+console.log(`\n2. DNS de ${dominio} (lo que ve un resolver: puede ir detrás de lo publicado)`);
 // Brevo autentica con dos CNAME de DKIM y un TXT con su código; no pide SPF. Se consulta el
 // DNS público y no el panel de Brevo porque es donde de verdad tiene que estar el registro,
 // y porque Brevo cachea su propia verificación.
@@ -129,12 +129,12 @@ if (remitentes.ok) {
 
 const dominios = await brevo("/senders/domains");
 if (dominios.ok) {
-  const d = (dominios.datos?.domains ?? []).find((x) => x.domain?.toLowerCase() === dominio);
+  const d = (dominios.datos?.domains ?? []).find((x) => x.domain_name?.toLowerCase() === dominio);
   if (!d) mal(`${dominio} no está agregado como dominio en esta cuenta de Brevo.`);
   else if (d.authenticated) ok(`${dominio} está autenticado (DKIM y SPF validados por Brevo).`);
   else {
     mal(`${dominio} está agregado pero SIN autenticar: Brevo todavía no ve los registros.`);
-    nota("El DNS tarda; si los TXT ya están puestos, dale a 'Verify' en Brevo y reintenta.");
+    nota("El DNS tarda; si los registros ya están puestos, dale a 'Verificar' en Brevo y reintenta.");
   }
 } else {
   nota(`No se pudo leer el estado de los dominios (${dominios.estado}); revísalo en el panel.`);
