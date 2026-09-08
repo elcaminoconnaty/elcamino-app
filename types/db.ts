@@ -68,6 +68,9 @@ export type Registration = {
   status: "pre_inscrito" | "inscrito" | "confirmado" | "viajado" | "cancelado";
   total_eur: number;
   discount_eur: number;
+  /** Penalidad en EUR que se suma a lo que debe (ej. cambio de camino). */
+  penalty_eur: number;
+  penalty_note: string | null;
   paid_in_cop_originally: boolean;
   frozen_trm_eur_cop: number | null;
   frozen_trm_date: string | null;
@@ -222,6 +225,9 @@ export type PilgrimBalance = {
   eur_fijo: number;
   is_team: boolean;
   settlement_mode: SettlementMode;
+  /** Ya incluida en `net_total_eur`. */
+  penalty_eur: number;
+  penalty_note: string | null;
 };
 
 export type UpcomingInstallment = {

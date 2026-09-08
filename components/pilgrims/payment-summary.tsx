@@ -1,7 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEUR, formatCOP } from "@/lib/utils";
 
-export function PaymentSummary({ payments, totalEur }: { payments: any[]; totalEur: number }) {
+export function PaymentSummary({
+  payments,
+  totalEur,
+  penaltyEur = 0,
+}: {
+  payments: any[];
+  /** Total acordado, con la penalidad ya incluida. */
+  totalEur: number;
+  /** Penalidades cobradas (ej. cambio de camino); solo para mostrarlas aparte. */
+  penaltyEur?: number;
+}) {
   let copPaid = 0;
   let copEurEquivalent = 0;
   let eurPaid = 0;
@@ -47,6 +57,22 @@ export function PaymentSummary({ payments, totalEur }: { payments: any[]; totalE
         </div>
 
         <div className="space-y-1.5 text-sm">
+          {penaltyEur > 0 && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Precio del viaje</span>
+                <span>{formatEUR(totalEur - penaltyEur)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Penalidad</span>
+                <span className="text-aviso-800">+ {formatEUR(penaltyEur)}</span>
+              </div>
+              <div className="flex justify-between font-medium pb-1.5 border-b mb-1.5">
+                <span>Total acordado</span>
+                <span>{formatEUR(totalEur)}</span>
+              </div>
+            </>
+          )}
           {copPaid > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Pagado en COP</span>

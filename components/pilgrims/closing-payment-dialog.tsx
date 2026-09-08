@@ -145,7 +145,11 @@ export function ClosingPaymentDialog({
 
         {/* Cómo se llegó a este monto */}
         <div className="rounded-md border border-ocre bg-alba p-3 space-y-1 text-sm">
-          <Fila label="Total del viaje" value={formatEUR(settlement.net_total_eur)} />
+          <Fila
+            label="Total del viaje"
+            value={formatEUR(settlement.net_total_eur)}
+            sub={Number(settlement.penalty_eur) > 0 ? `Incluye penalidad de ${formatEUR(Number(settlement.penalty_eur))}` : undefined}
+          />
           <Fila
             label={conRecalculo ? "Abonos re-valorados a la tasa de cierre" : "Ya abonado"}
             value={formatEUR(conRecalculo ? settlement.paid_eur_cierre : settlement.paid_eur_historico)}

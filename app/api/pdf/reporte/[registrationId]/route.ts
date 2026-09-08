@@ -41,6 +41,8 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
         departure_name: (reg as any)?.departures?.name ?? "—",
         departure_start_date: (reg as any)?.departures?.start_date ?? null,
         total_eur: Number(balance.net_total_eur ?? 0),
+        penalty_eur: Number(balance.penalty_eur ?? 0),
+        penalty_note: balance.penalty_note ?? null,
         paid_eur: Number(balance.paid_eur ?? 0),
         pending_eur: Number(balance.pending_eur ?? 0),
         pending_cop_reference: balance.pending_cop_reference != null ? Number(balance.pending_cop_reference) : null,

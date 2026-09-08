@@ -47,6 +47,8 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
         departure_name: s.departure_name,
         departure_start_date: s.start_date,
         net_total_eur: Number(s.net_total_eur),
+        penalty_eur: Number(s.penalty_eur ?? 0),
+        penalty_note: s.penalty_note ?? null,
         settlement_trm: Number(s.settlement_trm),
         settlement_date: s.settlement_date,
         paid_eur_historico: Number(s.paid_eur_historico),

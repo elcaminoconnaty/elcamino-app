@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateRegistrationDetails } from "@/lib/actions/pilgrims";
 import { toast } from "@/components/ui/toaster";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatEUR } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 
 type DepartureOption = { id: string; name: string; start_date: string | null; status: string };
@@ -24,6 +24,9 @@ export function EditRegistrationDialog({
     departure_id: string;
     total_eur: number;
     discount_eur: number;
+    /** Penalidad en EUR (ej. por cambio de camino). Se suma a lo que debe. */
+    penalty_eur?: number;
+    penalty_note?: string | null;
     status: string;
     paid_in_cop_originally: boolean;
     notes?: string | null;
@@ -35,17 +38,25 @@ export function EditRegistrationDialog({
   const [departureId, setDepartureId] = useState(registration.departure_id);
   const [total, setTotal] = useState(String(registration.total_eur ?? ""));
   const [discount, setDiscount] = useState(String(registration.discount_eur ?? "0"));
+  const [penalty, setPenalty] = useState(String(registration.penalty_eur ?? "0"));
+  const [penaltyNote, setPenaltyNote] = useState(registration.penalty_note ?? "");
   const [status, setStatus] = useState(registration.status);
   const [cop, setCop] = useState(registration.paid_in_cop_originally);
   const [notes, setNotes] = useState(registration.notes ?? "");
   const router = useRouter();
 
   const cambiaCamino = departureId !== registration.departure_id;
+  const penalidad = Number(penalty) || 0;
+  const totalAPagar = (Number(total) || 0) - (Number(discount) || 0) + penalidad;
 
   async function submit() {
     const t = Number(total);
     if (!t || t <= 0) {
       toast({ title: "Total inválido", variant: "destructive" });
+      return;
+    }
+    if (penalidad < 0) {
+      toast({ title: "La penalidad no puede ser negativa", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -54,6 +65,8 @@ export function EditRegistrationDialog({
         departure_id: departureId,
         total_eur: t,
         discount_eur: Number(discount) || 0,
+        penalty_eur: penalidad,
+        penalty_note: penalidad > 0 ? penaltyNote.trim() || null : null,
         status,
         paid_in_cop_originally: cop,
         notes: notes || null,
@@ -75,7 +88,7 @@ export function EditRegistrationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar inscripción</DialogTitle>
-          <DialogDescription>Cambiá el camino, el precio acordado o el estado de esta inscripción.</DialogDescription>
+          <DialogDescription>Cambiá el camino, el precio acordado, una penalidad o el estado de esta inscripción.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2">
@@ -93,7 +106,8 @@ export function EditRegistrationDialog({
           </select>
           {cambiaCamino && (
             <p className="text-xs text-aviso-700">
-              Los abonos y el plan de pagos se mueven con la inscripción al nuevo camino. Revisá que las fechas de las cuotas sigan teniendo sentido.
+              Los abonos y el plan de pagos se mueven con la inscripción al nuevo camino. Revisá que las fechas de las
+              cuotas sigan teniendo sentido, y si el cambio tiene penalidad, cargala abajo para que el saldo quede bien.
             </p>
           )}
         </div>
@@ -108,6 +122,27 @@ export function EditRegistrationDialog({
             <Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} />
           </div>
         </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label>Penalidad (EUR)</Label>
+            <Input type="number" step="0.01" min="0" value={penalty} onChange={(e) => setPenalty(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Motivo de la penalidad</Label>
+            <Input
+              value={penaltyNote}
+              onChange={(e) => setPenaltyNote(e.target.value)}
+              placeholder="Cambio de camino"
+              disabled={penalidad <= 0}
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          La penalidad se suma a lo que debe el peregrino; los abonos que ya hizo quedan como están.
+          {" "}Total a pagar: <strong>{formatEUR(totalAPagar)}</strong>
+          {penalidad > 0 && ` (precio ${formatEUR(totalAPagar - penalidad)} + penalidad ${formatEUR(penalidad)})`}.
+        </p>
 
         <div className="grid gap-2">
           <Label>Estado</Label>

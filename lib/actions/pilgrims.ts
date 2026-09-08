@@ -99,10 +99,16 @@ export async function updateRegistrationDetails(id: string, input: {
   departure_id?: string;
   total_eur?: number;
   discount_eur?: number;
+  /** Penalidad en EUR (ej. por cambio de camino). Se suma a lo que debe; no toca los abonos. */
+  penalty_eur?: number;
+  penalty_note?: string | null;
   status?: string;
   paid_in_cop_originally?: boolean;
   notes?: string | null;
 }) {
+  if (input.penalty_eur != null && (!Number.isFinite(input.penalty_eur) || input.penalty_eur < 0)) {
+    throw new Error("La penalidad no puede ser negativa.");
+  }
   const supabase = createClient();
   const { data: before, error: beforeErr } = await supabase
     .from("registrations")

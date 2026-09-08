@@ -16,7 +16,10 @@ type ReporteData = {
   pilgrim_email: string | null;
   departure_name: string;
   departure_start_date: string | null;
+  /** Total acordado, con la penalidad incluida. */
   total_eur: number;
+  penalty_eur: number;
+  penalty_note: string | null;
   paid_eur: number;
   pending_eur: number;
   pending_cop_reference: number | null;
@@ -115,7 +118,18 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
 
         <View style={base.section}>
           <Text style={base.sectionTitle}>Resumen</Text>
-          <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
+          {data.penalty_eur > 0 ? (
+            <>
+              <View style={base.row}><Text style={base.rowLabel}>Precio del viaje</Text><Text>{fmt.eur(data.total_eur - data.penalty_eur)}</Text></View>
+              <View style={base.row}>
+                <Text style={base.rowLabel}>Penalidad{data.penalty_note ? ` (${data.penalty_note})` : ""}</Text>
+                <Text>+ {fmt.eur(data.penalty_eur)}</Text>
+              </View>
+              <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text style={base.rowValue}>{fmt.eur(data.total_eur)}</Text></View>
+            </>
+          ) : (
+            <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
+          )}
           {hayCierre ? (
             <>
               <View style={base.row}><Text style={base.rowLabel}>Total abonado, a la tasa de cierre</Text><Text>{fmt.eur(data.paid_eur_cierre)}</Text></View>

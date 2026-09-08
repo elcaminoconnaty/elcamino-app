@@ -50,7 +50,10 @@ export type LiquidacionData = {
   pilgrim_email: string | null;
   departure_name: string;
   departure_start_date: string | null;
+  /** Valor del viaje con la penalidad incluida. */
   net_total_eur: number;
+  penalty_eur: number;
+  penalty_note: string | null;
   settlement_trm: number;
   settlement_date: string | null;
   paid_eur_historico: number;
@@ -140,6 +143,15 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
           <Text style={base.sectionTitle}>Peregrino</Text>
           <View style={base.row}><Text style={base.rowLabel}>Nombre</Text><Text style={base.rowValue}>{data.pilgrim_name}</Text></View>
           {data.pilgrim_email && <View style={base.row}><Text style={base.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
+          {data.penalty_eur > 0 && (
+            <>
+              <View style={base.row}><Text style={base.rowLabel}>Precio del viaje</Text><Text>{fmt.eur(data.net_total_eur - data.penalty_eur)}</Text></View>
+              <View style={base.row}>
+                <Text style={base.rowLabel}>Penalidad{data.penalty_note ? ` (${data.penalty_note})` : ""}</Text>
+                <Text>+ {fmt.eur(data.penalty_eur)}</Text>
+              </View>
+            </>
+          )}
           <View style={base.row}><Text style={base.rowLabel}>Valor del viaje</Text><Text style={base.rowValue}>{fmt.eur(data.net_total_eur)}</Text></View>
           {data.total_cop_cierre != null && (
             <View style={base.row}><Text style={base.rowLabel}>Valor del viaje en pesos, a la tasa de cierre</Text><Text>{fmt.cop(data.total_cop_cierre)}</Text></View>
@@ -205,7 +217,7 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
         <View style={styles.totalBox}>
           <Text style={base.sectionTitle}>Cómo queda la cuenta</Text>
           <View style={base.row}>
-            <Text style={base.rowLabel}>Valor del viaje</Text>
+            <Text style={base.rowLabel}>Valor del viaje{data.penalty_eur > 0 ? `, con penalidad de ${fmt.eur(data.penalty_eur)}` : ""}</Text>
             <Text>{fmt.eur(data.net_total_eur)}</Text>
           </View>
           {data.cop_revalorado > 0 && (

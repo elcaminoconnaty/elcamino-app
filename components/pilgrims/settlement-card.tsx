@@ -17,6 +17,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
   const sinTasa = s.estado_liquidacion === "sin_tasa";
   const conRecalculo = s.settlement_mode === "recalculo";
   const dif = Number(s.fx_difference_eur ?? 0);
+  const penalidad = Number(s.penalty_eur ?? 0);
   // Una inscripción cancelada no se liquida: sus abonos se retienen o se
   // reembolsan por el flujo de eliminación, no por la tasa de cierre.
   const cancelada = s.status === "cancelado";
@@ -84,7 +85,15 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
           <>
             {/* El recálculo, paso por paso */}
             <div className="space-y-1.5 text-sm">
-              <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
+              {penalidad > 0 ? (
+                <>
+                  <Row label="Precio del viaje" value={formatEUR(Number(s.net_total_eur) - penalidad)} />
+                  <Row label="Penalidad" sub={s.penalty_note ?? undefined} value={`+ ${formatEUR(penalidad)}`} />
+                  <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
+                </>
+              ) : (
+                <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
+              )}
               {conRecalculo && s.cop_revalorado > 0 && (
                 <Row
                   label="Abonos en pesos, re-valorados"

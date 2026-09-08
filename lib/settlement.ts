@@ -64,7 +64,11 @@ export type PilgrimSettlement = {
   departure_name: string;
   start_date: string | null;
   status: string;
+  /** total_eur − discount_eur + penalty_eur. */
   net_total_eur: number;
+  /** Penalidad en EUR ya incluida en `net_total_eur` (p. ej. por cambio de camino). */
+  penalty_eur: number;
+  penalty_note: string | null;
   /** Tasa de cierre con la que se re-valoran los pagos en pesos. */
   settlement_trm: number | null;
   settlement_date: string | null;

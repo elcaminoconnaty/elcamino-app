@@ -197,7 +197,21 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                 <CardDescription>{formatDate(r.start_date)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                {Number(r.penalty_eur) > 0 ? (
+                  <>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Precio del viaje</span><span><EurCop value={Number(r.net_total_eur) - Number(r.penalty_eur)} /></span></div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Penalidad
+                        {r.penalty_note && <span className="block text-[11px] leading-tight">{r.penalty_note}</span>}
+                      </span>
+                      <span className="text-aviso-800">+ <EurCop value={r.penalty_eur} /></span>
+                    </div>
+                    <div className="flex justify-between font-medium"><span>Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                  </>
+                ) : (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                )}
                 <div className="flex justify-between"><span className="text-muted-foreground">Pagado (euros que entraron)</span><span><EurCop value={r.paid_eur} /></span></div>
                 {r.settlement_trm ? (
                   <>
@@ -231,6 +245,8 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
                       departure_id: r.departure_id,
                       total_eur: Number(r.total_eur ?? r.net_total_eur ?? 0),
                       discount_eur: Number(r.discount_eur ?? 0),
+                      penalty_eur: Number(r.penalty_eur ?? 0),
+                      penalty_note: r.penalty_note ?? null,
                       status: r.status,
                       paid_in_cop_originally: r.paid_in_cop_originally,
                       notes: notesByReg.get(r.registration_id) ?? null,
@@ -351,6 +367,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
         <PaymentSummary
           payments={pagos}
           totalEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.net_total_eur || 0), 0)}
+          penaltyEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.penalty_eur || 0), 0)}
         />
       </section>
     </div>
