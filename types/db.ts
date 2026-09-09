@@ -74,6 +74,36 @@ export type ReservationOptOut = {
   reason: string | null;
 };
 
+/** Una sección del menú de una cena ("entrada", "plato fuerte", …). */
+export type ReservationMenuCourse = {
+  id: string;
+  reservation_id: string;
+  course: "entrada" | "fuerte" | "postre" | "bebida" | "otro";
+  label: string | null;
+  position: number;
+  required: boolean;
+};
+
+export type ReservationMenuOption = {
+  id: string;
+  course_id: string;
+  name: string;
+  description: string | null;
+  position: number;
+};
+
+/** Lo que eligió un peregrino en una sección del menú de una cena. */
+export type MealChoice = {
+  id: string;
+  reservation_id: string;
+  pilgrim_id: string;
+  course_id: string;
+  option_id: string;
+  notes: string | null;
+  chosen_via: "peregrino" | "equipo";
+  updated_at: string;
+};
+
 export type Registration = {
   id: string;
   departure_id: string;

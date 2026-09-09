@@ -141,8 +141,19 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                         )}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
+                        {(r.meal_kind === "cena" || rooms.some((rr) => rr.includes_dinner)) && (
+                          <div>
+                            <Link
+                              href={`/caminos/${departureId}?tab=cenas`}
+                              title="Cargar el menú y ver qué eligió cada uno"
+                              className="text-xs font-medium hover:underline text-muted-foreground"
+                            >
+                              Menú
+                            </Link>
+                          </div>
+                        )}
                         {rooms.length === 0 ? (
-                          <span className="text-muted-foreground text-xs">—</span>
+                          r.meal_kind === "cena" ? null : <span className="text-muted-foreground text-xs">—</span>
                         ) : (
                           (() => {
                             const asignados = asignadosPorReserva.get(r.id) ?? 0;

@@ -29,6 +29,15 @@ for (const [tab, esperados] of [
     "Beatriz Garzón",
     "no duerme acá",
   ]],
+  ["cenas", [
+    "eligen los menús de cada cena",
+    "Copiar todos los enlaces",
+    "Casa Camiño",
+    "Che Opedrouzo",
+    "Pons Minea",
+    "sin menú",
+    `/api/export/caminos/${DEP}/cenas`,
+  ]],
 ]) {
   const res = await fetch(`http://localhost:3011/caminos/${DEP}?tab=${tab}`, { headers: { cookie }, redirect: "manual" });
   const html = await res.text();

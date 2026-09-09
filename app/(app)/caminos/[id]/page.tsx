@@ -15,6 +15,7 @@ import { PresupuestoTab } from "@/components/departures/tabs/presupuesto-tab";
 import { ViaticosTab } from "@/components/departures/tabs/viaticos-tab";
 import { ReservasTab } from "@/components/departures/tabs/reservas-tab";
 import { HabitacionesTab } from "@/components/departures/tabs/habitaciones-tab";
+import { CenasTab } from "@/components/departures/tabs/cenas-tab";
 import { GastosTab } from "@/components/departures/tabs/gastos-tab";
 import { DocumentoTab } from "@/components/departures/tabs/documento-tab";
 import { ContratosTab } from "@/components/departures/tabs/contratos-tab";
@@ -22,7 +23,7 @@ import { MoneyPanorama } from "@/components/departures/money-panorama";
 import { type DepartureFinance } from "@/lib/finance";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
 import type { Departure } from "@/types/db";
-import { BedDouble, Users } from "lucide-react";
+import { BedDouble, Users, UtensilsCrossed } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ const TABS = [
   { value: "viaticos", label: "Viáticos equipo" },
   { value: "reservas", label: "Reservas" },
   { value: "habitaciones", label: "Habitaciones" },
+  { value: "cenas", label: "Cenas" },
   { value: "gastos", label: "Otros gastos" },
   { value: "documento", label: "Documento de viaje" },
 ];
@@ -93,6 +95,14 @@ export default async function DepartureDetailPage({
               title="Excel con la distribución de habitaciones por hospedaje y día"
             >
               <BedDouble className="h-4 w-4" /> Habitaciones
+            </a>
+            <a
+              href={`/api/export/caminos/${d.id}/cenas`}
+              download
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
+              title="Excel con la elección de menú de cada peregrino, una pestaña por restaurante"
+            >
+              <UtensilsCrossed className="h-4 w-4" /> Cenas
             </a>
             <a
               href={`/api/export/caminos/${d.id}/peregrinos`}
@@ -169,6 +179,7 @@ export default async function DepartureDetailPage({
         {activeTab === "viaticos" && <ViaticosTab departureId={d.id} />}
         {activeTab === "reservas" && <ReservasTab departureId={d.id} />}
         {activeTab === "habitaciones" && <HabitacionesTab departureId={d.id} />}
+        {activeTab === "cenas" && <CenasTab departureId={d.id} />}
         {activeTab === "gastos" && <GastosTab departureId={d.id} />}
         {activeTab === "contratos" && <ContratosTab departureId={d.id} />}
         {activeTab === "documento" && <DocumentoTab departureId={d.id} />}

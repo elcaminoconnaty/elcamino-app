@@ -9,12 +9,14 @@ export type PilgrimOf = {
   sex: string | null;
   is_team: boolean;
   dietary_notes: string | null;
+  /** Token del enlace personal para elegir cenas, si ya se generó. */
+  menu_token: string | null;
 };
 
 export async function pilgrimsOf(supabase: any, departureId: string): Promise<PilgrimOf[]> {
   const { data } = await supabase
     .from("registrations")
-    .select("id, status, pilgrims!inner(id, full_name, sex, is_team, deleted_at, dietary_notes)")
+    .select("id, status, menu_token, pilgrims!inner(id, full_name, sex, is_team, deleted_at, dietary_notes)")
     .eq("departure_id", departureId)
     .neq("status", "cancelado");
   return (data ?? [])
@@ -26,6 +28,7 @@ export async function pilgrimsOf(supabase: any, departureId: string): Promise<Pi
       sex: r.pilgrims.sex,
       is_team: !!r.pilgrims.is_team,
       dietary_notes: r.pilgrims.dietary_notes ?? null,
+      menu_token: r.menu_token ?? null,
     }))
     .sort((a: PilgrimOf, b: PilgrimOf) => a.full_name.localeCompare(b.full_name, "es"));
 }
