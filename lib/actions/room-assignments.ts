@@ -1,6 +1,8 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { formatDate } from "@/lib/utils";
+import { pilgrimsOf } from "@/lib/data/pilgrims-of";
 import {
   expandSlots,
   validateAssignments,
@@ -9,24 +11,20 @@ import {
 
 export type { AssignmentInput };
 
+/** Lo que el tablero manda por cada noche que tocó. */
+export type NightInput = {
+  reservationId: string;
+  assignments: AssignmentInput[];
+  /** Peregrinos que no duermen esa noche en ese hotel. */
+  optOuts: string[];
+};
+
+export type SaveResult = { ok: true; noches: number } | { ok: false; error: string };
+
 function revalidateDeparture(departureId?: string | null) {
   if (!departureId) return;
   revalidatePath(`/caminos/${departureId}`);
   revalidatePath(`/caminos/${departureId}/wizard`);
-}
-
-/** Los inscritos vigentes del camino, en el orden en que se muestran. */
-async function pilgrimsOf(supabase: any, departureId: string) {
-  const { data } = await supabase
-    .from("registrations")
-    .select("status, pilgrims!inner(id, full_name, sex, is_team, deleted_at)")
-    .eq("departure_id", departureId)
-    .neq("status", "cancelado");
-  return (data ?? [])
-    .map((r: any) => r.pilgrims)
-    .filter((p: any) => p && !p.deleted_at)
-    .map((p: any) => ({ id: p.id, full_name: p.full_name, sex: p.sex, is_team: !!p.is_team }))
-    .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name, "es"));
 }
 
 /** Todo lo que la pantalla de habitaciones necesita para el camino entero. */
@@ -48,19 +46,26 @@ export async function getRoomingBoard(departureId: string) {
   const ids = (reservations ?? []).map((r: any) => r.id);
   if (ids.length === 0) return { nights: [], pilgrims };
 
-  const [{ data: rooms }, { data: assignments }] = await Promise.all([
+  const [{ data: rooms }, { data: assignments }, { data: optOuts }] = await Promise.all([
     supabase
       .from("reservation_rooms")
       .select("id, reservation_id, room_type, rooms_count, capacity_per_room, position, notes")
       .in("reservation_id", ids)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase.from("room_assignments").select("*").in("reservation_id", ids),
+    supabase
+      .from("reservation_opt_outs")
+      .select("reservation_id, pilgrim_id")
+      .in("reservation_id", ids)
+      .eq("kind", "hospedaje"),
   ]);
 
   const roomsBy = new Map<string, any[]>();
   for (const r of rooms ?? []) roomsBy.set(r.reservation_id, [...(roomsBy.get(r.reservation_id) ?? []), r]);
   const asgBy = new Map<string, any[]>();
   for (const a of assignments ?? []) asgBy.set(a.reservation_id, [...(asgBy.get(a.reservation_id) ?? []), a]);
+  const optBy = new Map<string, string[]>();
+  for (const o of optOuts ?? []) optBy.set(o.reservation_id, [...(optBy.get(o.reservation_id) ?? []), o.pilgrim_id]);
 
   const nights = (reservations ?? []).map((r: any) => ({
     id: r.id,
@@ -75,49 +80,59 @@ export async function getRoomingBoard(departureId: string) {
     provider_city: r.providers?.city ?? null,
     slots: expandSlots(roomsBy.get(r.id) ?? []),
     assignments: asgBy.get(r.id) ?? [],
+    optOuts: optBy.get(r.id) ?? [],
   }));
 
   return { nights, pilgrims };
 }
 
-/** Valida contra las habitaciones reales que hay en la base, no contra las que mandó el cliente. */
-async function validate(supabase: any, reservationId: string, assignments: AssignmentInput[]) {
-  const { data: rooms } = await supabase
-    .from("reservation_rooms")
-    .select("id, room_type, rooms_count, capacity_per_room, position")
-    .eq("reservation_id", reservationId);
-  const problema = validateAssignments(assignments, expandSlots(rooms ?? []));
-  if (problema) throw new Error(problema);
-}
-
 /**
- * Única escritura de la distribución. La pantalla de habitaciones deja tocar
- * toda la ruta antes de guardar, así que un botón guarda todas las noches que
- * cambiaron; cada una se valida antes de tocar nada, para no dejar la mitad
- * guardada si una viene mal.
+ * Única escritura de la distribución. La pantalla deja tocar toda la ruta antes de
+ * guardar, así que un botón guarda todas las noches que cambiaron, en una sola
+ * transacción (`save_rooming_board`): si una viene mal, no se toca ninguna.
+ *
+ * Devuelve el problema como dato y no como excepción: en producción Next.js
+ * reemplaza el mensaje de un `throw` por uno genérico, y la gente necesita saber
+ * qué hotel y qué habitación fallaron.
  */
-export async function saveRoomingBoard(
-  departureId: string,
-  nights: { reservationId: string; assignments: AssignmentInput[] }[]
-) {
+export async function saveRoomingBoard(departureId: string, nights: NightInput[]): Promise<SaveResult> {
   const supabase = createClient();
-  for (const n of nights) await validate(supabase, n.reservationId, n.assignments);
+  if (nights.length === 0) return { ok: true, noches: 0 };
 
+  // Prevalidación contra las habitaciones reales, para dar un mensaje con hotel y fecha.
+  const ids = nights.map((n) => n.reservationId);
+  const [{ data: rooms }, { data: reservas }] = await Promise.all([
+    supabase
+      .from("reservation_rooms")
+      .select("id, reservation_id, room_type, rooms_count, capacity_per_room, position")
+      .in("reservation_id", ids),
+    supabase.from("reservations").select("id, check_in, providers(name)").in("id", ids),
+  ]);
+  const roomsBy = new Map<string, any[]>();
+  for (const r of rooms ?? []) roomsBy.set(r.reservation_id, [...(roomsBy.get(r.reservation_id) ?? []), r]);
+  const nombreDe = new Map<string, string>();
+  for (const r of (reservas ?? []) as any[]) {
+    nombreDe.set(r.id, [r.providers?.name, r.check_in ? formatDate(r.check_in) : null].filter(Boolean).join(" · "));
+  }
   for (const n of nights) {
-    const { error: delError } = await supabase.from("room_assignments").delete().eq("reservation_id", n.reservationId);
-    if (delError) throw new Error(delError.message);
-    if (n.assignments.length === 0) continue;
-    const { error } = await supabase.from("room_assignments").insert(
-      n.assignments.map((a) => ({
-        reservation_id: n.reservationId,
+    const problema = validateAssignments(n.assignments, expandSlots(roomsBy.get(n.reservationId) ?? []), n.optOuts);
+    if (problema) return { ok: false, error: `${nombreDe.get(n.reservationId) ?? "Una noche"}: ${problema}` };
+  }
+
+  const { error } = await supabase.rpc("save_rooming_board", {
+    p_departure_id: departureId,
+    p_nights: nights.map((n) => ({
+      reservation_id: n.reservationId,
+      assignments: n.assignments.map((a) => ({
         reservation_room_id: a.reservation_room_id,
         room_index: a.room_index,
         pilgrim_id: a.pilgrim_id,
-      }))
-    );
-    if (error) throw new Error(error.message);
-  }
+      })),
+      opt_outs: n.optOuts.map((pilgrim_id) => ({ pilgrim_id })),
+    })),
+  });
+  if (error) return { ok: false, error: error.message };
 
   revalidateDeparture(departureId);
-  return { noches: nights.length };
+  return { ok: true, noches: nights.length };
 }

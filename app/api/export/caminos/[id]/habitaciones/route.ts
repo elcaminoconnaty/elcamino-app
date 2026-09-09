@@ -41,7 +41,7 @@ function byRoom(rows: Row[]) {
  * habitación con los huéspedes en columnas, que es el formato de rooming list
  * que esperan recibir.
  */
-function hotelSheet(rows: Row[], caminoNombre: string): (string | number)[][] {
+function hotelSheet(rows: Row[], caminoNombre: string, noSeHospedan: Map<string, string[]>): (string | number)[][] {
   const r0 = rows[0];
   const habitaciones = byRoom(rows);
   const maxCapacidad = Math.max(...Array.from(habitaciones.values()).map((g) => Number(g[0].capacity_per_room) || 1), 1);
@@ -82,6 +82,19 @@ function hotelSheet(rows: Row[], caminoNombre: string): (string | number)[][] {
     aoa.push(fila);
   }
 
+  // Quienes no se hospedan alguna de estas noches: el hotel no los espera.
+  const reservasDelHotel = Array.from(new Set(rows.map((r) => r.reservation_id)));
+  const excluidos = reservasDelHotel.flatMap((id) => {
+    const nombres = noSeHospedan.get(id) ?? [];
+    if (nombres.length === 0) return [];
+    const fecha = rows.find((r) => r.reservation_id === id)?.check_in ?? "";
+    return [`${reservasDelHotel.length > 1 && fecha ? `${fecha}: ` : ""}${nombres.join(", ")}`];
+  });
+  if (excluidos.length > 0) {
+    aoa.push([]);
+    aoa.push(["No se hospedan", ...excluidos]);
+  }
+
   // Notas dietarias: lo que el hotel necesita saber antes de cocinar.
   const dietas = rows.filter((r) => r.pilgrim_id && r.dietary_notes);
   if (dietas.length > 0) {
@@ -114,6 +127,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!departure) return NextResponse.json({ error: "Camino no encontrado" }, { status: 404 });
   const caminoNombre = (departure as any).name as string;
 
+  // Quiénes no duermen cada noche ("no duerme acá" en el tablero).
+  const { data: optOuts } = await supabase
+    .from("reservation_opt_outs")
+    .select("reservation_id, pilgrims(full_name)")
+    .in("reservation_id", (alojamientos ?? []).map((r: any) => r.id))
+    .eq("kind", "hospedaje");
+  const noSeHospedan = new Map<string, string[]>();
+  for (const o of (optOuts ?? []) as any[]) {
+    const nombre = o.pilgrims?.full_name;
+    if (!nombre) continue;
+    noSeHospedan.set(o.reservation_id, [...(noSeHospedan.get(o.reservation_id) ?? []), nombre].sort((a, b) => a.localeCompare(b, "es")));
+  }
+
   let rows = (rooming ?? []) as Row[];
   if (hotelFiltro) rows = rows.filter((r) => r.provider_id === hotelFiltro);
 
@@ -140,7 +166,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (hotelFiltro) {
     const grupo = Array.from(porHotel.values())[0];
     if (!grupo) return NextResponse.json({ error: "Ese hotel no tiene habitaciones en este camino" }, { status: 404 });
-    appendAoaSheet(wb, sheetName(grupo[0].provider_name ?? "Hotel"), hotelSheet(grupo, caminoNombre));
+    appendAoaSheet(wb, sheetName(grupo[0].provider_name ?? "Hotel"), hotelSheet(grupo, caminoNombre, noSeHospedan));
     const filename = `rooming-${fileSlug(grupo[0].provider_name ?? "hotel")}-${fileSlug(caminoNombre)}.xlsx`;
     return xlsxResponse(wb, filename);
   }
@@ -179,6 +205,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       "Plazas": plazas,
       "Personas asignadas": personas,
       "Plazas libres": Math.max(plazas - personas, 0),
+      "No se hospedan": (noSeHospedan.get(r.reservation_id) ?? []).join(", "),
       "Estado": r.reservation_status ?? "",
       "Reserva": r.confirmation_ref ?? "",
       "Notas": r.reservation_notes ?? "",
@@ -206,6 +233,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       "Plazas": 0,
       "Personas asignadas": 0,
       "Plazas libres": 0,
+      "No se hospedan": (noSeHospedan.get(r.id) ?? []).join(", "),
       "Estado": r.status ?? "",
       "Reserva": r.confirmation_ref ?? "",
       "Notas": r.notes ?? "",
@@ -222,7 +250,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const n = (usadas.get(nombre) ?? 0) + 1;
     usadas.set(nombre, n);
     if (n > 1) nombre = sheetName(`${nombre} ${n}`);
-    appendAoaSheet(wb, nombre, hotelSheet(grupo, caminoNombre));
+    appendAoaSheet(wb, nombre, hotelSheet(grupo, caminoNombre, noSeHospedan));
   }
 
   // ── Vistas transversales, para Naty ──────────────────────────────────────
@@ -265,7 +293,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       const fila: Record<string, any> = { "Peregrino": nombre };
       for (const n of nochesOrdenadas) {
         const hit = rows.find((r) => r.reservation_id === n.id && r.pilgrim_id === pilgrimId);
-        fila[n.label] = hit ? roomName(hit) : "";
+        fila[n.label] = hit ? roomName(hit) : (noSeHospedan.get(n.id) ?? []).includes(nombre) ? "no duerme" : "";
       }
       return fila;
     });

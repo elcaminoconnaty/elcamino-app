@@ -27,6 +27,7 @@ for (const [tab, esperados] of [
     "noches repartidas",
     "cama libre",
     "Beatriz Garzón",
+    "no duerme acá",
   ]],
 ]) {
   const res = await fetch(`http://localhost:3011/caminos/${DEP}?tab=${tab}`, { headers: { cookie }, redirect: "manual" });

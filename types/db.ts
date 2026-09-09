@@ -61,6 +61,19 @@ export type RoomAssignment = {
   notes: string | null;
 };
 
+/**
+ * Un peregrino que no participa de una reserva concreta: no duerme esa noche en ese
+ * hotel, o no va a esa cena. `kind` distingue las dos porque una misma reserva puede
+ * ser hospedaje y cena a la vez.
+ */
+export type ReservationOptOut = {
+  id: string;
+  reservation_id: string;
+  pilgrim_id: string;
+  kind: "hospedaje" | "cena";
+  reason: string | null;
+};
+
 export type Registration = {
   id: string;
   departure_id: string;

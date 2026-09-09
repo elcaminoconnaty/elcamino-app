@@ -15,9 +15,14 @@ import {
   groupsFromBeds,
   placeGroups,
   fillSequentially,
+  sinPeregrinos,
+  nightProgress,
+  reconcileBeds,
+  nightsSignature,
   type Beds,
   type RoomSlot,
 } from "@/lib/data/rooming";
+import { useResync } from "@/lib/hooks/use-resync";
 import { saveRoomingBoard } from "@/lib/actions/room-assignments";
 import {
   BedDouble,
@@ -27,6 +32,8 @@ import {
   Download,
   Eraser,
   Save,
+  Undo2,
+  UserX,
   Wand2,
 } from "lucide-react";
 
@@ -45,7 +52,15 @@ export type Night = {
   provider_city: string | null;
   slots: RoomSlot[];
   assignments: any[];
+  /** Quiénes no duermen esa noche en ese hotel. */
+  optOuts: string[];
 };
+
+type OptOuts = Record<string, Set<string>>;
+
+function optOutsDe(nights: Night[]): OptOuts {
+  return Object.fromEntries(nights.map((n) => [n.id, new Set(n.optOuts ?? [])]));
+}
 
 export function RoomingBoard({
   departureId,
@@ -60,14 +75,19 @@ export function RoomingBoard({
   const [beds, setBeds] = React.useState<Record<string, Beds>>(() =>
     Object.fromEntries(nights.map((n) => [n.id, bedsFromAssignments(n.slots, n.assignments)]))
   );
+  const [optOuts, setOptOuts] = React.useState<OptOuts>(() => optOutsDe(nights));
   const [dirty, setDirty] = React.useState<Set<string>>(new Set());
   const [saving, setSaving] = React.useState(false);
   const [abiertas, setAbiertas] = React.useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       nights.map((n) => {
-        const asignados = n.assignments.length;
+        const p = nightProgress(
+          pilgrims.map((x) => x.id),
+          bedsFromAssignments(n.slots, n.assignments),
+          n.optOuts ?? []
+        );
         // Las noches ya resueltas arrancan plegadas para no estorbar.
-        return [n.id, !(asignados > 0 && asignados >= pilgrims.length)];
+        return [n.id, !(p.asignados.size > 0 && p.completa)];
       })
     )
   );
@@ -76,15 +96,46 @@ export function RoomingBoard({
     () => new Map(pilgrims.map((p) => [p.id, p.full_name])),
     [pilgrims]
   );
+  const ids = React.useMemo(() => pilgrims.map((p) => p.id), [pilgrims]);
 
-  function asignadosDe(nightId: string) {
-    const set = new Set<string>();
-    Object.values(beds[nightId] ?? {}).forEach((arr) => arr.forEach((id) => id && set.add(id)));
-    return set;
-  }
+  /**
+   * Si otra pestaña editó las habitaciones (o alguien más guardó), el servidor manda
+   * `nights` nuevos. Las noches sin cambios locales se recargan tal cual; las que tienen
+   * cambios sin guardar se reacomodan sobre las habitaciones nuevas para no perderlos.
+   */
+  useResync(nightsSignature(nights), () => {
+    const avisos: string[] = [];
+    setBeds((prev) => {
+      const next: Record<string, Beds> = {};
+      for (const n of nights) {
+        if (dirty.has(n.id) && prev[n.id]) {
+          const r = reconcileBeds(prev[n.id], n.slots);
+          next[n.id] = r.beds;
+          if (r.sinCupo.length > 0) avisos.push(`${r.sinCupo.length} sin cama en ${n.provider_name}`);
+        } else {
+          next[n.id] = bedsFromAssignments(n.slots, n.assignments);
+        }
+      }
+      return next;
+    });
+    setOptOuts((prev) => {
+      const next: OptOuts = {};
+      for (const n of nights) {
+        next[n.id] = dirty.has(n.id) && prev[n.id]
+          ? new Set(Array.from(prev[n.id]).filter((id) => nombres.has(id)))
+          : new Set(n.optOuts ?? []);
+      }
+      return next;
+    });
+    setDirty((prev) => new Set(Array.from(prev).filter((id) => nights.some((n) => n.id === id))));
+    if (avisos.length > 0) {
+      toast({ title: "Cambiaron las habitaciones", description: `${avisos.join(" · ")}. Revisá antes de guardar.` });
+    }
+  });
 
-  function marcar(nightId: string, next: Beds) {
+  function marcar(nightId: string, next: Beds, nextOptOuts?: Set<string>) {
     setBeds((prev) => ({ ...prev, [nightId]: next }));
+    if (nextOptOuts) setOptOuts((prev) => ({ ...prev, [nightId]: nextOptOuts }));
     setDirty((prev) => new Set(prev).add(nightId));
   }
 
@@ -102,8 +153,23 @@ export function RoomingBoard({
     marcar(nightId, next);
   }
 
+  /** Marca o desmarca "no duerme acá". Si tenía cama, se le quita en el mismo paso. */
+  function toggleOptOut(nightId: string, pilgrimId: string) {
+    const actuales = new Set(optOuts[nightId] ?? []);
+    const next: Beds = {};
+    for (const [k, arr] of Object.entries(beds[nightId] ?? {})) next[k] = [...arr];
+    if (actuales.has(pilgrimId)) {
+      actuales.delete(pilgrimId);
+    } else {
+      actuales.add(pilgrimId);
+      for (const arr of Object.values(next)) arr.forEach((id, i) => id === pilgrimId && (arr[i] = ""));
+    }
+    marcar(nightId, next, actuales);
+  }
+
   function llenar(night: Night) {
-    const { beds: next, sinCupo } = fillSequentially(pilgrims.map((p) => p.id), night.slots);
+    const ex = optOuts[night.id] ?? new Set<string>();
+    const { beds: next, sinCupo } = fillSequentially(ids.filter((id) => !ex.has(id)), night.slots);
     marcar(night.id, next);
     if (sinCupo.length > 0) {
       toast({ title: "Faltaron plazas", description: `${sinCupo.length} sin habitación en ${night.provider_name}` });
@@ -114,12 +180,15 @@ export function RoomingBoard({
     marcar(night.id, emptyBeds(night.slots));
   }
 
+  function gruposDe(origenId: string, destinoId: string) {
+    const grupos = groupsFromBeds(beds[origenId] ?? {}).map((g) => g.filter((id) => nombres.has(id)));
+    return sinPeregrinos(grupos, optOuts[destinoId] ?? []);
+  }
+
   /** Copia quién duerme con quién desde otra noche y lo reacomoda acá. */
   function copiarDesde(destino: Night, origenId: string) {
-    const origen = beds[origenId];
-    if (!origen) return;
-    const grupos = groupsFromBeds(origen).map((g) => g.filter((id) => nombres.has(id))).filter((g) => g.length);
-    const { beds: next, sinCupo } = placeGroups(grupos, destino.slots);
+    if (!beds[origenId]) return;
+    const { beds: next, sinCupo } = placeGroups(gruposDe(origenId, destino.id), destino.slots);
     marcar(destino.id, next);
     toast({
       title: "Distribución copiada",
@@ -130,10 +199,8 @@ export function RoomingBoard({
 
   /** Toma los grupos de una noche y los aplica a todas las demás. */
   function replicarATodas(origenId: string) {
-    const origen = beds[origenId];
-    if (!origen) return;
-    const grupos = groupsFromBeds(origen).map((g) => g.filter((id) => nombres.has(id))).filter((g) => g.length);
-    if (grupos.length === 0) {
+    if (!beds[origenId]) return;
+    if (groupsFromBeds(beds[origenId]).length === 0) {
       toast({ title: "Esa noche está vacía", description: "Armá primero una noche y después replicala." });
       return;
     }
@@ -142,7 +209,7 @@ export function RoomingBoard({
     let conProblemas = 0;
     for (const n of nights) {
       if (n.id === origenId || n.slots.length === 0) continue;
-      const r = placeGroups(grupos, n.slots);
+      const r = placeGroups(gruposDe(origenId, n.id), n.slots);
       next[n.id] = r.beds;
       nuevasSucias.add(n.id);
       if (r.sinCupo.length > 0) conProblemas++;
@@ -160,16 +227,28 @@ export function RoomingBoard({
     if (dirty.size === 0) return;
     setSaving(true);
     try {
-      const payload = Array.from(dirty).map((id) => ({
-        reservationId: id,
-        assignments: assignmentsFromBeds(beds[id] ?? {}),
-      }));
-      await saveRoomingBoard(departureId, payload);
+      const payload = Array.from(dirty).map((id) => {
+        const night = nights.find((n) => n.id === id);
+        return {
+          reservationId: id,
+          assignments: assignmentsFromBeds(beds[id] ?? {}, night?.slots),
+          optOuts: Array.from(optOuts[id] ?? []),
+        };
+      });
+      const r = await saveRoomingBoard(departureId, payload);
+      if (!r.ok) {
+        toast({ title: "No se pudo guardar", description: r.error, variant: "destructive" });
+        return;
+      }
       setDirty(new Set());
       toast({ title: "Guardado", description: `${payload.length} noche(s) actualizadas`, variant: "success" });
       router.refresh();
-    } catch (e: any) {
-      toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" });
+    } catch {
+      toast({
+        title: "No se pudo guardar",
+        description: "Se cortó la conexión con el servidor. Revisá internet y volvé a intentar.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -177,7 +256,7 @@ export function RoomingBoard({
 
   const nochesConHabitaciones = nights.filter((n) => n.slots.length > 0);
   const completas = nochesConHabitaciones.filter(
-    (n) => pilgrims.length > 0 && asignadosDe(n.id).size >= pilgrims.length
+    (n) => nightProgress(ids, beds[n.id] ?? {}, optOuts[n.id] ?? []).completa
   ).length;
 
   if (nights.length === 0) {
@@ -243,10 +322,14 @@ export function RoomingBoard({
       </Card>
 
       {nights.map((night) => {
-        const asignados = asignadosDe(night.id);
-        const sinHabitacion = pilgrims.filter((p) => !asignados.has(p.id));
+        const ex = optOuts[night.id] ?? new Set<string>();
+        const progreso = nightProgress(ids, beds[night.id] ?? {}, ex);
+        const asignados = progreso.asignados;
+        const sinHabitacion = pilgrims.filter((p) => progreso.sinHabitacion.includes(p.id));
+        const noDuermen = pilgrims.filter((p) => ex.has(p.id));
+        const esperados = pilgrims.length - noDuermen.length;
         const plazas = night.slots.reduce((s, x) => s + x.capacity, 0);
-        const completa = pilgrims.length > 0 && asignados.size >= pilgrims.length;
+        const completa = progreso.completa;
         const abierta = abiertas[night.id];
         const otras = nochesConHabitaciones.filter(
           (n) => n.id !== night.id && groupsFromBeds(beds[n.id] ?? {}).length > 0
@@ -286,7 +369,10 @@ export function RoomingBoard({
                         completa ? "text-ok-700" : asignados.size > 0 ? "text-aviso-700" : "text-muted-foreground"
                       )}
                     >
-                      {asignados.size}/{pilgrims.length}
+                      {asignados.size}/{esperados}
+                      {noDuermen.length > 0 && (
+                        <span className="text-xs text-muted-foreground font-normal"> · {noDuermen.length} no duerme{noDuermen.length > 1 ? "n" : ""}</span>
+                      )}
                     </span>
                   )}
                 </div>
@@ -304,8 +390,8 @@ export function RoomingBoard({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground">
                           {night.slots.length} habitaciones · {plazas} plazas
-                          {plazas < pilgrims.length && (
-                            <strong className="text-error-700"> · faltan {pilgrims.length - plazas} plazas</strong>
+                          {plazas < esperados && (
+                            <strong className="text-error-700"> · faltan {esperados - plazas} plazas</strong>
                           )}
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -338,7 +424,49 @@ export function RoomingBoard({
 
                       {sinHabitacion.length > 0 && (
                         <div className="rounded-md border border-aviso-200 bg-aviso-50 px-3 py-2 text-xs text-aviso-900">
-                          <strong>Sin habitación:</strong> {sinHabitacion.map((p) => p.full_name).join(", ")}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <strong>Sin habitación:</strong>
+                            {sinHabitacion.map((p) => (
+                              <span
+                                key={p.id}
+                                className="inline-flex items-center gap-1 rounded-full bg-background border border-aviso-200 pl-2 pr-1 py-0.5"
+                              >
+                                {p.full_name}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleOptOut(night.id, p.id)}
+                                  title="No duerme esta noche en este hotel"
+                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] hover:bg-aviso-100"
+                                >
+                                  <UserX className="h-3 w-3" /> no duerme acá
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {noDuermen.length > 0 && (
+                        <div className="rounded-md border bg-alba/60 px-3 py-2 text-xs text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <strong className="text-foreground">No se hospedan:</strong>
+                            {noDuermen.map((p) => (
+                              <span
+                                key={p.id}
+                                className="inline-flex items-center gap-1 rounded-full bg-background border pl-2 pr-1 py-0.5"
+                              >
+                                {p.full_name}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleOptOut(night.id, p.id)}
+                                  title="Deshacer: sí duerme acá"
+                                  className="inline-flex items-center rounded-full p-0.5 hover:bg-accent/10"
+                                >
+                                  <Undo2 className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -369,10 +497,11 @@ export function RoomingBoard({
                                     <option
                                       key={p.id}
                                       value={p.id}
-                                      disabled={p.id !== value && asignados.has(p.id)}
+                                      disabled={p.id !== value && (asignados.has(p.id) || ex.has(p.id))}
                                     >
                                       {p.full_name}
                                       {p.is_team ? " (equipo)" : ""}
+                                      {ex.has(p.id) ? " (no duerme acá)" : ""}
                                     </option>
                                   ))}
                                 </select>

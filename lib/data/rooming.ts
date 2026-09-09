@@ -63,14 +63,23 @@ export function bedsFromAssignments(slots: RoomSlot[], assignments: any[]): Beds
   return beds;
 }
 
-export function assignmentsFromBeds(beds: Beds): AssignmentInput[] {
+/**
+ * Si recibe las habitaciones vigentes, descarta lo que ya no existe (una fila que se
+ * borró o se recortó desde la pestaña Reservas): red de seguridad para no mandar al
+ * servidor camas de una versión vieja del tablero.
+ */
+export function assignmentsFromBeds(beds: Beds, slots?: RoomSlot[]): AssignmentInput[] {
+  const byKey = slots ? new Map(slots.map((s) => [slotKey(s), s])) : null;
   const out: AssignmentInput[] = [];
   for (const [key, arr] of Object.entries(beds)) {
+    const slot = byKey?.get(key);
+    if (byKey && !slot) continue;
     const [reservation_room_id, idx] = key.split(":");
-    for (const pilgrim_id of arr) {
-      if (!pilgrim_id) continue;
+    arr.forEach((pilgrim_id, i) => {
+      if (!pilgrim_id) return;
+      if (slot && i >= slot.capacity) return;
       out.push({ reservation_room_id, room_index: Number(idx), pilgrim_id });
-    }
+    });
   }
   return out;
 }
@@ -131,8 +140,13 @@ export function fillSequentially(pilgrimIds: string[], slots: RoomSlot[]) {
  * vuelve a correr contra las habitaciones reales de la base.
  * Devuelve el mensaje del problema, o null si está bien.
  */
-export function validateAssignments(assignments: AssignmentInput[], slots: RoomSlot[]): string | null {
+export function validateAssignments(
+  assignments: AssignmentInput[],
+  slots: RoomSlot[],
+  optOuts: Iterable<string> = []
+): string | null {
   const byKey = new Map(slots.map((s) => [slotKey(s), s]));
+  const excluidos = new Set(optOuts);
   const vistos = new Set<string>();
   const porSlot = new Map<string, number>();
 
@@ -141,6 +155,7 @@ export function validateAssignments(assignments: AssignmentInput[], slots: RoomS
     const slot = byKey.get(key);
     if (!slot) return "Hay una habitación que ya no existe en esta reserva";
     if (vistos.has(a.pilgrim_id)) return "Un peregrino quedó en dos habitaciones de la misma noche";
+    if (excluidos.has(a.pilgrim_id)) return "Alguien quedó con cama y marcado como que no duerme acá";
     vistos.add(a.pilgrim_id);
     const n = (porSlot.get(key) ?? 0) + 1;
     if (n > slot.capacity) {
@@ -149,4 +164,82 @@ export function validateAssignments(assignments: AssignmentInput[], slots: RoomS
     porSlot.set(key, n);
   }
   return null;
+}
+
+/** Quita de los grupos a quienes no duermen esa noche, y descarta los grupos que quedan vacíos. */
+export function sinPeregrinos(groups: string[][], excluidos: Iterable<string>): string[][] {
+  const ex = new Set(excluidos);
+  return groups.map((g) => g.filter((id) => !ex.has(id))).filter((g) => g.length > 0);
+}
+
+/**
+ * Estado de una noche: quién tiene cama, quién falta, y si está resuelta. Una noche está
+ * completa cuando todos los inscritos tienen cama o están marcados como que no duermen ahí.
+ */
+export function nightProgress(pilgrimIds: string[], beds: Beds, optOuts: Iterable<string>) {
+  const ex = new Set(optOuts);
+  const asignados = new Set<string>();
+  for (const arr of Object.values(beds)) for (const id of arr) if (id) asignados.add(id);
+  const sinHabitacion = pilgrimIds.filter((id) => !asignados.has(id) && !ex.has(id));
+  const completa = pilgrimIds.length > 0 && sinHabitacion.length === 0;
+  return { asignados, sinHabitacion, completa };
+}
+
+/**
+ * Reacomoda una grilla de camas sobre habitaciones que cambiaron (alguien editó la
+ * reserva mientras el tablero estaba abierto). Quien pueda quedarse en su misma cama
+ * se queda; los desplazados se mueven en grupo (los que compartían habitación siguen
+ * juntos) a lo que haya libre. `cambio` avisa si el resultado difiere de lo que había.
+ */
+export function reconcileBeds(prev: Beds, slots: RoomSlot[]) {
+  const beds = emptyBeds(slots);
+  const desplazados: string[][] = [];
+  for (const [key, arr] of Object.entries(prev)) {
+    const nueva = beds[key];
+    const gente = arr.filter(Boolean);
+    if (gente.length === 0) continue;
+    if (nueva && gente.length <= nueva.length) {
+      gente.forEach((id, i) => (nueva[i] = id));
+    } else {
+      desplazados.push(gente);
+    }
+  }
+  const sinCupo: string[] = [];
+  if (desplazados.length > 0) {
+    const ocupados = new Set(Object.keys(beds).filter((k) => beds[k].some(Boolean)));
+    const libres = slots.filter((s) => !ocupados.has(slotKey(s)));
+    const r = placeGroups(desplazados, libres);
+    for (const [k, arr] of Object.entries(r.beds)) if (arr.some(Boolean)) beds[k] = arr;
+    sinCupo.push(...r.sinCupo);
+  }
+  const cambio = JSON.stringify(normalizar(prev)) !== JSON.stringify(normalizar(beds));
+  return { beds, sinCupo, cambio };
+}
+
+function normalizar(beds: Beds) {
+  return Object.keys(beds)
+    .sort()
+    .map((k) => [k, beds[k].filter(Boolean)] as const)
+    .filter(([, g]) => g.length > 0);
+}
+
+/**
+ * Huella estable de lo que manda el servidor para toda la ruta. Si cambia, el tablero
+ * tiene que resincronizar su estado local con lo nuevo.
+ */
+export function nightsSignature(
+  nights: { id: string; slots: RoomSlot[]; assignments: any[]; optOuts?: string[] }[]
+): string {
+  return nights
+    .map((n) => {
+      const slots = n.slots.map((s) => `${slotKey(s)}=${s.capacity}`).sort().join(",");
+      const asg = (n.assignments ?? [])
+        .map((a: any) => `${a.reservation_room_id}:${a.room_index}:${a.pilgrim_id}`)
+        .sort()
+        .join(",");
+      const opt = [...(n.optOuts ?? [])].sort().join(",");
+      return `${n.id}|${slots}|${asg}|${opt}`;
+    })
+    .sort()
+    .join("\n");
 }

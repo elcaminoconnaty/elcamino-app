@@ -34,6 +34,7 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
     { data: finance },
     { data: mealCoverage },
     { data: scheduleRows },
+    { data: optOutRows },
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -55,10 +56,21 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
       .eq("departure_id", departureId)
       .eq("paid", false)
       .order("due_date", { ascending: true }),
+    // Quienes no duermen una noche concreta: esa noche se esperan menos camas.
+    supabase
+      .from("reservation_opt_outs")
+      .select("reservation_id, reservations!inner(departure_id)")
+      .eq("reservations.departure_id", departureId)
+      .eq("kind", "hospedaje"),
   ]);
 
   const inscritos = Number((finance as any)?.inscritos_total ?? inscritosTotal ?? 0);
   const alerts: Alert[] = [];
+
+  const optOutsDe = new Map<string, number>();
+  (optOutRows ?? []).forEach((o: any) => optOutsDe.set(o.reservation_id, (optOutsDe.get(o.reservation_id) ?? 0) + 1));
+  /** Cuánta gente se espera en esa reserva: los inscritos menos quienes no duermen ahí. */
+  const esperadosEn = (reservationId: string) => Math.max(inscritos - (optOutsDe.get(reservationId) ?? 0), 0);
 
   const roomsByRes = new Map<string, any[]>();
   (rooms ?? []).forEach((r: any) => {
@@ -94,13 +106,14 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
     }
   });
 
-  // 2. Capacidad insuficiente (plazas < inscritos)
+  // 2. Capacidad insuficiente (plazas < gente esperada esa noche)
   (reservations ?? []).forEach((r: any) => {
-    if (r.type === "alojamiento" && r.beds_count != null && inscritos > 0 && r.beds_count < inscritos) {
+    const esperados = esperadosEn(r.id);
+    if (r.type === "alojamiento" && r.beds_count != null && esperados > 0 && r.beds_count < esperados) {
       alerts.push({
         kind: "capacity_low",
         title: `Faltan camas: ${r.providers?.name} día ${r.day_number ?? "?"} (${formatDate(r.check_in)})`,
-        detail: `Solo ${r.beds_count} plazas para ${inscritos} inscritos. Falta${inscritos - r.beds_count > 1 ? "n" : ""} ${inscritos - r.beds_count}.`,
+        detail: `Solo ${r.beds_count} plazas para ${esperados} que duermen ahí. Falta${esperados - r.beds_count > 1 ? "n" : ""} ${esperados - r.beds_count}.`,
         sortDate: r.check_in,
       });
     }
@@ -108,11 +121,12 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
 
   // 2b. Exceso de camas — hay que cancelar 1 mes antes
   (reservations ?? []).forEach((r: any) => {
-    if (r.type === "alojamiento" && r.beds_count != null && inscritos > 0 && r.beds_count > inscritos) {
+    const esperados = esperadosEn(r.id);
+    if (r.type === "alojamiento" && r.beds_count != null && esperados > 0 && r.beds_count > esperados) {
       alerts.push({
         kind: "capacity_high",
         title: `Sobran camas: ${r.providers?.name} día ${r.day_number ?? "?"} (${formatDate(r.check_in)})`,
-        detail: `${r.beds_count} reservadas para ${inscritos} inscritos. Sobran ${r.beds_count - inscritos} — cancelá 1 mes antes para no pagarlas.`,
+        detail: `${r.beds_count} reservadas para ${esperados} que duermen ahí. Sobran ${r.beds_count - esperados} — cancelá 1 mes antes para no pagarlas.`,
         sortDate: r.check_in,
       });
     }

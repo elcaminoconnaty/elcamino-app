@@ -25,7 +25,7 @@ const SHORT_LABEL: Record<string, string> = {
 
 export async function ReservasTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: reservations }, { data: providers }, { data: finance }, { data: roomsAll }, { data: paymentsAgg }, { data: assignments }] = await Promise.all([
+  const [{ data: reservations }, { data: providers }, { data: finance }, { data: roomsAll }, { data: paymentsAgg }, { data: assignments }, { data: optOutRows }] = await Promise.all([
     supabase
       .from("reservations")
       .select("*, providers(name, type)")
@@ -40,9 +40,16 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
       .from("room_assignments")
       .select("reservation_id, pilgrim_id, reservations!inner(departure_id)")
       .eq("reservations.departure_id", departureId),
+    supabase
+      .from("reservation_opt_outs")
+      .select("reservation_id, reservations!inner(departure_id)")
+      .eq("reservations.departure_id", departureId)
+      .eq("kind", "hospedaje"),
   ]);
 
   const inscritos = Number((finance as any)?.inscritos_total ?? 0);
+  const noDuermenEn = new Map<string, number>();
+  (optOutRows ?? []).forEach((o: any) => noDuermenEn.set(o.reservation_id, (noDuermenEn.get(o.reservation_id) ?? 0) + 1));
   const roomsByReservation = new Map<string, any[]>();
   (roomsAll ?? []).forEach((r: any) => {
     const arr = roomsByReservation.get(r.reservation_id) ?? [];
@@ -139,14 +146,15 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                         ) : (
                           (() => {
                             const asignados = asignadosPorReserva.get(r.id) ?? 0;
-                            const completo = inscritos > 0 && asignados >= inscritos;
+                            const esperados = Math.max(inscritos - (noDuermenEn.get(r.id) ?? 0), 0);
+                            const completo = esperados > 0 && asignados >= esperados;
                             return (
                               <Link
                                 href={`/caminos/${departureId}?tab=habitaciones`}
                                 title="Repartir la gente en las habitaciones"
                                 className={`text-xs font-medium hover:underline ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}
                               >
-                                {asignados}{inscritos > 0 ? `/${inscritos}` : ""}
+                                {asignados}{inscritos > 0 ? `/${esperados}` : ""}
                               </Link>
                             );
                           })()

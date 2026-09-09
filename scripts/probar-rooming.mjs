@@ -7,6 +7,7 @@
 import {
   expandSlots, slotKey, emptyBeds, bedsFromAssignments, assignmentsFromBeds,
   groupsFromBeds, placeGroups, fillSequentially, validateAssignments,
+  sinPeregrinos, nightProgress, reconcileBeds, nightsSignature,
 } from "../lib/data/rooming.ts";
 
 let fallos = 0;
@@ -90,6 +91,62 @@ const camas = bedsFromAssignments(recortado, [
 ]);
 check(Object.values(camas).flat().filter(Boolean).join() === "p1", "la asignación huérfana se ignora al pintar, no rompe");
 check(Object.keys(emptyBeds(recortado)).length === 2, "emptyBeds respeta el recorte");
+
+// assignmentsFromBeds con las habitaciones vigentes descarta lo que ya no existe
+const viejas = { "A:1": ["p1", "p2"], "A:5": ["p9", ""], "Z:1": ["p3", ""] };
+const limpias = assignmentsFromBeds(viejas, recortado);
+eq(limpias.map((a) => a.pilgrim_id), ["p1", "p2"], "assignmentsFromBeds(slots) descarta la habitación recortada y la inexistente");
+check(assignmentsFromBeds(viejas).length === 4, "sin slots sigue mandando todo (retrocompatible)");
+
+// "No duerme acá"
+check(
+  validateAssignments([{ reservation_room_id: "A", room_index: 1, pilgrim_id: "p1" }], slots, ["p1"]) ===
+    "Alguien quedó con cama y marcado como que no duerme acá",
+  "rechaza cama + no duerme del mismo peregrino"
+);
+check(validateAssignments([{ reservation_room_id: "A", room_index: 1, pilgrim_id: "p1" }], slots, ["p2"]) === null, "el opt-out de otro no molesta");
+eq(sinPeregrinos([["a", "b"], ["c"], ["d", "e"]], ["c", "d"]), [["a", "b"], ["e"]], "sinPeregrinos saca a los excluidos y tira los grupos vacíos");
+
+// El caso del Araguaney: 15 inscritos, 13 plazas, la pareja no duerme
+const araguaney = expandSlots([
+  { id: "D", room_type: "doble", rooms_count: 5, capacity_per_room: 2, position: 0 },
+  { id: "T", room_type: "triple", rooms_count: 1, capacity_per_room: 3, position: 1 },
+]);
+const trece = fillSequentially(gente.slice(0, 13), araguaney);
+const progreso = nightProgress(gente, trece.beds, ["p14", "p15"]);
+check(progreso.completa, "13 con cama + 2 que no duermen = noche completa");
+check(progreso.asignados.size === 13, "cuenta 13 asignados");
+eq(nightProgress(gente, trece.beds, []).sinHabitacion, ["p14", "p15"], "sin el opt-out faltan los dos");
+check(!nightProgress(gente, trece.beds, []).completa, "y la noche no está completa");
+check(!nightProgress([], {}, []).completa, "sin inscritos nunca está completa");
+
+// reconcileBeds: alguien editó la reserva mientras el tablero estaba abierto
+const antes = fillSequentially(gente, slots).beds; // 5 dobles + 1 cuádruple + 1 doble, 15 personas
+// (a) Se agregó una fila nueva: nadie se mueve
+const conNueva = expandSlots([...rooms, { id: "N", room_type: "doble", rooms_count: 1, capacity_per_room: 2, position: 3 }]);
+const r1 = reconcileBeds(antes, conNueva);
+check(!r1.cambio && r1.sinCupo.length === 0, "fila agregada: nadie se mueve y no se marca cambio");
+check(Object.keys(r1.beds).length === 8 && r1.beds["N:1"].every((x) => x === ""), "la habitación nueva aparece vacía");
+// (b) Se recortaron las dobles de 5 a 4: la pareja de la doble 5 se reacomoda junta en lo libre
+const recortadas = expandSlots([{ ...rooms[0], rooms_count: 4 }, rooms[1], rooms[2], { id: "N", room_type: "doble", rooms_count: 1, capacity_per_room: 2, position: 3 }]);
+const r2 = reconcileBeds(antes, recortadas);
+const parejaVieja = antes["A:5"].filter(Boolean);
+check(r2.cambio && r2.sinCupo.length === 0, "fila recortada: hay cambio y todos entran");
+eq(r2.beds["N:1"].filter(Boolean), parejaVieja, "la pareja desplazada sigue junta en la doble libre");
+check(Object.values(r2.beds).flat().filter(Boolean).length === 15, "siguen los 15");
+// (c) Cambió el tipo: la fila B pasó a ser doble → el grupo de 4 no cabe en ningún lado
+const cambioTipo = expandSlots([rooms[0], { ...rooms[1], room_type: "doble", capacity_per_room: 2 }, rooms[2]]);
+const r3 = reconcileBeds(antes, cambioTipo);
+check(r3.sinCupo.length === 4, `cambio de tipo: el grupo de 4 queda sin cupo (dio ${r3.sinCupo.length})`);
+// (d) Nada cambió
+check(!reconcileBeds(antes, slots).cambio, "sin cambios en la reserva no se marca cambio");
+
+// nightsSignature es estable ante el orden
+const n1 = { id: "x", slots, assignments: [{ reservation_room_id: "A", room_index: 1, pilgrim_id: "p1" }, { reservation_room_id: "A", room_index: 2, pilgrim_id: "p2" }], optOuts: ["p9", "p8"] };
+const n2 = { ...n1, assignments: [...n1.assignments].reverse(), optOuts: ["p8", "p9"] };
+check(nightsSignature([n1]) === nightsSignature([n2]), "la firma no depende del orden");
+check(nightsSignature([n1]) !== nightsSignature([{ ...n1, optOuts: ["p8"] }]), "la firma cambia si cambia un opt-out");
+check(nightsSignature([n1]) !== nightsSignature([{ ...n1, slots: conNueva }]), "la firma cambia si cambian las habitaciones");
 
 console.log(fallos === 0 ? "\nTODO OK" : `\n${fallos} FALLOS`);
 process.exit(fallos ? 1 : 0);
