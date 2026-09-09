@@ -173,7 +173,14 @@ function Parrafo({ texto: crudo, nivel }: { texto: string; nivel: number }) {
   );
 }
 
-/** Las firmas del contrato. `trazos` trae el PNG del canvas por rol, si ya firmaron. */
+/**
+ * Las firmas del contrato. `trazos` trae el PNG del canvas por rol, si ya firmaron.
+ *
+ * Sin trazo, el hueco va en blanco: el peregrino recibe el documento con la firma de Naty
+ * puesta y su propio renglón vacío, como un contrato en papel que espera la firma. Antes
+ * salía su nombre en cursiva, y parecía firmado sin que nadie hubiera firmado. El nombre
+ * en cursiva se reserva para el Informe de Firmas, donde sí acredita una firma mecánica.
+ */
 function Firmas({ partes, trazos }: { partes: ParteFirma[]; trazos?: Partial<Record<string, string>> }) {
   return (
     <View style={styles.firmas} wrap={false}>
@@ -184,11 +191,7 @@ function Firmas({ partes, trazos }: { partes: ParteFirma[]; trazos?: Partial<Rec
             <Text style={styles.firmaTitulo}>{p.titulo}</Text>
             <View style={styles.firmaHueco}>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf no acepta alt */}
-              {trazo ? (
-                <Image style={styles.firmaTrazo} src={trazo} />
-              ) : (
-                <Text style={styles.firmaMecanica}>{p.nombre}</Text>
-              )}
+              {trazo ? <Image style={styles.firmaTrazo} src={trazo} /> : null}
             </View>
             <View style={styles.firmaRaya} />
             <Text style={styles.firmaNombre}>{p.nombre}</Text>

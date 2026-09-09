@@ -214,7 +214,7 @@ export async function firmarContrato(args: {
   const { data: c } = await supabase
     .from("contracts")
     .select(
-      `id, status, snapshot, template_version, created_at, token_expires_at, access_token,
+      `id, status, snapshot, template_version, created_at, sent_at, token_expires_at, access_token,
        registrations:registration_id ( departures:departure_id ( name ) )`
     )
     .eq("access_token", token)
@@ -289,13 +289,16 @@ export async function firmarContrato(args: {
       trazos: { viajero: trazoDataUrl, camino: trazoNaty },
     });
 
+    // Naty firmó al enviar el contrato al peregrino (ver enviarContratoAFirmar). Los
+    // contratos de antes de ese cambio no tienen esa marca: se toma la fecha de envío.
+    const firmaNatyEn = camino.signed_at ?? c.sent_at ?? c.created_at;
     const fichas: FirmanteInforme[] = [
       {
         rol: "camino", rolTexto: "El Camino con Naty", token: camino.id,
         nombre: camino.full_name, documento: camino.document_label, email: camino.email,
-        telefono: camino.phone, firmadoEn: enBogota(camino.signed_at ?? c.created_at),
+        telefono: camino.phone, firmadoEn: enBogota(firmaNatyEn),
         ip: null, dispositivo: null, ubicacion: null,
-        metodo: "Firmado desde la plataforma, con sesión autenticada",
+        metodo: "Firmada desde la plataforma, con sesión autenticada, al enviar el contrato al viajero para su firma",
         trazo: trazoNaty ?? null,
       },
       {
@@ -355,7 +358,7 @@ export async function firmarContrato(args: {
 
     if (!camino.signed_at) {
       await supabase.from("contract_signers").update({
-        signed_at: ahora.toISOString(), auth_method: "sesion_plataforma",
+        signed_at: new Date(firmaNatyEn).toISOString(), auth_method: "sesion_plataforma",
       }).eq("id", camino.id);
     }
 

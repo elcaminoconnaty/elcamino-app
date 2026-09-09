@@ -247,15 +247,26 @@ export async function enviarContratoAFirmar(
   }
 
   // Renovamos la vigencia del enlace: el del último correo siempre tiene que funcionar.
+  const enviadoEn = new Date().toISOString();
   await supabase
     .from("contracts")
     .update({
       status: "enviado",
-      sent_at: new Date().toISOString(),
+      sent_at: enviadoEn,
       token_expires_at: new Date(Date.now() + TOKEN_VIGENCIA_DIAS * 864e5).toISOString(),
       reminder_count: 0,
     })
     .eq("id", contractId);
+
+  // Naty firma en este momento: el envío al peregrino es su acto de firma, con su trazo
+  // guardado ya estampado en el PDF. Así lo dice el Informe de Firmas. Un reenvío no la
+  // mueve: la firma es la del primer envío.
+  await supabase
+    .from("contract_signers")
+    .update({ signed_at: enviadoEn, auth_method: "sesion_plataforma" })
+    .eq("contract_id", contractId)
+    .eq("role", "camino")
+    .is("signed_at", null);
 
   await anotar(contractId, "enviado", { detail: { to: s.viajero_email, messageId: r.messageId } });
   revalidarContrato(pilgrimId);
