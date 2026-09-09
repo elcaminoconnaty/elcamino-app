@@ -14,6 +14,27 @@ import { accionFirmar, accionPedirCodigo } from "./actions";
  * dibujar, confirmar con el código. La validación es propia y en español (el `form` va
  * `noValidate`), y lleva al primer campo que falta en vez de dejar al firmante buscando.
  */
+/**
+ * La ubicación aproximada, si el firmante la concede. Nunca bloquea la firma: si el
+ * navegador no la tiene, la niega o tarda más de seis segundos, se firma sin ella. Es el
+ * mismo dato "Ubicación aproximada" que trae el informe de ZapSign.
+ */
+function ubicacionAproximada(): Promise<string | null> {
+  return new Promise((resolver) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return resolver(null);
+    const listo = (v: string | null) => resolver(v);
+    const reloj = setTimeout(() => listo(null), 6500);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(reloj);
+        listo(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`);
+      },
+      () => { clearTimeout(reloj); listo(null); },
+      { timeout: 6000, maximumAge: 600_000, enableHighAccuracy: false }
+    );
+  });
+}
+
 export function FormularioFirma({ token, contrato }: { token: string; contrato: ContratoParaFirmar }) {
   const [leyo, setLeyo] = useState(false);
   const [acepta, setAcepta] = useState(false);
@@ -44,8 +65,9 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
     setError(null);
     if (!codigo.trim()) return setError("Escribe el código que te llegó al correo.");
     empezar(async () => {
+      const geo = await ubicacionAproximada();
       const r = await accionFirmar({
-        token, codigo, trazoDataUrl: trazo!, aceptaLectura: leyo, aceptaFirma: acepta,
+        token, codigo, trazoDataUrl: trazo!, aceptaLectura: leyo, aceptaFirma: acepta, geo,
       });
       if (r.ok) setFirmado({ huella: r.huella, url: r.urlVerificacion });
       else setError(r.error);

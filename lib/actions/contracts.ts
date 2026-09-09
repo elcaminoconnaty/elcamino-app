@@ -115,10 +115,17 @@ export async function generarContrato(
   const token = nuevoToken();
   const codigo = token.slice(0, 8).toUpperCase();
 
+  // El trazo guardado de Naty (Configuración → Mi firma). Va desde el original: el peregrino
+  // firma sobre un documento que ya lleva la firma real de la otra parte, no sobre un nombre
+  // en cursiva que cambia después. Si aún no la capturó, sale la firma mecánica.
+  const { data: ajuste } = await supabase.from("app_settings").select("value").eq("key", "org_signature").maybeSingle();
+  const trazoNaty = (ajuste?.value as any)?.data_url as string | undefined;
+
   const { pdf, sha256: huella } = await renderContrato({
     minuta,
     datos: datos as DatosContrato,
     codigo,
+    trazos: trazoNaty ? { camino: trazoNaty } : undefined,
   });
 
   const anio = new Date().getFullYear();
@@ -174,9 +181,24 @@ export async function generarContrato(
   return { contractId: creado.id, codigo, version };
 }
 
-/** Manda el contrato a firmar. Solo marca `enviado` si el correo salió de verdad. */
-export async function enviarContratoAFirmar(contractId: string, pilgrimId: string) {
+/**
+ * Manda el contrato a firmar. Solo marca `enviado` si el correo salió de verdad.
+ *
+ * Con `pruebaEmail` el correo va a esa dirección y no a la del peregrino, con el asunto
+ * marcado como prueba, y el contrato NO cambia de estado: es para ver cómo llega — el
+ * enlace de firma es el real, así que quien reciba la prueba podría firmar; por eso solo
+ * se usa con un correo propio.
+ */
+export async function enviarContratoAFirmar(
+  contractId: string,
+  pilgrimId: string,
+  opciones?: { pruebaEmail?: string | null }
+) {
   const supabase = createClient();
+  const pruebaEmail = opciones?.pruebaEmail?.trim() || null;
+  if (pruebaEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pruebaEmail)) {
+    throw new Error("El correo de prueba no tiene forma de correo.");
+  }
 
   const { data: c, error } = await supabase
     .from("contracts")
@@ -206,15 +228,22 @@ export async function enviarContratoAFirmar(contractId: string, pilgrimId: strin
 
   const r = await enviarCorreo({
     ...correo,
-    to: s.viajero_email,
+    subject: pruebaEmail ? `[PRUEBA] ${correo.subject}` : correo.subject,
+    to: pruebaEmail ?? s.viajero_email,
     tipo: "contrato_firmar",
     templateSlug: "contrato_firmar",
     tokenVersionWeb: tokenWeb,
   });
 
   if (!r.ok) {
-    await anotar(contractId, "enviado", { detail: { error: r.error } });
+    await anotar(contractId, pruebaEmail ? "prueba_fallida" : "enviado", { detail: { error: r.error, to: pruebaEmail ?? s.viajero_email } });
     throw new Error(`No pude enviar el correo: ${r.error}`);
+  }
+
+  if (pruebaEmail) {
+    // Una prueba no mueve el estado ni renueva el enlace: el peregrino no recibió nada.
+    await anotar(contractId, "prueba_enviada", { detail: { to: pruebaEmail, messageId: r.messageId } });
+    return { ok: true as const, prueba: pruebaEmail };
   }
 
   // Renovamos la vigencia del enlace: el del último correo siempre tiene que funcionar.

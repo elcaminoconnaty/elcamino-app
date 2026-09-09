@@ -15,48 +15,50 @@ import { Image, Page, StyleSheet, Text, View } from "./brand-shell";
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 48, paddingBottom: 56, paddingHorizontal: 56,
+    paddingTop: 40, paddingBottom: 48, paddingHorizontal: 56,
     fontSize: 8.5, fontFamily: FUENTE.body, color: COLOR.noche, backgroundColor: COLOR.alba,
   },
   titulo: {
     fontSize: 13, fontFamily: FUENTE.display, fontWeight: 700,
     color: COLOR.atlantico, letterSpacing: 1, marginBottom: 3,
   },
-  zona: { fontSize: ESCALA_PDF.micro, color: COLOR.castano, marginBottom: 20 },
+  zona: { fontSize: ESCALA_PDF.micro, color: COLOR.castano, marginBottom: 14 },
 
   cinta: {
     backgroundColor: COLOR.piedra, borderLeftWidth: 3, borderLeftColor: COLOR.ocre,
-    padding: 12, borderRadius: 4, marginBottom: 18,
+    padding: 10, borderRadius: 4, marginBottom: 12,
   },
   rotulo: {
     fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo,
     textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 3,
   },
-  fila: { flexDirection: "row", marginBottom: 4 },
+  fila: { flexDirection: "row", marginBottom: 3 },
   filaClave: { width: 130, color: COLOR.castano },
+  /* Dentro de la ficha de cada firmante las claves son cortas: menos ancho, más valor. */
+  filaClaveCorta: { width: 78, color: COLOR.castano },
   filaValor: { flex: 1 },
   /* La huella se parte en grupos de cuatro para que se pueda leer y dictar. */
   huella: { fontSize: 7.5, letterSpacing: 0.3 },
 
   seccion: {
     fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo, textTransform: "uppercase",
-    letterSpacing: 1.5, marginTop: 6, marginBottom: 10,
+    letterSpacing: 1.5, marginTop: 4, marginBottom: 8,
     borderBottomWidth: 0.5, borderBottomColor: COLOR.piedra, paddingBottom: 5,
   },
 
   firmante: {
     borderWidth: 0.5, borderColor: COLOR.piedra, borderRadius: 4,
-    padding: 12, marginBottom: 12,
+    padding: 10, marginBottom: 10,
   },
-  firmanteCabeza: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  firmanteCabeza: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
   firmanteNombre: { fontFamily: FUENTE.body, fontWeight: 700, fontSize: 10, color: COLOR.atlantico },
   firmanteRol: { fontSize: ESCALA_PDF.micro, color: COLOR.ocreProfundo, textTransform: "uppercase", letterSpacing: 1.2 },
-  trazo: { height: 40, width: 150, objectFit: "contain", marginBottom: 6 },
-  trazoMecanico: { fontFamily: FUENTE.serif, fontStyle: "italic", fontSize: 16, color: COLOR.noche, marginBottom: 8 },
+  trazo: { height: 36, width: 150, objectFit: "contain", marginBottom: 5 },
+  trazoMecanico: { fontFamily: FUENTE.serif, fontStyle: "italic", fontSize: 16, color: COLOR.noche, marginBottom: 6 },
   cols: { flexDirection: "row" },
   col: { flex: 1, paddingRight: 10 },
 
-  legal: { fontSize: 7.5, color: COLOR.castano, lineHeight: 1.5, marginTop: 14 },
+  legal: { fontSize: 7.5, color: COLOR.castano, lineHeight: 1.45, marginTop: 8 },
   pie: {
     position: "absolute", bottom: 30, left: 56, right: 56,
     fontSize: 6.5, color: COLOR.niebla, textAlign: "center",
@@ -67,6 +69,8 @@ const styles = StyleSheet.create({
 export type FirmanteInforme = {
   rol: "camino" | "viajero";
   rolTexto: string;
+  /** Identificador único de esta firma (el id del firmante), como el "Token" de ZapSign. */
+  token: string;
   nombre: string;
   documento: string;
   email: string;
@@ -83,6 +87,8 @@ export type FirmanteInforme = {
 export type InformeFirmasProps = {
   numero: string;
   creadoEn: string;
+  /** Momento en que se selló el documento: la última firma. */
+  actualizadoEn: string;
   documento: string;
   /** SHA-256 del PDF antes de firmar, ya agrupado de a cuatro. */
   huellaOriginal: string;
@@ -91,11 +97,11 @@ export type InformeFirmasProps = {
   paginas: number;
 };
 
-function Fila({ k, v }: { k: string; v: string }) {
+function Fila({ k, v, corta, mono }: { k: string; v: string; corta?: boolean; mono?: boolean }) {
   return (
     <View style={styles.fila}>
-      <Text style={styles.filaClave}>{k}</Text>
-      <Text style={styles.filaValor}>{v}</Text>
+      <Text style={corta ? styles.filaClaveCorta : styles.filaClave}>{k}</Text>
+      <Text style={mono ? [styles.filaValor, styles.huella] : styles.filaValor}>{v}</Text>
     </View>
   );
 }
@@ -104,7 +110,9 @@ export function PaginaInformeFirmas(p: InformeFirmasProps) {
   return (
       <Page size="A4" style={styles.page} break>
         <Text style={styles.titulo}>Informe de Firmas</Text>
-        <Text style={styles.zona}>Fechas y horas en UTC-0500 (America/Bogota)</Text>
+        <Text style={styles.zona}>
+          Fechas y horas en UTC-0500 (America/Bogota) · Última actualización: {p.actualizadoEn}
+        </Text>
 
         <View style={styles.cinta}>
           <Text style={styles.rotulo}>Estado</Text>
@@ -139,18 +147,19 @@ export function PaginaInformeFirmas(p: InformeFirmasProps) {
             )}
             <View style={styles.cols}>
               <View style={styles.col}>
-                <Fila k="Documento" v={f.documento} />
-                <Fila k="Correo" v={f.email} />
-                {f.telefono ? <Fila k="Teléfono" v={f.telefono} /> : null}
-                <Fila k="Firmado el" v={f.firmadoEn} />
+                <Fila corta k="Documento" v={f.documento} />
+                <Fila corta k="Correo" v={f.email} />
+                {f.telefono ? <Fila corta k="Teléfono" v={f.telefono} /> : null}
+                <Fila corta k="Firmado el" v={f.firmadoEn} />
               </View>
               <View style={styles.col}>
-                <Fila k="Verificación" v={f.metodo} />
-                {f.ip ? <Fila k="Dirección IP" v={f.ip} /> : null}
-                {f.ubicacion ? <Fila k="Ubicación aprox." v={f.ubicacion} /> : null}
-                {f.dispositivo ? <Fila k="Dispositivo" v={f.dispositivo.slice(0, 160)} /> : null}
+                <Fila corta k="Verificación" v={f.metodo} />
+                {f.ip ? <Fila corta k="Dirección IP" v={f.ip} /> : null}
+                {f.ubicacion ? <Fila corta k="Ubicación" v={`${f.ubicacion} (aprox., reportada por el dispositivo)`} /> : null}
               </View>
             </View>
+            <Fila corta mono k="Token" v={f.token} />
+            {f.dispositivo ? <Fila corta k="Dispositivo" v={f.dispositivo.slice(0, 160)} /> : null}
           </View>
         ))}
 

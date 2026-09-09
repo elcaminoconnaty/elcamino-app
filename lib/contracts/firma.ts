@@ -49,6 +49,21 @@ export function mismoHash(a: string, b: string): boolean {
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 }
 
+/**
+ * La ubicación aproximada que reporta el navegador, como "lat, lon" con hasta seis
+ * decimales. Es el único dato de evidencia que viene del cliente (la IP y el dispositivo
+ * se leen en el servidor), así que se valida la forma y se rotula como "reportada por el
+ * dispositivo" en el Informe de Firmas. Si el firmante niega el permiso, queda en null y
+ * la firma vale igual: ZapSign hace exactamente lo mismo.
+ */
+export function ubicacionPlausible(geo: string | null | undefined): geo is string {
+  if (typeof geo !== "string" || geo.length > 40) return false;
+  const m = /^(-?\d{1,2}\.\d{1,6}), (-?\d{1,3}\.\d{1,6})$/.exec(geo);
+  if (!m) return false;
+  const lat = Number(m[1]), lon = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+}
+
 /** Cuánto vive el código. Diez minutos: suficiente para ir al correo y volver. */
 export const OTP_VIGENCIA_MIN = 10;
 /** Cuántos intentos antes de bloquear. */

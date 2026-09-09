@@ -9,6 +9,7 @@ import type { FirmanteInforme, InformeFirmasProps } from "@/components/pdf/infor
 import {
   hashCodigo, huellaLegible, mismoHash, nuevoCodigo,
   OTP_MAX_INTENTOS, OTP_VIGENCIA_MIN, textoConsentimiento, tokenPlausible, trazoValido,
+  ubicacionPlausible,
 } from "./firma";
 
 /**
@@ -205,6 +206,8 @@ export async function firmarContrato(args: {
   }
   const trazo = trazoValido(trazoDataUrl);
   if (!trazo.ok) return { ok: false, error: trazo.error };
+  // Viene del navegador: solo se guarda si tiene forma de coordenada.
+  const ubicacion = ubicacionPlausible(geo) ? geo : null;
 
   const supabase = createClient();
 
@@ -288,7 +291,7 @@ export async function firmarContrato(args: {
 
     const fichas: FirmanteInforme[] = [
       {
-        rol: "camino", rolTexto: "El Camino con Naty",
+        rol: "camino", rolTexto: "El Camino con Naty", token: camino.id,
         nombre: camino.full_name, documento: camino.document_label, email: camino.email,
         telefono: camino.phone, firmadoEn: enBogota(camino.signed_at ?? c.created_at),
         ip: null, dispositivo: null, ubicacion: null,
@@ -296,10 +299,10 @@ export async function firmarContrato(args: {
         trazo: trazoNaty ?? null,
       },
       {
-        rol: "viajero", rolTexto: "El Viajero",
+        rol: "viajero", rolTexto: "El Viajero", token: viajero.id,
         nombre: viajero.full_name, documento: viajero.document_label, email: viajero.email,
         telefono: viajero.phone, firmadoEn: enBogota(ahora),
-        ip: huella?.ip ?? null, dispositivo: huella?.userAgent ?? null, ubicacion: geo ?? null,
+        ip: huella?.ip ?? null, dispositivo: huella?.userAgent ?? null, ubicacion,
         metodo: "Validado por código único enviado por correo electrónico",
         trazo: trazoDataUrl,
       },
@@ -308,6 +311,7 @@ export async function firmarContrato(args: {
     const informe: InformeFirmasProps = {
       numero: codigoDoc,
       creadoEn: enBogota(c.created_at),
+      actualizadoEn: enBogota(ahora),
       documento: `${minuta.titulo} · ${s.plan_descripcion}`,
       huellaOriginal: huellaLegible(primera.sha256),
       urlVerificacion: `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar`,
@@ -316,11 +320,22 @@ export async function firmarContrato(args: {
     };
 
     // Segunda pasada: el documento definitivo, con el Informe de Firmas al final.
-    const sellado = await renderContrato({
+    let sellado = await renderContrato({
       minuta, datos: s, codigo: codigoDoc,
       trazos: { viajero: trazoDataUrl, camino: trazoNaty },
       informe,
     });
+    // El informe dice de cuántas páginas consta el documento. Se asume una; si el informe
+    // ocupó más (un user-agent larguísimo, por ejemplo), se vuelve a sellar con el número
+    // real para que lo impreso coincida con el archivo.
+    if (sellado.paginas !== informe.paginas) {
+      informe.paginas = sellado.paginas;
+      sellado = await renderContrato({
+        minuta, datos: s, codigo: codigoDoc,
+        trazos: { viajero: trazoDataUrl, camino: trazoNaty },
+        informe,
+      });
+    }
 
     const rutaFirmado = `${ahora.getFullYear()}/${c.id}/Contrato-${codigoDoc}-firmado.pdf`;
     const { error: errPdf } = await supabase.storage
@@ -334,7 +349,7 @@ export async function firmarContrato(args: {
       auth_method: "otp_email",
       ip: huella?.ip ?? null,
       user_agent: huella?.userAgent ?? null,
-      geo: geo ?? null,
+      geo: ubicacion,
       consent_text: textoConsentimiento(),
     }).eq("id", viajero.id);
 

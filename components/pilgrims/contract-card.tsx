@@ -60,6 +60,10 @@ export function ContractCard({
 }) {
   const [pendiente, empezar] = useTransition();
   const [integridad, setIntegridad] = useState<string | null>(null);
+  // Modo prueba: el correo de firma va a una dirección propia, con el asunto marcado, y el
+  // contrato no cambia de estado. Para ver cómo le llega al peregrino antes de mandárselo.
+  const [modoPrueba, setModoPrueba] = useState(false);
+  const [emailPrueba, setEmailPrueba] = useState("");
 
   const correr = (fn: () => Promise<unknown>, exito: string) =>
     empezar(async () => {
@@ -138,15 +142,18 @@ export function ContractCard({
               <Button
                 size="sm"
                 variant="accent"
-                disabled={pendiente}
+                disabled={pendiente || (modoPrueba && !emailPrueba.trim())}
                 onClick={() =>
                   correr(
-                    () => enviarContratoAFirmar(contrato.id, pilgrimId),
-                    contrato.status === "borrador" ? "Contrato enviado a firmar" : "Se lo reenviamos"
+                    () => enviarContratoAFirmar(contrato.id, pilgrimId, { pruebaEmail: modoPrueba ? emailPrueba : null }),
+                    modoPrueba
+                      ? `Prueba enviada a ${emailPrueba.trim()}`
+                      : contrato.status === "borrador" ? "Contrato enviado a firmar" : "Se lo reenviamos"
                   )
                 }
               >
-                <Send className="h-4 w-4" /> {contrato.status === "borrador" ? "Enviar a firmar" : "Reenviar"}
+                <Send className="h-4 w-4" />{" "}
+                {modoPrueba ? "Enviar prueba" : contrato.status === "borrador" ? "Enviar a firmar" : "Reenviar"}
               </Button>
             )}
 
@@ -194,6 +201,28 @@ export function ContractCard({
               </Button>
             )}
           </div>
+
+          {contrato.status !== "firmado" && contrato.status !== "anulado" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs rounded-md border bg-muted/40 px-2.5 py-2">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={modoPrueba} onChange={(e) => setModoPrueba(e.target.checked)} />
+                <span>Enviar como prueba a…</span>
+              </label>
+              <input
+                type="email"
+                value={emailPrueba}
+                onChange={(e) => setEmailPrueba(e.target.value)}
+                disabled={!modoPrueba}
+                placeholder="tu@correo.com"
+                className="h-7 rounded border bg-background px-2 text-xs disabled:opacity-50 min-w-[200px]"
+              />
+              {modoPrueba && (
+                <span className="text-muted-foreground">
+                  Va a ese correo con el asunto marcado [PRUEBA]; el peregrino no recibe nada y el contrato no cambia de estado.
+                </span>
+              )}
+            </div>
+          )}
 
           {integridad && <p className="text-xs mt-2 text-muted-foreground">{integridad}</p>}
 
