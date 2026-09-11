@@ -29,7 +29,7 @@ import { CONTACTO } from "@/lib/brand";
  */
 
 /** Extensiones que aceptamos adjuntar. Lo que no esté acá se rechaza antes de enviar. */
-const ADJUNTOS_PERMITIDOS = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".csv", ".ics"]);
+const ADJUNTOS_PERMITIDOS = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".csv", ".ics", ".xlsx"]);
 
 /**
  * Brevo corta el correo entero en 10 MB y los adjuntos viajan en base64 dentro del JSON, que
@@ -46,6 +46,8 @@ export type TipoCorreo =
   | "contrato_recordatorio"
   | "contrato_firmado"
   | "documento_viaje"
+  | "rooming_list"
+  | "menu_restaurante"
   | "aviso_interno"
   | "prueba";
 
@@ -60,6 +62,8 @@ export type EnviarArgs = {
   adjuntos?: Adjunto[];
   /** Para cruzar el correo con la inscripción del peregrino. */
   registrationId?: string | null;
+  /** Para cruzar el correo con la reserva (rooming list, menú al restaurante). */
+  reservationId?: string | null;
   templateSlug?: string | null;
   /** Token de la versión web, si este correo tiene una. */
   tokenVersionWeb?: string | null;
@@ -153,10 +157,10 @@ export function adjuntoNoSoportado(adjuntos: Adjunto[] | undefined): string | nu
  * de `admin.ts` sobre filtros validados por token: no se consulta nada de nadie, se inserta
  * una fila nuestra.
  */
-async function registrar(
+export async function registrarCorreo(
   args: EnviarArgs,
   estado: "aceptado" | "confirmado" | "error",
-  extra: { messageId?: string | null; error?: string | null }
+  extra: { messageId?: string | null; error?: string | null; metadata?: Record<string, unknown> }
 ): Promise<string | null> {
   try {
     const supabase = createAdminClient();
@@ -164,6 +168,7 @@ async function registrar(
       .from("email_log")
       .insert({
         registration_id: args.registrationId ?? null,
+        reservation_id: args.reservationId ?? null,
         template_slug: args.templateSlug ?? args.tipo,
         to_email: args.to,
         subject: args.subject,
@@ -176,7 +181,7 @@ async function registrar(
         expires_at: args.tokenVersionWeb
           ? new Date(Date.now() + (args.diasVersionWeb ?? 180) * 864e5).toISOString()
           : null,
-        metadata: { tipo: args.tipo, adjuntos: (args.adjuntos ?? []).map((a) => a.filename) },
+        metadata: { tipo: args.tipo, adjuntos: (args.adjuntos ?? []).map((a) => a.filename), ...(extra.metadata ?? {}) },
       })
       .select("id")
       .single();
@@ -189,7 +194,7 @@ async function registrar(
 export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
   const problema = adjuntoNoSoportado(args.adjuntos);
   if (problema) {
-    const logId = await registrar(args, "error", { error: problema });
+    const logId = await registrarCorreo(args, "error", { error: problema });
     return { ok: false, error: problema, logId };
   }
 
@@ -239,7 +244,7 @@ export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
       const error = datos?.message
         ? `Brevo rechazó el envío: ${datos.message}`
         : `Brevo respondió ${r.status}. ${texto.slice(0, 200)}`;
-      const logId = await registrar(args, "error", { error });
+      const logId = await registrarCorreo(args, "error", { error });
       return { ok: false, error, logId };
     }
 
@@ -247,11 +252,11 @@ export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
     if (!messageId) {
       // 2xx sin id: lo aceptó, pero no tenemos con qué rastrearlo. No es lo mismo que
       // confirmado y la bitácora tiene que distinguirlo.
-      const logId = await registrar(args, "aceptado", { error: "Brevo aceptó el correo sin devolver messageId." });
+      const logId = await registrarCorreo(args, "aceptado", { error: "Brevo aceptó el correo sin devolver messageId." });
       return { ok: true, messageId: "", logId };
     }
 
-    const logId = await registrar(args, "confirmado", { messageId });
+    const logId = await registrarCorreo(args, "confirmado", { messageId });
     return { ok: true, messageId, logId };
   } catch (e: any) {
     const error =
@@ -260,7 +265,7 @@ export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
         : e?.message
           ? String(e.message)
           : "No se pudo enviar el correo.";
-    const logId = await registrar(args, "error", { error });
+    const logId = await registrarCorreo(args, "error", { error });
     return { ok: false, error, logId };
   }
 }

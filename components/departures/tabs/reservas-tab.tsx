@@ -9,6 +9,7 @@ import { AddReservation } from "@/components/departures/add-reservation";
 import { ImportReservationFromEmail } from "@/components/departures/import-reservation-from-email";
 import { EditReservationDialog } from "@/components/departures/edit-reservation-dialog";
 import { RegisterReservationPayment } from "@/components/departures/register-reservation-payment";
+import { GmailThreadDialog } from "@/components/departures/gmail-thread-dialog";
 import { ROOM_TYPE_LABELS } from "@/lib/data/rooms";
 import { AlertTriangle, Coffee, UtensilsCrossed } from "lucide-react";
 import { formatEUR } from "@/lib/utils";
@@ -198,6 +199,13 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                         <div className="flex gap-1">
                           <EditReservationDialog reservation={r} providers={providers ?? []} departureId={departureId} />
                           <RegisterReservationPayment reservation={r} />
+                          <GmailThreadDialog
+                            reservationId={r.id}
+                            departureId={departureId}
+                            providerName={r.providers?.name ?? "Proveedor"}
+                            hilo={r.gmail_thread_id ? { threadId: r.gmail_thread_id, subject: r.gmail_thread_subject ?? null } : null}
+                            compacto
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

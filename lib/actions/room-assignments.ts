@@ -34,7 +34,7 @@ export async function getRoomingBoard(departureId: string) {
   const [{ data: reservations }, pilgrims] = await Promise.all([
     supabase
       .from("reservations")
-      .select("id, day_number, check_in, check_out, location, status, confirmation_ref, providers(id, name, city, address)")
+      .select("id, day_number, check_in, check_out, location, status, confirmation_ref, gmail_thread_id, gmail_thread_subject, rooming_sent_at, providers(id, name, city, address, email)")
       .eq("departure_id", departureId)
       .eq("type", "alojamiento")
       .neq("status", "cancelado")
@@ -78,6 +78,9 @@ export async function getRoomingBoard(departureId: string) {
     provider_id: r.providers?.id ?? null,
     provider_name: r.providers?.name ?? "—",
     provider_city: r.providers?.city ?? null,
+    provider_email: r.providers?.email ?? null,
+    gmail_thread: r.gmail_thread_id ? { threadId: r.gmail_thread_id as string, subject: (r.gmail_thread_subject as string | null) ?? null } : null,
+    rooming_sent_at: (r.rooming_sent_at as string | null) ?? null,
     slots: expandSlots(roomsBy.get(r.id) ?? []),
     assignments: asgBy.get(r.id) ?? [],
     optOuts: optBy.get(r.id) ?? [],

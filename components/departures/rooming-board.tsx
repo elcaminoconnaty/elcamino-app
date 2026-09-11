@@ -36,6 +36,8 @@ import {
   UserX,
   Wand2,
 } from "lucide-react";
+import { EnviarRoomingDialog } from "@/components/departures/enviar-rooming-dialog";
+import { GmailThreadDialog } from "@/components/departures/gmail-thread-dialog";
 
 type Pilgrim = { id: string; full_name: string; sex: string | null; is_team: boolean };
 
@@ -50,6 +52,10 @@ export type Night = {
   provider_id: string | null;
   provider_name: string;
   provider_city: string | null;
+  provider_email: string | null;
+  /** El hilo de Gmail enlazado a la reserva, si lo hay. */
+  gmail_thread: { threadId: string; subject: string | null } | null;
+  rooming_sent_at: string | null;
   slots: RoomSlot[];
   assignments: any[];
   /** Quiénes no duermen esa noche en ese hotel. */
@@ -512,7 +518,9 @@ export function RoomingBoard({
                       </div>
 
                       {night.provider_id && (
-                        <div className="pt-1">
+                        <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                          <EnviarRoomingDialog reservationId={night.id} hotel={night.provider_name} enviadoEl={night.rooming_sent_at} />
+                          <GmailThreadDialog reservationId={night.id} departureId={departureId} providerName={night.provider_name} hilo={night.gmail_thread} />
                           <Button asChild variant="ghost" size="sm">
                             <a
                               href={`/api/export/caminos/${departureId}/habitaciones?hotel=${night.provider_id}`}
