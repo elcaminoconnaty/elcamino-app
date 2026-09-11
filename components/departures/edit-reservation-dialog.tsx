@@ -16,7 +16,7 @@ import { ReservationPaymentScheduleEditor, type ScheduleItem } from "@/component
 import { RESERVATION_STATUSES, PROVIDER_TYPES, PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { formatEUR } from "@/lib/utils";
-import { Pencil, Trash2, AlertTriangle, CreditCard } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, CreditCard, UtensilsCrossed } from "lucide-react";
 
 export function EditReservationDialog({ reservation, providers, departureId, triggerLabel }: { reservation: any; providers: any[]; departureId: string; triggerLabel?: string }) {
   const [open, setOpen] = useState(false);
@@ -24,6 +24,8 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
   const [deleting, setDeleting] = useState(false);
   const [type, setType] = useState<string>(reservation.type);
   const [isCritical, setIsCritical] = useState<boolean>(!!reservation.is_critical);
+  const [menuRequired, setMenuRequired] = useState<boolean>(!!reservation.menu_required);
+  const [menuNotes, setMenuNotes] = useState<string>(reservation.menu_notes_pilgrim ?? "");
   const [rooms, setRooms] = useState<RoomInput[]>([]);
   const [roomsInitial, setRoomsInitial] = useState<any[] | null>(null);
   const [roomTotals, setRoomTotals] = useState({ beds: 0, cost: 0 });
@@ -187,6 +189,8 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 confirmation_ref: fd.get("confirmation_ref")?.toString() || null,
                 is_critical: isCritical,
                 notes: fd.get("notes")?.toString() || null,
+                menu_required: menuRequired,
+                menu_notes_pilgrim: menuNotes.trim() || null,
               };
 
               if (isMeal) {
@@ -445,6 +449,22 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
               )}
             </div>
           )}
+          <div className="rounded-md border bg-alba/60 p-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={menuRequired} onChange={(e) => setMenuRequired(e.target.checked)} />
+              <UtensilsCrossed className="h-4 w-4 text-aviso-700" />
+              <span>Pedir menú a los peregrinos</span>
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Solo para cenas donde hay que elegir o avisar platos. Los desayunos y los hoteles sin cena del grupo van apagados.
+            </p>
+            {menuRequired && (
+              <div className="grid gap-1">
+                <Label className="text-xs">Nota para los peregrinos (la ven arriba del menú)</Label>
+                <Textarea value={menuNotes} onChange={(e) => setMenuNotes(e.target.value)} rows={2} placeholder="Ej.: Bebidas incluidas: agua y vino. El postre se elige en el restaurante." />
+              </div>
+            )}
+          </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-md bg-aviso-50 border border-aviso-200">
             <input type="checkbox" checked={isCritical} onChange={(e) => setIsCritical(e.target.checked)} />
             <AlertTriangle className="h-4 w-4 text-aviso-700" />

@@ -28,6 +28,9 @@ export type Dinner = {
   provider_city: string | null;
   /** La cena viene de una habitación con cena incluida (hotel), no de una reserva de restaurante. */
   via_rooms: boolean;
+  /** Lo que ve el peregrino arriba del menú ("bebidas incluidas: agua y vino"). */
+  menu_notes_pilgrim: string | null;
+  provider_contact_name: string | null;
   courses: MenuCourse[];
   choices: MealChoice[];
   /** Quiénes no cenan esa noche. */
@@ -57,7 +60,7 @@ async function menusDe(supabase: any, reservationIds: string[]): Promise<Map<str
   if (reservationIds.length === 0) return out;
   const { data: courses } = await supabase
     .from("reservation_menu_courses")
-    .select("id, reservation_id, course, label, position, required")
+    .select("id, reservation_id, course, label, position, required, mode, depends_on_option_id")
     .in("reservation_id", reservationIds);
   const courseIds = (courses ?? []).map((c: any) => c.id);
   const { data: options } = courseIds.length
@@ -106,6 +109,8 @@ export async function getMenusBoard(departureId: string): Promise<{ dinners: Din
     provider_name: r.provider_name ?? "—",
     provider_city: r.provider_city ?? null,
     via_rooms: !r.via_meal_kind && !!r.via_rooms,
+    menu_notes_pilgrim: r.menu_notes_pilgrim ?? null,
+    provider_contact_name: r.provider_contact_name ?? null,
     courses: menus.get(r.reservation_id) ?? [],
     choices: chBy.get(r.reservation_id) ?? [],
     optOuts: optBy.get(r.reservation_id) ?? [],
@@ -117,16 +122,33 @@ export async function getMenusBoard(departureId: string): Promise<{ dinners: Din
  * Guarda el menú de una cena. Empareja secciones y platos **por id**: lo que trae id se
  * actualiza, lo nuevo se crea, lo que falta se borra. Borrar un plato borra en cascada
  * las elecciones que lo tenían, así que la pantalla avisa antes.
+ *
+ * Va en dos pasadas: primero secciones y platos (sin dependencias, para que ninguna
+ * apunte a un plato que todavía no existe o a una posición vieja), después las
+ * dependencias por índice. Una sección "fija" se queda con un solo plato y una
+ * "en el restaurante" con ninguno.
  */
 export async function setReservationMenu(reservationId: string, menu: MenuInput, departureId: string): Promise<Resultado> {
   const supabase = createClient();
   const { data: existentes } = await supabase.from("reservation_menu_courses").select("id").eq("reservation_id", reservationId);
   const cursosPrevios = new Set((existentes ?? []).map((c: any) => c.id));
   const cursosVistos = new Set<string>();
+  /** idsPorIndice[sección][plato] = id en la base (null si el plato venía vacío y se saltó). */
+  const idsPorIndice: (string | null)[][] = [];
+  const idsCurso: string[] = [];
 
   for (let i = 0; i < menu.length; i++) {
     const c = menu[i];
-    const fila = { reservation_id: reservationId, course: c.course, label: c.label?.trim() || null, position: i, required: c.required !== false };
+    const mode = c.mode ?? "peregrino";
+    const fila = {
+      reservation_id: reservationId,
+      course: c.course,
+      label: c.label?.trim() || null,
+      position: i,
+      required: mode === "peregrino" ? c.required !== false : false,
+      mode,
+      depends_on_option_id: null as string | null,
+    };
     let courseId = c.id && cursosPrevios.has(c.id) ? c.id : null;
     if (courseId) {
       const { error } = await supabase.from("reservation_menu_courses").update({ ...fila, updated_at: new Date().toISOString() }).eq("id", courseId);
@@ -137,23 +159,31 @@ export async function setReservationMenu(reservationId: string, menu: MenuInput,
       courseId = data.id as string;
     }
     cursosVistos.add(courseId);
+    idsCurso[i] = courseId;
+    idsPorIndice[i] = [];
 
     const { data: opsPrevias } = await supabase.from("reservation_menu_options").select("id").eq("course_id", courseId);
     const previas = new Set((opsPrevias ?? []).map((o: any) => o.id));
     const vistas = new Set<string>();
-    for (let j = 0; j < c.options.length; j++) {
-      const o = c.options[j];
+    const opciones = mode === "en_sitio" ? [] : mode === "fijo" ? c.options.filter((o) => o.name.trim()).slice(0, 1) : c.options;
+    for (let j = 0; j < opciones.length; j++) {
+      const o = opciones[j];
       const name = o.name.trim();
-      if (!name) continue;
+      if (!name) {
+        idsPorIndice[i][j] = null;
+        continue;
+      }
       const filaOp = { course_id: courseId, name, description: o.description?.trim() || null, position: j };
       if (o.id && previas.has(o.id)) {
         const { error } = await supabase.from("reservation_menu_options").update(filaOp).eq("id", o.id);
         if (error) return { ok: false, error: error.message };
         vistas.add(o.id);
+        idsPorIndice[i][j] = o.id;
       } else {
         const { data, error } = await supabase.from("reservation_menu_options").insert(filaOp).select("id").single();
         if (error) return { ok: false, error: error.message };
         vistas.add(data.id);
+        idsPorIndice[i][j] = data.id;
       }
     }
     const sobrantesOp = Array.from(previas).filter((id) => !vistas.has(id));
@@ -168,6 +198,39 @@ export async function setReservationMenu(reservationId: string, menu: MenuInput,
     const { error } = await supabase.from("reservation_menu_courses").delete().in("id", sobrantes);
     if (error) return { ok: false, error: error.message };
   }
+
+  // Segunda pasada: dependencias. El trigger de la base valida que el padre vaya antes y
+  // sea una sección que elige el peregrino; su mensaje sube tal cual a la pantalla.
+  for (let i = 0; i < menu.length; i++) {
+    const dep = menu[i].depends_on;
+    if (!dep) continue;
+    const optionId = idsPorIndice[dep.course_index]?.[dep.option_index] ?? null;
+    if (!optionId) return { ok: false, error: `"${menu[i].label || menu[i].course}" depende de un plato que quedó vacío.` };
+    const { error } = await supabase.from("reservation_menu_courses").update({ depends_on_option_id: optionId }).eq("id", idsCurso[i]);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  // Las elecciones de secciones condicionales que dejaron de aplicar se limpian acá
+  // mismo, para que el tablero no muestre platos fantasma.
+  await supabase.rpc("prune_dependent_choices", { p_reservation_id: reservationId, p_pilgrim_id: null });
+  revalidar(departureId);
+  return { ok: true };
+}
+
+/** La nota que ve el peregrino arriba del menú de esa cena. */
+export async function setMenuNotes(reservationId: string, texto: string, departureId: string): Promise<Resultado> {
+  const supabase = createClient();
+  const { error } = await supabase.from("reservations").update({ menu_notes_pilgrim: texto.trim() || null }).eq("id", reservationId);
+  if (error) return { ok: false, error: error.message };
+  revalidar(departureId);
+  return { ok: true };
+}
+
+/** Prender o apagar "pedir menú a los peregrinos" en una reserva. */
+export async function setMenuRequired(reservationId: string, value: boolean, departureId: string): Promise<Resultado> {
+  const supabase = createClient();
+  const { error } = await supabase.from("reservations").update({ menu_required: value }).eq("id", reservationId);
+  if (error) return { ok: false, error: error.message };
   revalidar(departureId);
   return { ok: true };
 }

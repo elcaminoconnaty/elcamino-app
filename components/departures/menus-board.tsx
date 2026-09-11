@@ -16,6 +16,8 @@ import {
   menuSignature,
   dinnerProgress,
   countByOption,
+  courseApplies,
+  applyChoice,
   type ChoiceGrid,
 } from "@/lib/data/menus";
 import { useResync } from "@/lib/hooks/use-resync";
@@ -113,9 +115,10 @@ export function MenusBoard({
     setDirty((prev) => new Set(prev).add(dinnerId));
   }
 
-  function elegir(dinnerId: string, pilgrimId: string, courseId: string, optionId: string) {
-    const actual = grid[dinnerId] ?? {};
-    marcar(dinnerId, { ...actual, [pilgrimId]: { ...(actual[pilgrimId] ?? {}), [courseId]: optionId } });
+  /** Elige un plato; si de esa sección dependen otras, las que dejan de aplicar se vacían. */
+  function elegir(d: Dinner, pilgrimId: string, courseId: string, optionId: string) {
+    const actual = grid[d.id] ?? {};
+    marcar(d.id, { ...actual, [pilgrimId]: applyChoice(actual[pilgrimId] ?? {}, courseId, optionId, d.courses) });
   }
 
   /** Marca o desmarca "no cena". Si había elegido, se borra en el mismo paso. */
@@ -248,6 +251,7 @@ export function MenusBoard({
         const esperados = pilgrims.length - progreso.noCenan.length;
         const abierta = abiertas[d.id];
         const conteo = countByOption(g, d.courses, ex);
+        const columnas = d.courses.filter((c) => c.mode !== "en_sitio");
         const otras = dinners
           .filter((o) => o.id !== d.id && !menuIsEmpty(o.courses))
           .map((o) => ({ id: o.id, etiqueta: etiquetaCena(o), courses: o.courses }));
@@ -278,6 +282,13 @@ export function MenusBoard({
                   {dirty.has(d.id) && <Badge variant="muted">sin guardar</Badge>}
                   {sinMenu ? (
                     <Badge variant="muted">sin menú</Badge>
+                  ) : !progreso.hayQueElegir ? (
+                    <span className="text-sm font-medium text-ok-700">
+                      menú fijo · {esperados} cenan
+                      {progreso.noCenan.length > 0 && (
+                        <span className="text-xs text-muted-foreground font-normal"> · {progreso.noCenan.length} no cena{progreso.noCenan.length > 1 ? "n" : ""}</span>
+                      )}
+                    </span>
                   ) : (
                     <span className={cn("text-sm font-medium", progreso.completa ? "text-ok-700" : progreso.completos.length > 0 ? "text-aviso-700" : "text-muted-foreground")}>
                       {progreso.completos.length}/{esperados} eligieron
@@ -292,11 +303,22 @@ export function MenusBoard({
               {abierta && (
                 <div className="border-t px-4 py-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {sinMenu
-                        ? "Este restaurante todavía no tiene menú cargado."
-                        : d.courses.map((c) => `${courseTitle(c)} (${c.options.length})`).join(" · ")}
-                    </span>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <div>
+                        {sinMenu
+                          ? "Este restaurante todavía no tiene menú cargado."
+                          : d.courses
+                              .map((c) =>
+                                c.mode === "fijo"
+                                  ? `${courseTitle(c)}: ${c.options[0]?.name ?? "—"} (todos)`
+                                  : c.mode === "en_sitio"
+                                    ? `${courseTitle(c)} (en el restaurante)`
+                                    : `${courseTitle(c)} (${c.options.length})`
+                              )
+                              .join(" · ")}
+                      </div>
+                      {d.menu_notes_pilgrim && <div className="italic">Nota al peregrino: {d.menu_notes_pilgrim}</div>}
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       <MenuEditor
                         reservationId={d.id}
@@ -305,6 +327,7 @@ export function MenusBoard({
                         providerName={d.provider_name}
                         courses={d.courses}
                         choices={d.choices}
+                        notes={d.menu_notes_pilgrim}
                         otrasCenas={otras}
                       />
                       {!sinMenu && (
@@ -336,10 +359,10 @@ export function MenusBoard({
                       <thead>
                         <tr className="text-left text-muted-foreground">
                           <th className="py-1.5 pr-2 font-medium">Peregrino</th>
-                          {d.courses.map((c) => (
+                          {columnas.map((c) => (
                             <th key={c.id} className="py-1.5 pr-2 font-medium whitespace-nowrap">
                               {courseTitle(c)}
-                              {!c.required && <span className="font-normal"> (opcional)</span>}
+                              {c.mode === "fijo" ? <span className="font-normal"> (todos)</span> : !c.required && <span className="font-normal"> (opcional)</span>}
                             </th>
                           ))}
                           <th className="py-1.5 pr-2 font-medium">Alimentación</th>
@@ -359,21 +382,31 @@ export function MenusBoard({
                                   <span className="ml-1.5 rounded-full bg-ok-50 text-ok-700 px-1.5 py-0.5 text-[10px]" title="Eligió desde su enlace">por su cuenta</span>
                                 )}
                               </td>
-                              {d.courses.map((c) => (
-                                <td key={c.id} className="py-1 pr-2">
-                                  <select
-                                    value={fila[c.id] ?? ""}
-                                    disabled={noCena}
-                                    onChange={(e) => elegir(d.id, p.id, c.id, e.target.value)}
-                                    className="h-8 w-full min-w-[120px] rounded-md border border-input bg-background px-2 text-xs disabled:opacity-50"
-                                  >
-                                    <option value="">— sin elegir —</option>
-                                    {c.options.map((o) => (
-                                      <option key={o.id} value={o.id}>{o.name}</option>
-                                    ))}
-                                  </select>
-                                </td>
-                              ))}
+                              {columnas.map((c) => {
+                                if (c.mode === "fijo") {
+                                  return (
+                                    <td key={c.id} className="py-1 pr-2 text-muted-foreground whitespace-nowrap">{noCena ? "" : c.options[0]?.name ?? "—"}</td>
+                                  );
+                                }
+                                if (!courseApplies(c, fila, d.courses)) {
+                                  return <td key={c.id} className="py-1 pr-2 text-muted-foreground text-center">—</td>;
+                                }
+                                return (
+                                  <td key={c.id} className="py-1 pr-2">
+                                    <select
+                                      value={fila[c.id] ?? ""}
+                                      disabled={noCena}
+                                      onChange={(e) => elegir(d, p.id, c.id, e.target.value)}
+                                      className="h-8 w-full min-w-[120px] rounded-md border border-input bg-background px-2 text-xs disabled:opacity-50"
+                                    >
+                                      <option value="">— sin elegir —</option>
+                                      {c.options.map((o) => (
+                                        <option key={o.id} value={o.id}>{o.name}</option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                );
+                              })}
                               <td className="py-1.5 pr-2 max-w-[160px] truncate" title={p.dietary_notes ?? ""}>
                                 {p.dietary_notes ?? ""}
                               </td>
@@ -403,7 +436,7 @@ export function MenusBoard({
                   {conteo.length > 0 && (
                     <div className="rounded-md border bg-alba/40 px-3 py-2 text-xs">
                       <strong>Para el restaurante:</strong>{" "}
-                      {conteo.map((x) => `${x.n} ${x.option.name}`).join(" · ")}
+                      {conteo.map((x) => `${x.n} ${x.option.name}${x.todos ? " (todos)" : ""}`).join(" · ")}
                     </div>
                   )}
 

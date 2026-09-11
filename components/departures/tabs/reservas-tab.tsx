@@ -141,7 +141,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                         )}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        {(r.meal_kind === "cena" || rooms.some((rr) => rr.includes_dinner)) && (
+                        {r.menu_required && (
                           <div>
                             <Link
                               href={`/caminos/${departureId}?tab=cenas`}

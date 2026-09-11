@@ -70,6 +70,12 @@ export async function setReservationRooms(reservationId: string, rooms: RoomInpu
     if (error) throw new Error(error.message);
   }
 
+  // Una habitación con cena incluida prende "pedir menú" (nunca lo apaga sola: eso lo
+  // decide el equipo en la reserva, porque hay hoteles con cena fija sin nada que elegir).
+  if (rooms.some((r) => r.includes_dinner)) {
+    await supabase.from("reservations").update({ menu_required: true }).eq("id", reservationId).eq("menu_required", false);
+  }
+
   if (departureId) revalidatePath(`/caminos/${departureId}`);
 }
 

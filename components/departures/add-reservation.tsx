@@ -29,6 +29,8 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
   const [touristTax, setTouristTax] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  const [menuRequired, setMenuRequired] = useState(false);
+  const [menuNotes, setMenuNotes] = useState("");
   const router = useRouter();
 
   const isMeal = type === "cenas";
@@ -253,6 +255,19 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
             <div className="grid gap-2"><Label>Ref. confirmación</Label><Input name="confirmation_ref" /></div>
           </div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
+          <div className="rounded-md border bg-alba/60 p-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={menuRequired} onChange={(e) => setMenuRequired(e.target.checked)} />
+              <span>Pedir menú a los peregrinos</span>
+            </label>
+            <input type="hidden" name="menu_required" value={menuRequired ? "true" : "false"} />
+            {menuRequired && (
+              <div className="grid gap-1">
+                <Label className="text-xs">Nota para los peregrinos</Label>
+                <Textarea name="menu_notes_pilgrim" value={menuNotes} onChange={(e) => setMenuNotes(e.target.value)} rows={2} placeholder="Ej.: Bebidas incluidas: agua y vino." />
+              </div>
+            )}
+          </div>
           <DialogFooter>
             <Button type="submit" variant="accent">Crear</Button>
           </DialogFooter>

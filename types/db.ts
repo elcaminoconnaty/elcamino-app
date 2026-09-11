@@ -82,6 +82,10 @@ export type ReservationMenuCourse = {
   label: string | null;
   position: number;
   required: boolean;
+  /** peregrino = elige cada uno · fijo = igual para todos · en_sitio = se elige en el restaurante */
+  mode: "peregrino" | "fijo" | "en_sitio";
+  /** Solo aplica si el peregrino eligió esta opción de una sección anterior. */
+  depends_on_option_id: string | null;
 };
 
 export type ReservationMenuOption = {
@@ -172,6 +176,10 @@ export type Reservation = {
   status: "presupuestado" | "contactado" | "reservado" | "confirmado" | "pagado" | "cancelado";
   confirmation_ref: string | null;
   notes: string | null;
+  /** Si se les pide menú a los peregrinos para esta reserva (solo cenas). */
+  menu_required: boolean;
+  /** Lo que ve el peregrino arriba del menú ("bebidas incluidas: agua y vino"). */
+  menu_notes_pilgrim: string | null;
 };
 
 export type ProviderPayment = {

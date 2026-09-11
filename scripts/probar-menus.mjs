@@ -7,6 +7,7 @@
 import {
   menuFromRows, courseTitle, menuIsEmpty, emptyGrid, gridFromChoices, choicesFromGrid,
   reconcileGrid, menuSignature, validateChoices, dinnerProgress, countByOption, copyMenu,
+  menuNeedsChoice, courseApplies, requiredCoursesFor, applyChoice, fixedDishes, dependentsOf,
 } from "../lib/data/menus.ts";
 
 let fallos = 0;
@@ -102,6 +103,59 @@ const d2 = { ...d1, choices: [...d1.choices].reverse(), optOuts: ["p2", "p3"] };
 check(menuSignature([d1]) === menuSignature([d2]), "la firma no depende del orden");
 check(menuSignature([d1]) !== menuSignature([{ ...d1, courses: sinMerluza }]), "la firma cambia si cambia el menú");
 check(menuSignature([d1]) !== menuSignature([{ ...d1, optOuts: ["p3"] }]), "la firma cambia si cambia un opt-out");
+
+// ── Modos y condicionales: O Pedrouzo ────────────────────────────────────────
+// Menú (elige): Pizza | Menú completo. Primero y Segundo solo si eligió Menú completo.
+// Sabor de pizza: se elige en el restaurante, solo si eligió Pizza. Postre fijo.
+const ped = menuFromRows(
+  [
+    { id: "cM", reservation_id: "R2", course: "otro", label: "Menú", position: 0, required: true, mode: "peregrino" },
+    { id: "c1", reservation_id: "R2", course: "entrada", label: "Primero", position: 1, required: true, mode: "peregrino", depends_on_option_id: "oMC" },
+    { id: "c2", reservation_id: "R2", course: "fuerte", label: "Segundo", position: 2, required: true, mode: "peregrino", depends_on_option_id: "oMC" },
+    { id: "cS", reservation_id: "R2", course: "otro", label: "Sabor de pizza", position: 3, required: false, mode: "en_sitio", depends_on_option_id: "oMP" },
+    { id: "cD", reservation_id: "R2", course: "postre", label: null, position: 4, required: false, mode: "fijo" },
+  ],
+  [
+    { id: "oMP", course_id: "cM", name: "Pizza 32cm", position: 0 },
+    { id: "oMC", course_id: "cM", name: "Menú completo", position: 1 },
+    { id: "o11", course_id: "c1", name: "Ensalada mixta", position: 0 },
+    { id: "o12", course_id: "c1", name: "Carbonara", position: 1 },
+    { id: "o21", course_id: "c2", name: "Codillo", position: 0 },
+    { id: "o22", course_id: "c2", name: "Merluza", position: 1 },
+    { id: "oD", course_id: "cD", name: "Helado o natillas", position: 0 },
+  ]
+);
+check(ped[0].mode === "peregrino" && ped[3].mode === "en_sitio" && ped[4].mode === "fijo", "menuFromRows lee el modo");
+check(menuNeedsChoice(ped) && !menuNeedsChoice([ped[4]]) && !menuIsEmpty([ped[3]]), "menuNeedsChoice / una sección en el restaurante cuenta como menú cargado");
+check(!courseApplies(ped[1], {}, ped) && courseApplies(ped[1], { cM: "oMC" }, ped) && !courseApplies(ped[1], { cM: "oMP" }, ped), "courseApplies según lo elegido en la sección padre");
+check(courseApplies(ped[0], {}, ped), "una sección sin dependencia siempre aplica");
+eq(requiredCoursesFor(ped, {}).map((c) => c.id), ["cM"], "sin elegir menú, solo el menú es obligatorio");
+eq(requiredCoursesFor(ped, { cM: "oMC" }).map((c) => c.id), ["cM", "c1", "c2"], "con menú completo, primero y segundo son obligatorios");
+eq(requiredCoursesFor(ped, { cM: "oMP" }).map((c) => c.id), ["cM"], "con pizza no hay más que elegir (el sabor va en el restaurante)");
+eq(fixedDishes(ped).map((x) => x.option.name), ["Helado o natillas"], "fixedDishes");
+eq(dependentsOf(ped[0], ped).map((c) => c.id), ["c1", "c2", "cS"], "dependentsOf");
+
+const filaPed = applyChoice(applyChoice({ cM: "oMC" }, "c1", "o11", ped), "c2", "o21", ped);
+eq(filaPed, { cM: "oMC", c1: "o11", c2: "o21" }, "applyChoice acumula");
+eq(applyChoice(filaPed, "cM", "oMP", ped), { cM: "oMP", c1: "", c2: "" }, "cambiar a pizza vacía primero y segundo");
+
+const gPed = { p1: { ...filaPed, cS: "", cD: "" }, p2: { cM: "oMP", c1: "o12", c2: "", cS: "", cD: "" }, p3: { cM: "", c1: "", c2: "", cS: "", cD: "" } };
+const chPed = choicesFromGrid(gPed, ped);
+eq(chPed.map((c) => `${c.pilgrim_id}:${c.course_id}`), ["p1:cM", "p1:c1", "p1:c2", "p2:cM"], "choicesFromGrid descarta lo que no aplica (p2 eligió pizza) y lo fijo");
+const progPed = dinnerProgress(["p1", "p2", "p3"], gPed, ped, []);
+eq(progPed.completos, ["p1", "p2"], "p1 (menú completo con dos platos) y p2 (pizza) están completos");
+eq(progPed.pendientes, ["p3"], "p3 no eligió nada");
+const cPed = countByOption(gPed, ped, []);
+eq(cPed.map((x) => `${x.option.name}=${x.n}${x.todos ? "*" : ""}`), ["Pizza 32cm=1", "Menú completo=1", "Ensalada mixta=1", "Codillo=1", "Helado o natillas=3*"], "countByOption: el postre fijo va para los 3 y la ensalada de p2 (pizza) no cuenta");
+check(validateChoices([{ pilgrim_id: "p1", course_id: "cD", option_id: "oD" }], ped) === "Hay una elección en una sección que no elige el peregrino", "validateChoices rechaza elegir en una sección fija");
+check(validateChoices([{ pilgrim_id: "p1", course_id: "c1", option_id: "o11" }], ped)?.includes("no aplica"), "validateChoices rechaza un primero sin menú completo");
+check(validateChoices([{ pilgrim_id: "p1", course_id: "cM", option_id: "oMC" }, { pilgrim_id: "p1", course_id: "c1", option_id: "o11" }], ped) === null, "y acepta el primero con menú completo");
+const soloFijo = dinnerProgress(["p1", "p2"], emptyGrid(["p1", "p2"], [ped[4]]), [ped[4]], ["p2"]);
+check(soloFijo.completa && soloFijo.completos.length === 1 && !soloFijo.hayQueElegir, "un menú todo fijo está completo sin que nadie elija");
+const copiaPed = copyMenu(ped);
+eq(copiaPed[1].depends_on, { course_index: 0, option_index: 1 }, "copyMenu traduce la dependencia a índices");
+eq(copiaPed[3].mode, "en_sitio", "y conserva el modo");
+check(menuSignature([{ id: "R2", courses: ped, choices: [] }]) !== menuSignature([{ id: "R2", courses: ped.map((c) => (c.id === "cD" ? { ...c, mode: "peregrino" } : c)), choices: [] }]), "la firma cambia si cambia un modo");
 
 console.log(fallos === 0 ? "\nTODO OK" : `\n${fallos} FALLOS`);
 process.exit(fallos ? 1 : 0);

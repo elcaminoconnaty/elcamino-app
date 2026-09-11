@@ -37,13 +37,20 @@ const cookie = chunks.length === 1 ? `${name}=${chunks[0]}` : chunks.map((c, i) 
 console.log("Sesión de", userRes.user.email);
 
 // ── Datos ────────────────────────────────────────────────────────────────────
-const { data: cena } = await admin.from("v_dinner_reservations").select("*").eq("departure_id", DEP).ilike("provider_name", "%camiño%").maybeSingle();
-if (!cena) throw new Error("No encontré la cena de Casa Camiño");
+// Se siembra en la primera cena del camino que NO tenga menú cargado (para no pisar datos
+// reales); se prefiere Casa Camiño si está libre.
+const { data: cenasCamino } = await admin.from("v_dinner_reservations").select("*").eq("departure_id", DEP).order("check_in");
+const { data: conMenu } = await admin.from("reservation_menu_courses").select("reservation_id").in("reservation_id", (cenasCamino ?? []).map((c) => c.reservation_id));
+const ocupadas = new Set((conMenu ?? []).map((c) => c.reservation_id));
+const libres = (cenasCamino ?? []).filter((c) => !ocupadas.has(c.reservation_id));
+const cena = libres.find((c) => /camiño/i.test(c.provider_name)) ?? libres[0];
+if (!cena) throw new Error("Todas las cenas del camino ya tienen menú cargado; no siembro encima de datos reales.");
 const { data: regs } = await admin.from("registrations").select("id, pilgrim_id, menu_token, pilgrims!inner(full_name, deleted_at)").eq("departure_id", DEP).neq("status", "cancelado");
 const gente = regs.filter((r) => !r.pilgrims.deleted_at).map((r) => ({ reg: r.id, id: r.pilgrim_id, name: r.pilgrims.full_name, token: r.menu_token })).sort((a, b) => a.name.localeCompare(b.name, "es"));
 console.log(`Cena: ${cena.provider_name} (${cena.check_in}) · ${gente.length} inscritos`);
 const { count: menuPrevio } = await admin.from("reservation_menu_courses").select("id", { count: "exact", head: true }).eq("reservation_id", cena.reservation_id);
 if (menuPrevio > 0) throw new Error("Esa cena ya tiene menú cargado; no siembro encima de datos reales.");
+const REST = cena.provider_name;
 
 // ── 1. Sembrar el menú ───────────────────────────────────────────────────────
 console.log("\nMenú");
@@ -66,6 +73,23 @@ check(cursos.length === 4 && platos.length === 7, "menú sembrado: 4 secciones, 
 const { error: malPlato } = await admin.from("meal_choices").insert({ reservation_id: cena.reservation_id, pilgrim_id: gente[0].id, course_id: cE, option_id: op("Pulpo á feira") });
 check(malPlato && malPlato.message.includes("no pertenece"), `trigger: plato de otra sección → "${malPlato?.message}"`);
 
+// Modos y condicionales: una sección fija (pan) y un "café" que solo aplica si eligió Tarta.
+const { data: extra } = await admin.from("reservation_menu_courses").insert([
+  { reservation_id: cena.reservation_id, course: "otro", label: "Pan", position: 4, required: false, mode: "fijo" },
+  { reservation_id: cena.reservation_id, course: "otro", label: "Café", position: 5, required: false, mode: "peregrino" },
+]).select("id, label");
+const cPan = extra.find((x) => x.label === "Pan").id, cCafe = extra.find((x) => x.label === "Café").id;
+const { data: extraOps } = await admin.from("reservation_menu_options").insert([
+  { course_id: cPan, name: "Pan de la casa", position: 0 },
+  { course_id: cCafe, name: "Solo", position: 0 }, { course_id: cCafe, name: "Con leche", position: 1 },
+]).select("id, name");
+const { error: depErr } = await admin.from("reservation_menu_courses").update({ depends_on_option_id: op("Tarta de Santiago") }).eq("id", cCafe);
+check(!depErr, `el café depende de la tarta${depErr ? ` — ${depErr.message}` : ""}`);
+const { error: depMal } = await admin.from("reservation_menu_courses").update({ depends_on_option_id: extraOps.find((o) => o.name === "Solo").id }).eq("id", cPan);
+check(depMal && depMal.message.includes("antes"), `trigger: no puede depender de una sección posterior → "${depMal?.message}"`);
+const { error: fijoErr } = await admin.from("meal_choices").insert({ reservation_id: cena.reservation_id, pilgrim_id: gente[0].id, course_id: cPan, option_id: extraOps.find((o) => o.name === "Pan de la casa").id });
+check(fijoErr && fijoErr.message.includes("no la elige"), `trigger: no se elige en una sección fija → "${fijoErr?.message}"`);
+
 // ── 2. Guardado por el RPC con sesión de equipo ──────────────────────────────
 console.log("\nRPC save_meal_choices");
 const rpc = (dinners) => team.rpc("save_meal_choices", { p_departure_id: DEP, p_dinners: dinners });
@@ -81,7 +105,7 @@ const { data: r1, error: e1 } = await rpc([{
 check(!e1 && r1?.elecciones === 4, `guarda 4 elecciones y 1 opt-out${e1 ? ` — ${e1.message}` : ` (${JSON.stringify(r1)})`}`);
 
 const { error: e2 } = await rpc([{ reservation_id: cena.reservation_id, choices: [{ pilgrim_id: a.id, course_id: cF, option_id: op("Caldo gallego") }], opt_outs: [] }]);
-check(e2 && e2.message.includes("Casa Camiño") && e2.message.includes("ya no está en el menú"), `plato de otra sección → "${e2?.message}"`);
+check(e2 && e2.message.includes(REST) && e2.message.includes("ya no está en el menú"), `plato de otra sección → "${e2?.message}"`);
 const { count: sigue } = await admin.from("meal_choices").select("id", { count: "exact", head: true }).eq("reservation_id", cena.reservation_id);
 check(sigue === 4, `y nada cambió (${sigue} elecciones)`);
 
@@ -99,7 +123,7 @@ if (tokErr) throw tokErr;
 const pub = await fetch(`${BASE}/menu/${token}`, { redirect: "manual" });
 const html = await pub.text();
 check(pub.status === 200, `GET /menu/<token> → ${pub.status} (sin sesión)`);
-check(html.includes(b.name.split(" ")[0]) && html.includes("Casa Camiño") && html.includes("Merluza a la gallega"), "muestra el nombre, el restaurante y el menú");
+check(html.includes(b.name.split(" ")[0]) && html.includes(REST) && html.includes("Merluza a la gallega"), "muestra el nombre, el restaurante y el menú");
 check(html.includes("No voy a cenar esta noche"), "tiene la casilla de no cenar");
 check(pub.headers.get("referrer-policy") === "no-referrer" && (pub.headers.get("x-robots-tag") ?? "").includes("noindex"), "cabeceras no-referrer y noindex");
 const falso = await fetch(`${BASE}/menu/${"0".repeat(64)}`, { redirect: "manual" });
@@ -121,6 +145,41 @@ const { error: e5 } = await rpc([{
 const { data: deB } = await admin.from("meal_choices").select("course_id, chosen_via").eq("reservation_id", cena.reservation_id).eq("pilgrim_id", b.id);
 check(!e5 && deB.find((x) => x.course_id === cF)?.chosen_via === "peregrino" && deB.find((x) => x.course_id === cP)?.chosen_via === "equipo", "el RPC conserva 'peregrino' en lo que no cambió y marca 'equipo' en lo nuevo");
 
+// Condicional: b eligió Tarta → puede elegir café; si cambia a otro postre, el café se borra solo.
+const { error: e6 } = await rpc([{
+  reservation_id: cena.reservation_id,
+  choices: [
+    { pilgrim_id: a.id, course_id: cE, option_id: op("Caldo gallego") }, { pilgrim_id: a.id, course_id: cF, option_id: op("Pulpo á feira") }, { pilgrim_id: a.id, course_id: cP, option_id: op("Tarta de Santiago") },
+    { pilgrim_id: b.id, course_id: cF, option_id: op("Merluza a la gallega") },
+    { pilgrim_id: b.id, course_id: cP, option_id: op("Tarta de Santiago") },
+    { pilgrim_id: b.id, course_id: cCafe, option_id: extraOps.find((o) => o.name === "Con leche").id },
+  ],
+  opt_outs: [{ pilgrim_id: c.id }],
+}]);
+const { count: cafeB } = await admin.from("meal_choices").select("id", { count: "exact", head: true }).eq("reservation_id", cena.reservation_id).eq("pilgrim_id", b.id).eq("course_id", cCafe);
+check(!e6 && cafeB === 1, `con tarta, el café se guarda${e6 ? ` — ${e6.message}` : ""}`);
+const { error: e7 } = await rpc([{
+  reservation_id: cena.reservation_id,
+  choices: [
+    { pilgrim_id: a.id, course_id: cE, option_id: op("Caldo gallego") }, { pilgrim_id: a.id, course_id: cF, option_id: op("Pulpo á feira") }, { pilgrim_id: a.id, course_id: cP, option_id: op("Tarta de Santiago") },
+    { pilgrim_id: b.id, course_id: cF, option_id: op("Merluza a la gallega") },
+    { pilgrim_id: b.id, course_id: cCafe, option_id: extraOps.find((o) => o.name === "Con leche").id },
+  ],
+  opt_outs: [{ pilgrim_id: c.id }],
+}]);
+const { count: cafeB2 } = await admin.from("meal_choices").select("id", { count: "exact", head: true }).eq("reservation_id", cena.reservation_id).eq("pilgrim_id", b.id).eq("course_id", cCafe);
+check(!e7 && cafeB2 === 0, `sin tarta, el RPC borra el café huérfano${e7 ? ` — ${e7.message}` : ""}`);
+// Vuelve a dejar la tarta de b para lo que sigue (Excel espera 2 tartas).
+await rpc([{
+  reservation_id: cena.reservation_id,
+  choices: [
+    { pilgrim_id: a.id, course_id: cE, option_id: op("Caldo gallego") }, { pilgrim_id: a.id, course_id: cF, option_id: op("Pulpo á feira") }, { pilgrim_id: a.id, course_id: cP, option_id: op("Tarta de Santiago") },
+    { pilgrim_id: b.id, course_id: cF, option_id: op("Merluza a la gallega") },
+    { pilgrim_id: b.id, course_id: cP, option_id: op("Tarta de Santiago") },
+  ],
+  opt_outs: [{ pilgrim_id: c.id }],
+}]);
+
 // ── 4. Pestaña interna y Excel ───────────────────────────────────────────────
 console.log("\nPestaña Cenas y Excel");
 const tab = await fetch(`${BASE}/caminos/${DEP}?tab=cenas`, { headers: { cookie }, redirect: "manual" });
@@ -138,24 +197,28 @@ const wb = await bajar(`/api/export/caminos/${DEP}/cenas`);
 if (wb) {
   console.log("  hojas:", wb.SheetNames.join(" | "));
   const resumen = XLSX.utils.sheet_to_json(wb.Sheets["Resumen"]);
-  const fila = resumen.find((r) => r["Restaurante"] === "Casa Camiño");
+  const fila = resumen.find((r) => r["Restaurante"] === REST);
   // Solo a. eligió en todas las obligatorias (b. no eligió entrada), así que "eligieron" es 1.
   check(fila && fila["Menú cargado"] === "Sí" && fila["Eligieron"] === 1 && fila["Pendientes"] === 13 && fila["No cenan"] === 1, `Resumen: eligieron ${fila?.["Eligieron"]}, pendientes ${fila?.["Pendientes"]}, no cenan ${fila?.["No cenan"]}`);
   check(resumen.some((r) => r["Menú cargado"] === "No"), "las cenas sin menú también salen en el Resumen");
-  const hoja = wb.Sheets[wb.SheetNames.find((n) => n.startsWith("Casa Cami"))];
+  const hoja = wb.Sheets[wb.SheetNames.find((n) => n.startsWith(REST.slice(0, 9)))];
   const aoa = XLSX.utils.sheet_to_json(hoja, { header: 1, blankrows: false });
   const iCab = aoa.findIndex((f) => f[0] === "Peregrino");
-  check(iCab > 0 && aoa[iCab].join("|") === "Peregrino|Entrada|Principal|Postre|Bebida|Alimentación|Notas", `cabecera: ${aoa[iCab]?.join(" | ")}`);
+  check(iCab > 0 && aoa[iCab].join("|") === "Peregrino|Entrada|Principal|Postre|Bebida|Pan (todos)|Café|Alimentación|Notas", `cabecera: ${aoa[iCab]?.join(" | ")}`);
+  check(aoa.some((f) => String(f[0]).startsWith("Igual para todos: Pan: Pan de la casa")), "la hoja dice qué va igual para todos");
   const filaA = aoa.find((f) => f[0] === a.name);
-  check(filaA && filaA[1] === "Caldo gallego" && filaA[2] === "Pulpo á feira" && filaA[3] === "Tarta de Santiago", `fila de ${a.name}: ${JSON.stringify(filaA)}`);
+  check(filaA && filaA[1] === "Caldo gallego" && filaA[2] === "Pulpo á feira" && filaA[3] === "Tarta de Santiago" && filaA[5] === "Pan de la casa", `fila de ${a.name}: ${JSON.stringify(filaA)}`);
+  const filaSinTarta = aoa.find((f) => f[0] !== a.name && f[0] !== b.name && f[2] === "— sin elegir —");
+  check(filaSinTarta && filaSinTarta[6] === "—", `el café de quien no eligió tarta sale como "—": ${JSON.stringify(filaSinTarta)}`);
   const pendientes = aoa.filter((f) => f[2] === "— sin elegir —").length;
   check(pendientes === gente.length - 3, `${pendientes} pendientes marcados "— sin elegir —"`);
   check(aoa.some((f) => f[0] === "No cenan" && String(f[1]).includes(c.name)), `"No cenan: ${c.name}"`);
   const iRes = aoa.findIndex((f) => f[0] === "Resumen por plato");
   const conteo = aoa.slice(iRes + 2).filter((f) => f.length === 3 && typeof f[2] === "number");
   check(conteo.some((f) => f[1] === "Tarta de Santiago" && f[2] === 2) && conteo.some((f) => f[1] === "Pulpo á feira" && f[2] === 1), `resumen por plato: ${conteo.map((f) => `${f[1]}=${f[2]}`).join(", ")}`);
+  check(conteo.some((f) => f[1] === "Pan de la casa (todos)" && f[2] === gente.length - 1), `el pan fijo va para los ${gente.length - 1} que cenan`);
   const matriz = XLSX.utils.sheet_to_json(wb.Sheets["Matriz por peregrino"]);
-  const col = Object.keys(matriz[0]).find((k) => k.includes("Casa Camiño"));
+  const col = Object.keys(matriz[0]).find((k) => k.includes(REST));
   check(matriz.find((m) => m["Peregrino"] === c.name)?.[col] === "no cena" && matriz.find((m) => m["Peregrino"] === a.name)?.[col] === "Caldo gallego / Pulpo á feira / Tarta de Santiago", "matriz por peregrino");
 }
 const solo = await bajar(`/api/export/caminos/${DEP}/cenas?restaurante=${cena.provider_id}`);

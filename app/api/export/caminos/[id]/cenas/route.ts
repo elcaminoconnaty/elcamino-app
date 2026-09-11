@@ -18,15 +18,40 @@ function dinnerLabel(d: Row) {
   return [d.day_number != null ? `D${d.day_number}` : null, fecha, d.provider_name].filter(Boolean).join(" · ");
 }
 
+type Curso = {
+  id: string;
+  label: string;
+  required: boolean;
+  mode: "peregrino" | "fijo" | "en_sitio";
+  depends: string | null;
+  /** El plato de una sección fija (o el primero, si es de elegir). */
+  fixed: string | null;
+};
+
 type Cena = {
   reservation_id: string;
   info: Row;
   /** Secciones en orden, con su rótulo. */
-  courses: { id: string; label: string; required: boolean }[];
+  courses: Curso[];
   /** filas de v_menu_choices agrupadas por peregrino */
   porPeregrino: Map<string, Row[]>;
   noCenan: string[];
 };
+
+/** Una sección condicional aplica si el peregrino tiene elegida la opción de la que depende. */
+function aplica(c: { depends: string | null }, filas: Row[]): boolean {
+  return !c.depends || filas.some((f) => f.option_id === c.depends);
+}
+
+/** Si un peregrino ya eligió todo lo que le toca. Con un menú sin nada que elegir, todos están listos. */
+function completo(filas: Row[], courses: Curso[]): boolean {
+  const eligibles = courses.filter((c) => c.mode === "peregrino");
+  if (courses.length === 0) return false;
+  if (eligibles.length === 0) return true;
+  const porCurso = new Map(filas.map((f) => [f.course_id, f]));
+  const obligatorias = eligibles.filter((c) => c.required && aplica(c, filas));
+  return obligatorias.length > 0 && obligatorias.every((c) => porCurso.get(c.id)?.option_id);
+}
 
 /**
  * La hoja que se le manda al restaurante: sus datos, la lista nominal con lo que eligió
@@ -47,8 +72,9 @@ function restaurantSheet(cenas: Cena[], caminoNombre: string): (string | number)
     const personas = cena.porPeregrino.size;
     const cenan = personas - cena.noCenan.length;
     const eligieron = Array.from(cena.porPeregrino.entries()).filter(
-      ([id, filas]) => !cena.noCenan.includes(id) && filas.filter((f) => f.required).every((f) => f.option_id)
+      ([id, filas]) => !cena.noCenan.includes(id) && completo(filas, cena.courses)
     ).length;
+    const columnas = cena.courses.filter((c) => c.mode !== "en_sitio");
     aoa.push([]);
     aoa.push([`Cena del ${d.check_in ?? "?"}${d.day_number != null ? ` (día ${d.day_number})` : ""}${d.confirmation_ref ? ` · Reserva: ${d.confirmation_ref}` : ""}`]);
     aoa.push([`${personas} personas · ${cenan} cenan · ${eligieron} eligieron · ${Math.max(cenan - eligieron, 0)} pendiente${cenan - eligieron === 1 ? "" : "s"}`]);
@@ -59,7 +85,12 @@ function restaurantSheet(cenas: Cena[], caminoNombre: string): (string | number)
       continue;
     }
 
-    aoa.push(["Peregrino", ...cena.courses.map((c) => c.label), "Alimentación", "Notas"]);
+    if (d.menu_notes_pilgrim) aoa.push([`Nota: ${d.menu_notes_pilgrim}`]);
+    const fijos = cena.courses.filter((c) => c.mode === "fijo" && c.fixed);
+    if (fijos.length > 0) aoa.push([`Igual para todos: ${fijos.map((c) => `${c.label}: ${c.fixed}`).join(" · ")}`]);
+    const enSitio = cena.courses.filter((c) => c.mode === "en_sitio");
+    if (enSitio.length > 0) aoa.push([`Se elige en el restaurante: ${enSitio.map((c) => c.label).join(" · ")}`]);
+    aoa.push(["Peregrino", ...columnas.map((c) => (c.mode === "fijo" ? `${c.label} (todos)` : c.label)), "Alimentación", "Notas"]);
     const nombres = Array.from(cena.porPeregrino.entries())
       .filter(([id]) => !cena.noCenan.includes(id))
       .map(([id, filas]) => [id, filas[0].pilgrim_name as string, filas] as const)
@@ -67,8 +98,16 @@ function restaurantSheet(cenas: Cena[], caminoNombre: string): (string | number)
     for (const [, nombre, filas] of nombres) {
       const porCurso = new Map(filas.map((f) => [f.course_id, f]));
       const fila: (string | number)[] = [nombre];
-      for (const c of cena.courses) {
+      for (const c of columnas) {
+        if (c.mode === "fijo") {
+          fila.push(c.fixed ?? "");
+          continue;
+        }
         const f = porCurso.get(c.id);
+        if (!aplica(c, filas)) {
+          fila.push("—");
+          continue;
+        }
         fila.push(f?.option_name ?? (c.required ? "— sin elegir —" : ""));
       }
       fila.push(filas[0].dietary_notes ?? "", Array.from(new Set(filas.map((f) => f.choice_notes).filter(Boolean))).join("; "));
@@ -83,10 +122,16 @@ function restaurantSheet(cenas: Cena[], caminoNombre: string): (string | number)
 
     // Resumen por plato: lo que el restaurante realmente necesita para la cocina.
     const conteo = new Map<string, { seccion: string; plato: string; n: number }>();
+    for (const c of cena.courses) {
+      if (c.mode === "fijo" && c.fixed && cenan > 0) conteo.set(`${c.id}:fijo`, { seccion: c.label, plato: `${c.fixed} (todos)`, n: cenan });
+    }
+    const cursoDe = new Map(cena.courses.map((c) => [c.id, c]));
     for (const [id, filas] of Array.from(cena.porPeregrino.entries())) {
       if (cena.noCenan.includes(id)) continue;
       for (const f of filas) {
-        if (!f.option_id) continue;
+        if (!f.option_id || f.mode !== "peregrino") continue;
+        const cc = cursoDe.get(f.course_id);
+        if (cc && !aplica(cc, filas)) continue;
         const k = `${f.course_id}:${f.option_id}`;
         const prev = conteo.get(k) ?? { seccion: courseLabel(f), plato: f.option_name, n: 0 };
         prev.n++;
@@ -149,7 +194,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const cenas: Cena[] = infos.map((info) => {
     const filas = (filasPor.get(info.reservation_id) ?? []).sort((a, b) => a.course_position - b.course_position);
-    const courses = Array.from(new Map(filas.map((f) => [f.course_id, { id: f.course_id, label: courseLabel(f), required: !!f.required }])).values());
+    const courses: Curso[] = Array.from(
+      new Map(
+        filas.map((f) => [
+          f.course_id,
+          { id: f.course_id, label: courseLabel(f), required: !!f.required, mode: (f.mode ?? "peregrino") as Curso["mode"], depends: f.depends_on_option_id ?? null, fixed: f.first_option_name ?? null },
+        ])
+      ).values()
+    );
     const porPeregrino = new Map<string, Row[]>();
     for (const f of filas) porPeregrino.set(f.pilgrim_id, [...(porPeregrino.get(f.pilgrim_id) ?? []), f]);
     const noCenan = (noCenanPor.get(info.reservation_id) ?? []).map((x) => x.id);
@@ -181,7 +233,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const personas = c.porPeregrino.size;
     const cenan = personas - c.noCenan.length;
     const eligieron = Array.from(c.porPeregrino.entries()).filter(
-      ([id, filas]) => !c.noCenan.includes(id) && c.courses.length > 0 && filas.filter((f) => f.required).every((f) => f.option_id)
+      ([id, filas]) => !c.noCenan.includes(id) && completo(filas, c.courses)
     ).length;
     return {
       "Día": c.info.day_number ?? "",
@@ -192,7 +244,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       "Email": c.info.provider_email ?? "",
       "Cena del hotel": c.info.via_meal_kind ? "" : c.info.via_rooms ? "Sí" : "",
       "Menú cargado": c.courses.length > 0 ? "Sí" : "No",
-      "Secciones": c.courses.map((x) => x.label).join(" · "),
+      "Secciones": c.courses.map((x) => (x.mode === "fijo" ? `${x.label}: ${x.fixed ?? "—"} (todos)` : x.mode === "en_sitio" ? `${x.label} (en el restaurante)` : x.label)).join(" · "),
+      "Nota a los peregrinos": c.info.menu_notes_pilgrim ?? "",
       "Inscritos": personas,
       "No cenan": c.noCenan.length,
       "Eligieron": eligieron,
@@ -234,8 +287,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           continue;
         }
         const filas = cena.porPeregrino.get(id) ?? [];
-        const platos = filas.filter((f) => f.option_id).map((f) => f.option_name);
-        fila[label] = cena.courses.length === 0 ? "" : platos.length === 0 ? "pendiente" : platos.join(" / ");
+        const cursoDe = new Map(cena.courses.map((c) => [c.id, c]));
+        const platos = filas
+          .filter((f) => f.option_id && f.mode === "peregrino" && aplica(cursoDe.get(f.course_id) ?? { depends: null }, filas))
+          .map((f) => f.option_name);
+        const hayQueElegir = cena.courses.some((c) => c.mode === "peregrino");
+        fila[label] = cena.courses.length === 0 ? "" : !hayQueElegir ? "menú fijo" : platos.length === 0 ? "pendiente" : platos.join(" / ");
       }
       return fila;
     });

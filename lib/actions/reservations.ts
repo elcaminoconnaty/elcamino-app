@@ -35,6 +35,11 @@ export async function createReservation(formData: FormData) {
     service_price_per_person_eur: formData.get("service_price_per_person_eur") ? Number(formData.get("service_price_per_person_eur")) : null,
     tourist_tax_per_person_eur: formData.get("tourist_tax_per_person_eur") ? Number(formData.get("tourist_tax_per_person_eur")) : 0,
     notes: formData.get("notes")?.toString() || null,
+    // Solo las cenas piden menú; si el formulario trae el interruptor, manda él.
+    menu_required: formData.has("menu_required")
+      ? formData.get("menu_required") === "on" || formData.get("menu_required") === "true"
+      : (formData.get("meal_kind")?.toString() || null) === "cena",
+    menu_notes_pilgrim: formData.get("menu_notes_pilgrim")?.toString().trim() || null,
   };
   const { data, error } = await supabase.from("reservations").insert(payload).select("id").single();
   if (error) throw new Error(error.message);

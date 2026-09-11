@@ -19,6 +19,8 @@ export type CenaParaElegir = {
   lugar: string | null;
   /** Es la cena incluida en el hotel, no un restaurante aparte. */
   delHotel: boolean;
+  /** Lo que el equipo quiere que lea antes de elegir ("bebidas incluidas: agua y vino"). */
+  nota: string | null;
   courses: MenuCourse[];
   /** courseId → optionId elegido. */
   elegido: Record<string, string>;
@@ -65,7 +67,7 @@ export async function menuPorToken(token: string): Promise<MenuParaElegir | null
 
   const { data: cenas } = await supabase
     .from("v_dinner_reservations")
-    .select("reservation_id, day_number, check_in, location, provider_name, provider_city, via_meal_kind, via_rooms")
+    .select("reservation_id, day_number, check_in, location, provider_name, provider_city, via_meal_kind, via_rooms, menu_notes_pilgrim")
     .eq("departure_id", reg.departure_id)
     .order("check_in", { ascending: true, nullsFirst: false })
     .order("day_number", { ascending: true });
@@ -73,7 +75,7 @@ export async function menuPorToken(token: string): Promise<MenuParaElegir | null
   if (ids.length === 0) return { estado: "activo", nombre: reg.nombre, camino: reg.camino, cenas: [] };
 
   const [{ data: courses }, { data: choices }, { data: optOuts }] = await Promise.all([
-    supabase.from("reservation_menu_courses").select("id, reservation_id, course, label, position, required").in("reservation_id", ids),
+    supabase.from("reservation_menu_courses").select("id, reservation_id, course, label, position, required, mode, depends_on_option_id").in("reservation_id", ids),
     supabase.from("meal_choices").select("reservation_id, course_id, option_id").in("reservation_id", ids).eq("pilgrim_id", reg.pilgrim_id),
     supabase.from("reservation_opt_outs").select("reservation_id").in("reservation_id", ids).eq("pilgrim_id", reg.pilgrim_id).eq("kind", "cena"),
   ]);
@@ -99,6 +101,7 @@ export async function menuPorToken(token: string): Promise<MenuParaElegir | null
       restaurante: c.provider_name,
       lugar: c.location ?? c.provider_city ?? null,
       delHotel: !c.via_meal_kind && !!c.via_rooms,
+      nota: c.menu_notes_pilgrim ?? null,
       courses: menuFromRows(cursosPor.get(c.reservation_id) ?? [], options ?? []),
       elegido: elegidoPor.get(c.reservation_id) ?? {},
       noCena: noCena.has(c.reservation_id),
@@ -137,11 +140,12 @@ export async function guardarEleccionPorToken(args: {
 
   const { data: course } = await supabase
     .from("reservation_menu_courses")
-    .select("id")
+    .select("id, mode, depends_on_option_id")
     .eq("id", args.courseId)
     .eq("reservation_id", args.reservationId)
     .maybeSingle();
-  if (!course) return { ok: false, error: "El menú cambió. Recargá la página." };
+  if (!course) return { ok: false, error: "El menú cambió. Recarga la página." };
+  if (course.mode !== "peregrino") return { ok: false, error: "Esa parte del menú no se elige." };
 
   if (!args.optionId) {
     const { error } = await supabase
@@ -150,7 +154,7 @@ export async function guardarEleccionPorToken(args: {
       .eq("reservation_id", args.reservationId)
       .eq("pilgrim_id", reg.pilgrim_id)
       .eq("course_id", args.courseId);
-    if (error) return { ok: false, error: "No se pudo guardar. Volvé a intentar." };
+    if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   } else {
     const { data: option } = await supabase
       .from("reservation_menu_options")
@@ -158,7 +162,18 @@ export async function guardarEleccionPorToken(args: {
       .eq("id", args.optionId)
       .eq("course_id", args.courseId)
       .maybeSingle();
-    if (!option) return { ok: false, error: "Ese plato ya no está en el menú. Recargá la página." };
+    if (!option) return { ok: false, error: "Ese plato ya no está en el menú. Recarga la página." };
+    if (course.depends_on_option_id) {
+      // Sección condicional: solo vale si eligió la opción de la que depende.
+      const { data: padre } = await supabase
+        .from("meal_choices")
+        .select("id")
+        .eq("reservation_id", args.reservationId)
+        .eq("pilgrim_id", reg.pilgrim_id)
+        .eq("option_id", course.depends_on_option_id)
+        .maybeSingle();
+      if (!padre) return { ok: false, error: "Primero elige la opción anterior." };
+    }
     // Si había dicho que no cenaba, elegir un plato lo desmarca.
     await supabase.from("reservation_opt_outs").delete().eq("reservation_id", args.reservationId).eq("pilgrim_id", reg.pilgrim_id).eq("kind", "cena");
     const { error } = await supabase.from("meal_choices").upsert(
@@ -171,8 +186,10 @@ export async function guardarEleccionPorToken(args: {
       },
       { onConflict: "reservation_id,pilgrim_id,course_id" }
     );
-    if (error) return { ok: false, error: "No se pudo guardar. Volvé a intentar." };
+    if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   }
+  // Si cambió la opción de la que dependen otras secciones, esas elecciones sobran.
+  await supabase.rpc("prune_dependent_choices", { p_reservation_id: args.reservationId, p_pilgrim_id: reg.pilgrim_id });
   revalidatePath(`/caminos/${reg.departure_id}`);
   return { ok: true };
 }
@@ -191,10 +208,10 @@ export async function marcarNoCenaPorToken(args: { token: string; reservationId:
       { reservation_id: args.reservationId, pilgrim_id: reg.pilgrim_id, kind: "cena", reason: "Avisó desde su enlace" },
       { onConflict: "reservation_id,pilgrim_id,kind" }
     );
-    if (error) return { ok: false, error: "No se pudo guardar. Volvé a intentar." };
+    if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   } else {
     const { error } = await supabase.from("reservation_opt_outs").delete().eq("reservation_id", args.reservationId).eq("pilgrim_id", reg.pilgrim_id).eq("kind", "cena");
-    if (error) return { ok: false, error: "No se pudo guardar. Volvé a intentar." };
+    if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   }
   revalidatePath(`/caminos/${reg.departure_id}`);
   return { ok: true };
