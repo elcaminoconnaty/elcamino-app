@@ -9,7 +9,7 @@ import { formatEUR } from "@/lib/utils";
 import { NewPaymentDialog } from "@/components/pilgrims/new-payment-dialog";
 import { RegisterReservationPayment } from "@/components/departures/register-reservation-payment";
 import { EditBudgetItemDialog } from "@/components/departures/edit-budget-item-dialog";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, FileText, Download } from "lucide-react";
 
 export async function PagosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
@@ -148,9 +148,31 @@ export async function PagosTab({ departureId }: { departureId: string }) {
 
       {/* ===== EGRESOS ===== */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <TrendingDown className="h-5 w-5 text-aviso-700" />
-          <h2 className="font-display text-lg text-noche">Lo que sale — pagos a proveedores y equipo</h2>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <TrendingDown className="h-5 w-5 text-aviso-700" />
+            <h2 className="font-display text-lg text-noche">Lo que sale — pagos a proveedores y equipo</h2>
+          </div>
+          {/* El informe que se le entrega a Naty para hacer los pagos: qué falta, cómo y desde dónde. */}
+          <div className="flex items-center gap-1.5">
+            <a
+              href={`/api/pdf/pagos-pendientes/${departureId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
+              title="PDF con lo que falta por pagar, el medio de pago y los datos bancarios de cada proveedor"
+            >
+              <FileText className="h-4 w-4" /> Informe de pagos (PDF)
+            </a>
+            <a
+              href={`/api/export/caminos/${departureId}/pagos-pendientes`}
+              download
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
+              title="El mismo informe en Excel"
+            >
+              <Download className="h-4 w-4" /> Excel
+            </a>
+          </div>
         </div>
         <div className="grid gap-3 grid-cols-3">
           <SummaryCard label="Costo total" value={<EurCop value={costo} />} />

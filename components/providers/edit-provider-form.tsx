@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProvider } from "@/lib/actions/reservations";
-import { PROVIDER_TYPES } from "@/lib/constants";
+import { PROVIDER_TYPES, RESERVATION_PAYMENT_METHODS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 
 export function EditProviderForm({ provider }: { provider: any }) {
@@ -63,6 +63,28 @@ export function EditProviderForm({ provider }: { provider: any }) {
         <p className="text-xs text-muted-foreground">
           Si este grupo tiene otra hora, se puede pisar en la reserva. Acá va la habitual del hotel.
         </p>
+      </div>
+
+      {/* Cómo se le paga. Sale en el informe de pagos pendientes que Naty usa para girar. */}
+      <div className="rounded-md border p-3 grid gap-3">
+        <div className="text-xs uppercase tracking-widest text-ocre-profundo">Datos de pago</div>
+        <div className="grid gap-2">
+          <Label>Cómo se le paga normalmente</Label>
+          <select name="payment_method_default" defaultValue={provider.payment_method_default ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <option value="">Sin definir</option>
+            {RESERVATION_PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2"><Label>Banco</Label><Input name="bank_name" defaultValue={provider.bank_name ?? ""} placeholder="Abanca, Santander…" /></div>
+          <div className="grid gap-2"><Label>Titular de la cuenta</Label><Input name="account_holder" defaultValue={provider.account_holder ?? ""} /></div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2"><Label>IBAN</Label><Input name="iban" defaultValue={provider.iban ?? ""} placeholder="ES00 0000 0000 0000 0000 0000" /></div>
+          <div className="grid gap-2"><Label>SWIFT / BIC</Label><Input name="swift_bic" defaultValue={provider.swift_bic ?? ""} /></div>
+        </div>
+        <div className="grid gap-2"><Label>Teléfono Bizum</Label><Input name="bizum_phone" defaultValue={provider.bizum_phone ?? ""} placeholder="+34 …" /></div>
+        <div className="grid gap-2"><Label>Notas de pago</Label><Textarea name="payment_notes" rows={2} defaultValue={provider.payment_notes ?? ""} placeholder="Ej.: 30% al reservar y el resto al llegar; concepto: nombre del grupo." /></div>
       </div>
 
       <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} defaultValue={provider.notes ?? ""} /></div>

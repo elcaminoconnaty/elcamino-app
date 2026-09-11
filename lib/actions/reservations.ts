@@ -109,7 +109,11 @@ export async function updateProvider(id: string, formData: FormData) {
 
   // Lo que sale impreso en el documento de viaje. Solo se escribe si el formulario lo trae,
   // para que un formulario que no lo muestra no lo borre.
-  for (const campo of ["address", "postal_code", "maps_url", "description", "check_in_time", "breakfast_time"]) {
+  for (const campo of [
+    "address", "postal_code", "maps_url", "description", "check_in_time", "breakfast_time",
+    // Datos de pago: salen en el informe de pagos pendientes que se le entrega a Naty.
+    "payment_method_default", "bank_name", "account_holder", "iban", "swift_bic", "bizum_phone", "payment_notes",
+  ]) {
     if (formData.has(campo)) payload[campo] = formData.get(campo)?.toString() || null;
   }
 

@@ -13,8 +13,20 @@ export const PAYMENT_METHODS = [
   "Efectivo",
   "PayPal",
   "Transferencia",
+  "Bizum",
+  "Tarjeta",
   "Otro",
 ];
+
+/** Cómo se le paga a un proveedor (va en la reserva y sale en el informe de pagos pendientes). */
+export const RESERVATION_PAYMENT_METHODS = [
+  { value: "transferencia", label: "Transferencia (IBAN)" },
+  { value: "bizum", label: "Bizum" },
+  { value: "tarjeta", label: "Tarjeta" },
+  { value: "efectivo", label: "Efectivo" },
+  { value: "booking", label: "Booking / plataforma" },
+  { value: "otro", label: "Otro" },
+] as const;
 export const CURRENCIES = ["EUR", "COP", "USD"] as const;
 
 export const ACCOUNTS = [
