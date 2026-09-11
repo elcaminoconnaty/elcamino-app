@@ -13,11 +13,14 @@ export function DeletePilgrimDialog({
   pilgrimName,
   paymentsCount,
   paidEur,
+  volverHref = "/peregrinos",
 }: {
   pilgrimId: string;
   pilgrimName: string;
   paymentsCount: number;
   paidEur: number;
+  /** A dónde ir después de eliminar: los peregrinos del camino de origen, o la lista general. */
+  volverHref?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<DeletePilgrimMode | "">("");
@@ -36,7 +39,7 @@ export function DeletePilgrimDialog({
       await deletePilgrim(pilgrimId, tieneAbonos ? (mode as DeletePilgrimMode) : undefined);
       toast({ title: "Peregrino eliminado", variant: "success" });
       setOpen(false);
-      router.push("/peregrinos");
+      router.push(volverHref);
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });

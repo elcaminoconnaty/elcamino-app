@@ -23,10 +23,17 @@ import { EurCop } from "@/components/ui/eur-cop";
 import type { UpcomingInstallment } from "@/types/db";
 import { PAYMENT_KIND, motivoSinRecalculo, type PilgrimSettlement, type PaymentSettlement } from "@/lib/settlement";
 import { FileText, Download, Mail, Phone, MapPin, Heart, AlertCircle } from "lucide-react";
+import { rutaCamino, rutaPeregrinosDeCamino } from "@/lib/rutas";
 
 export const dynamic = "force-dynamic";
 
-export default async function PilgrimDetailPage({ params }: { params: { id: string } }) {
+export default async function PilgrimDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { camino?: string };
+}) {
   const supabase = createClient();
   const { data: pilgrim } = await supabase.from("pilgrims").select("*").eq("id", params.id).maybeSingle();
   if (!pilgrim) notFound();
@@ -123,10 +130,29 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
 
   const paidEur = pagos.reduce((acc, p) => acc + Number(p.amount_eur || 0), 0);
 
+  // Si llegaste desde un camino (?camino=...), "volver" regresa a los peregrinos de ese
+  // camino y no a la lista general.
+  const caminoOrigen = searchParams.camino
+    ? (registrations ?? []).find((r: any) => r.departure_id === searchParams.camino)
+      ? { id: searchParams.camino, name: (registrations ?? []).find((r: any) => r.departure_id === searchParams.camino)!.departure_name }
+      : (departures ?? []).find((d: any) => d.id === searchParams.camino) ?? null
+    : null;
+  const volverHref = caminoOrigen ? rutaPeregrinosDeCamino(caminoOrigen.id) : "/peregrinos";
+
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/peregrinos" className="text-sm text-muted-foreground hover:underline">← Peregrinos</Link>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          <Link href={volverHref} className="hover:underline">
+            ← {caminoOrigen ? `Peregrinos de ${caminoOrigen.name}` : "Peregrinos"}
+          </Link>
+          {caminoOrigen && (
+            <>
+              <span aria-hidden>·</span>
+              <Link href="/peregrinos" className="hover:underline text-xs">Todos los peregrinos</Link>
+            </>
+          )}
+        </div>
         <div className="flex items-start justify-between mt-2 gap-3 flex-wrap">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl text-noche break-words">
@@ -146,6 +172,7 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
               pilgrimName={pilgrim.full_name}
               paymentsCount={payments?.length ?? 0}
               paidEur={paidEur}
+              volverHref={volverHref}
             />
           </div>
         </div>
@@ -191,7 +218,9 @@ export default async function PilgrimDetailPage({ params }: { params: { id: stri
             <Card key={r.registration_id}>
               <CardHeader>
                 <div className="flex justify-between gap-2">
-                  <CardTitle className="text-base">{r.departure_name}</CardTitle>
+                  <CardTitle className="text-base">
+                    <Link href={rutaCamino(r.departure_id)} className="hover:underline">{r.departure_name}</Link>
+                  </CardTitle>
                   <Badge variant="muted">{r.status}</Badge>
                 </div>
                 <CardDescription>{formatDate(r.start_date)}</CardDescription>

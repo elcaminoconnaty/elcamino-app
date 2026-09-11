@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { rutaPeregrino } from "@/lib/rutas";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -117,7 +118,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                     return (
                       <TableRow key={r.registration_id}>
                         <TableCell>
-                          <Link href={`/peregrinos/${r.pilgrim_id}`} className="hover:underline font-medium">{r.pilgrim_name}</Link>
+                          <Link href={rutaPeregrino(r.pilgrim_id, departureId)} className="hover:underline font-medium">{r.pilgrim_name}</Link>
                         </TableCell>
                         <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
                         <TableCell className="text-right text-ok-700">{formatEUR(r.paid_eur)}</TableCell>

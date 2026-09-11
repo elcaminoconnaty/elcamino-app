@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { rutaPeregrino } from "@/lib/rutas";
 import { AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,11 +147,11 @@ export async function ContratosTab({ departureId }: { departureId: string }) {
           <Card key={r.id}>
             <CardContent className="pt-6">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <Link href={`/peregrinos/${r.pilgrim_id}`} className="font-medium hover:underline">
+                <Link href={rutaPeregrino(r.pilgrim_id, departureId)} className="font-medium hover:underline">
                   {r.pilgrims.full_name}
                 </Link>
                 <Link
-                  href={`/peregrinos/${r.pilgrim_id}`}
+                  href={rutaPeregrino(r.pilgrim_id, departureId)}
                   className="text-xs text-muted-foreground hover:underline"
                 >
                   Abrir la ficha →

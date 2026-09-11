@@ -1,34 +1,12 @@
 "use client";
+import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Map,
-  Users,
-  Receipt,
-  Building2,
-  Wallet,
-  TrendingUp,
-  Settings,
-  CalendarClock,
-} from "lucide-react";
+import { NavTree } from "@/components/layout/nav-tree";
+import type { NavCamino } from "@/lib/data/nav-caminos";
 
-const items = [
-  { href: "/", label: "Inicio", icon: LayoutDashboard },
-  { href: "/caminos", label: "Caminos", icon: Map },
-  { href: "/peregrinos", label: "Peregrinos", icon: Users },
-  { href: "/pagos", label: "Pagos", icon: CalendarClock },
-  { href: "/proveedores", label: "Proveedores", icon: Building2 },
-  { href: "/gastos", label: "Gastos", icon: Wallet },
-  { href: "/trm", label: "TRM", icon: TrendingUp },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
-];
-
-export default function Sidebar({ role }: { role: string }) {
-  const pathname = usePathname();
+export default function Sidebar({ role, caminos }: { role: string; caminos: NavCamino[] }) {
   return (
-    <aside className="hidden md:flex flex-col w-60 shrink-0 border-r bg-background">
+    <aside className="hidden md:flex flex-col w-60 shrink-0 border-r bg-background md:sticky md:top-0 md:h-screen">
       <div className="px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
           <div className="h-10 w-10 rounded-full border-2 border-ocre bg-piedra-suave flex items-center justify-center">
@@ -40,26 +18,10 @@ export default function Sidebar({ role }: { role: string }) {
           </div>
         </Link>
       </div>
-      <nav className="flex-1 px-3 space-y-1">
-        {items.map((it) => {
-          const Icon = it.icon;
-          const active = pathname === it.href || (it.href !== "/" && pathname.startsWith(it.href));
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                active
-                  ? "bg-ocre/20 text-noche font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-piedra-suave"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {it.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 overflow-y-auto pb-3">
+        <React.Suspense fallback={null}>
+          <NavTree caminos={caminos} />
+        </React.Suspense>
       </nav>
       <div className="px-5 py-4 border-t">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">Rol</div>

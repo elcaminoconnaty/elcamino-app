@@ -5,6 +5,8 @@ import Sidebar from "@/components/layout/sidebar";
 import { UserMenu } from "@/components/layout/user-menu";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { TrmProvider } from "@/components/ui/eur-cop";
+import { navCaminos } from "@/lib/data/nav-caminos";
+import { Suspense } from "react";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const publicClient = createPublicClient();
@@ -30,22 +32,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = profile?.app_role ?? "nico";
   const displayName = profile?.full_name ?? user.email ?? "Usuario";
 
-  const { data: latestTrm } = await supabase
-    .from("trm_rates")
-    .select("eur_cop")
-    .order("date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // La tasa global y los caminos con sus peregrinos (para los desplegables del menú).
+  const [{ data: latestTrm }, caminos] = await Promise.all([
+    supabase.from("trm_rates").select("eur_cop").order("date", { ascending: false }).limit(1).maybeSingle(),
+    navCaminos(supabase),
+  ]);
   const globalTrm = Number(latestTrm?.eur_cop ?? 0);
 
   return (
     <TrmProvider defaultTrm={globalTrm}>
     <div className="min-h-screen flex bg-alba">
-      <Sidebar role={role} />
+      <Sidebar role={role} caminos={caminos} />
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b bg-background/80 backdrop-blur sticky top-0 z-30 flex items-center justify-between px-3 md:px-6">
           <div className="flex items-center gap-2 md:gap-3">
-            <MobileMenu role={role} />
+            <Suspense fallback={null}>
+              <MobileMenu role={role} caminos={caminos} />
+            </Suspense>
             <Link href="/" className="font-display text-base md:text-lg text-noche">
               El Camino con Naty
             </Link>

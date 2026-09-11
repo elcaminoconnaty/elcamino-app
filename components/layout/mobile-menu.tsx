@@ -1,35 +1,19 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import {
-  LayoutDashboard,
-  Map,
-  Users,
-  Building2,
-  Wallet,
-  TrendingUp,
-  Settings,
-  Menu,
-  X,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Menu, X } from "lucide-react";
+import { NavTree } from "@/components/layout/nav-tree";
+import type { NavCamino } from "@/lib/data/nav-caminos";
 
-const items = [
-  { href: "/", label: "Inicio", icon: LayoutDashboard },
-  { href: "/caminos", label: "Caminos", icon: Map },
-  { href: "/peregrinos", label: "Peregrinos", icon: Users },
-  { href: "/proveedores", label: "Proveedores", icon: Building2 },
-  { href: "/gastos", label: "Gastos", icon: Wallet },
-  { href: "/trm", label: "TRM", icon: TrendingUp },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
-];
-
-export function MobileMenu({ role }: { role: string }) {
+export function MobileMenu({ role, caminos }: { role: string; caminos: NavCamino[] }) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
-  React.useEffect(() => setOpen(false), [pathname]);
+  const searchParams = useSearchParams();
+  // Se cierra al navegar, incluso si solo cambió la pestaña o el camino en la URL.
+  const ruta = `${pathname}?${searchParams.toString()}`;
+  React.useEffect(() => setOpen(false), [ruta]);
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -59,26 +43,8 @@ export function MobileMenu({ role }: { role: string }) {
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {items.map((it) => {
-              const Icon = it.icon;
-              const active = pathname === it.href || (it.href !== "/" && pathname.startsWith(it.href));
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
-                    active
-                      ? "bg-ocre/20 text-noche font-medium"
-                      : "text-muted-foreground hover:bg-piedra-suave"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {it.label}
-                </Link>
-              );
-            })}
+          <nav className="flex-1 p-3 overflow-y-auto">
+            <NavTree caminos={caminos} compact />
           </nav>
           <div className="px-5 py-4 border-t">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Rol</div>
