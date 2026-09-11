@@ -326,6 +326,37 @@ export async function rotarEnlaceMenu(registrationId: string, departureId?: stri
   return { ok: true, url: `${baseUrl()}/menu/${token}` };
 }
 
+/** El enlace único del camino (la lista de nombres); se genera la primera vez que se pide. */
+export async function obtenerEnlaceMenuCamino(departureId: string): Promise<Resultado<{ url: string }>> {
+  const supabase = createClient();
+  const { data: d, error } = await supabase.from("departures").select("id, menu_token").eq("id", departureId).maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!d) return { ok: false, error: "No encontré el camino." };
+  let token = d.menu_token as string | null;
+  if (!token) {
+    token = crypto.randomBytes(32).toString("hex");
+    const { error: e2 } = await supabase
+      .from("departures")
+      .update({ menu_token: token, menu_token_created_at: new Date().toISOString() })
+      .eq("id", departureId);
+    if (e2) return { ok: false, error: e2.message };
+  }
+  return { ok: true, url: `${baseUrl()}/menu/c/${token}` };
+}
+
+/** Cambia el enlace del camino: el anterior deja de servir (y los personales siguen igual). */
+export async function rotarEnlaceMenuCamino(departureId: string): Promise<Resultado<{ url: string }>> {
+  const supabase = createClient();
+  const token = crypto.randomBytes(32).toString("hex");
+  const { error } = await supabase
+    .from("departures")
+    .update({ menu_token: token, menu_token_created_at: new Date().toISOString() })
+    .eq("id", departureId);
+  if (error) return { ok: false, error: error.message };
+  revalidar(departureId);
+  return { ok: true, url: `${baseUrl()}/menu/c/${token}` };
+}
+
 /** Un enlace por inscrito, listo para pegar en WhatsApp. Genera los que falten. */
 export async function enlacesMenuDelCamino(departureId: string): Promise<Resultado<{ texto: string; total: number }>> {
   const supabase = createClient();

@@ -7,6 +7,10 @@ import {
 } from "@/lib/data/menus";
 import type { CenaParaElegir, MenuParaElegir } from "@/lib/menus/por-token";
 import { accionElegir, accionNoCena } from "./actions";
+import { accionElegirCamino, accionNoCenaCamino } from "@/app/menu/c/[token]/actions";
+
+/** Por dónde entró: enlace personal (solo token) o enlace del camino (token + inscripción). */
+export type ContextoMenu = { token: string; registrationId?: string | null };
 
 type Estado = { tipo: "idle" | "guardando" | "guardado" | "error"; mensaje?: string };
 
@@ -16,7 +20,16 @@ type Estado = { tipo: "idle" | "guardando" | "guardado" | "error"; mensaje?: str
  * Los platos que van igual para todos se muestran como información; los que se eligen
  * en el restaurante también; las secciones condicionales aparecen solo cuando aplican.
  */
-export function FormularioMenu({ token, datos }: { token: string; datos: MenuParaElegir }) {
+export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: ContextoMenu; datos: MenuParaElegir }) {
+  const acceso: ContextoMenu = ctx ?? { token: token ?? "" };
+  const elegirEnServidor = (args: { reservationId: string; courseId: string; optionId: string | null }) =>
+    acceso.registrationId
+      ? accionElegirCamino({ token: acceso.token, registrationId: acceso.registrationId, ...args })
+      : accionElegir({ token: acceso.token, ...args });
+  const noCenaEnServidor = (args: { reservationId: string; noCena: boolean }) =>
+    acceso.registrationId
+      ? accionNoCenaCamino({ token: acceso.token, registrationId: acceso.registrationId, ...args })
+      : accionNoCena({ token: acceso.token, ...args });
   const [cenas, setCenas] = useState<CenaParaElegir[]>(datos.cenas);
   const [estados, setEstados] = useState<Record<string, Estado>>({});
   const [, empezar] = useTransition();
@@ -38,7 +51,7 @@ export function FormularioMenu({ token, datos }: { token: string; datos: MenuPar
     setCenas((prev) => prev.map((c) => (c.id === cena.id ? { ...c, noCena: false, elegido: siguiente } : c)));
     setEstado(cena.id, { tipo: "guardando" });
     empezar(async () => {
-      const r = await accionElegir({ token, reservationId: cena.id, courseId, optionId: nuevo || null });
+      const r = await elegirEnServidor({ reservationId: cena.id, courseId, optionId: nuevo || null });
       if (r.ok) setEstado(cena.id, { tipo: "guardado" });
       else {
         setEstado(cena.id, { tipo: "error", mensaje: r.error });
@@ -51,7 +64,7 @@ export function FormularioMenu({ token, datos }: { token: string; datos: MenuPar
     setCenas((prev) => prev.map((c) => (c.id === cena.id ? { ...c, noCena: valor, elegido: valor ? {} : c.elegido } : c)));
     setEstado(cena.id, { tipo: "guardando" });
     empezar(async () => {
-      const r = await accionNoCena({ token, reservationId: cena.id, noCena: valor });
+      const r = await noCenaEnServidor({ reservationId: cena.id, noCena: valor });
       if (r.ok) setEstado(cena.id, { tipo: "guardado" });
       else {
         setEstado(cena.id, { tipo: "error", mensaje: r.error });

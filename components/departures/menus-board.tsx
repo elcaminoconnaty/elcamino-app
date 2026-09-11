@@ -21,7 +21,7 @@ import {
   type ChoiceGrid,
 } from "@/lib/data/menus";
 import { useResync } from "@/lib/hooks/use-resync";
-import { saveMenusBoard, obtenerEnlaceMenu, enlacesMenuDelCamino, type Dinner } from "@/lib/actions/menus";
+import { saveMenusBoard, obtenerEnlaceMenu, enlacesMenuDelCamino, obtenerEnlaceMenuCamino, rotarEnlaceMenuCamino, type Dinner } from "@/lib/actions/menus";
 import type { PilgrimOf } from "@/lib/data/pilgrims-of";
 import { MenuEditor } from "@/components/departures/menu-editor";
 import {
@@ -31,6 +31,7 @@ import {
   Download,
   Eraser,
   Link2,
+  RefreshCw,
   Save,
   Undo2,
   UserX,
@@ -179,6 +180,21 @@ export function MenusBoard({
     }
   }
 
+  async function copiarEnlaceCamino(rotar = false) {
+    if (rotar && !window.confirm("¿Cambiar el enlace del camino? El que ya mandaste deja de funcionar.")) return;
+    try {
+      const r = rotar ? await rotarEnlaceMenuCamino(departureId) : await obtenerEnlaceMenuCamino(departureId);
+      if (!r.ok) {
+        toast({ title: "No se pudo generar el enlace", description: r.error, variant: "destructive" });
+        return;
+      }
+      await navigator.clipboard.writeText(r.url);
+      toast({ title: rotar ? "Enlace nuevo copiado" : "Enlace del camino copiado", description: "Un solo enlace para el grupo: cada uno elige su nombre.", variant: "success" });
+    } catch {
+      toast({ title: "No se pudo copiar", variant: "destructive" });
+    }
+  }
+
   async function copiarTodos() {
     setCopiando(true);
     try {
@@ -227,8 +243,14 @@ export function MenusBoard({
             {dirty.size > 0 && <p className="text-xs text-ocre-profundo mt-1">{dirty.size} cena(s) con cambios sin guardar</p>}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button type="button" variant="outline" size="sm" onClick={copiarTodos} disabled={copiando || pilgrims.length === 0} title="Un enlace por peregrino, listo para pegar en WhatsApp">
-              <Link2 className="h-3.5 w-3.5" /> {copiando ? "Generando…" : "Copiar todos los enlaces"}
+            <Button type="button" variant="outline" size="sm" onClick={() => copiarEnlaceCamino(false)} disabled={pilgrims.length === 0} title="Un solo enlace para el grupo de WhatsApp: cada uno elige su nombre">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link del camino
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => copiarEnlaceCamino(true)} disabled={pilgrims.length === 0} title="Genera un enlace nuevo; el anterior deja de servir">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={copiarTodos} disabled={copiando || pilgrims.length === 0} title="Un enlace por peregrino, listo para pegar en WhatsApp">
+              {copiando ? "Generando…" : "Enlaces personales"}
             </Button>
             <Button asChild variant="outline" size="sm">
               <a href={`/api/export/caminos/${departureId}/cenas`} download>

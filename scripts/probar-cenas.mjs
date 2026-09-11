@@ -131,6 +131,31 @@ check(falso.status === 404, `token inventado → ${falso.status}`);
 const corto = await fetch(`${BASE}/menu/abc`, { redirect: "manual" });
 check(corto.status === 404, `token corto → ${corto.status}`);
 
+// ── 3b. Enlace único del camino ──────────────────────────────────────────────
+console.log("\nEnlace del camino");
+const tokenCamino = crypto.randomBytes(32).toString("hex");
+const { data: depPrev } = await admin.from("departures").select("menu_token").eq("id", DEP).maybeSingle();
+await admin.from("departures").update({ menu_token: tokenCamino, menu_token_created_at: new Date().toISOString() }).eq("id", DEP);
+const lista = await fetch(`${BASE}/menu/c/${tokenCamino}`, { redirect: "manual" });
+const listaHtml = await lista.text();
+check(lista.status === 200 && listaHtml.includes("¿Quién eres?") && listaHtml.includes(b.name), `GET /menu/c/<token> → ${lista.status}, muestra la lista con ${b.name}`);
+check(!listaHtml.includes("Merluza a la gallega"), "la lista no muestra lo que eligió nadie");
+check(lista.headers.get("referrer-policy") === "no-referrer" && (lista.headers.get("x-robots-tag") ?? "").includes("noindex"), "cabeceras no-referrer y noindex en /menu/c");
+const yo = await fetch(`${BASE}/menu/c/${tokenCamino}?yo=${b.reg}`, { redirect: "manual" });
+const yoHtml = await yo.text();
+check(yo.status === 200 && yoHtml.includes(b.name.split(" ")[0]) && yoHtml.includes(REST) && yoHtml.includes("No soy yo"), `?yo=<inscripción> → ${yo.status}, entra como ${b.name}`);
+const { data: otraReg } = await admin.from("registrations").select("id").neq("departure_id", DEP).limit(1).maybeSingle();
+if (otraReg) {
+  const ajeno = await fetch(`${BASE}/menu/c/${tokenCamino}?yo=${otraReg.id}`, { redirect: "manual" });
+  check(ajeno.status === 404, `una inscripción de otro camino → ${ajeno.status}`);
+}
+const yoFalso = await fetch(`${BASE}/menu/c/${tokenCamino}?yo=00000000-0000-0000-0000-000000000000`, { redirect: "manual" });
+check(yoFalso.status === 404, `inscripción inventada → ${yoFalso.status}`);
+const caminoFalso = await fetch(`${BASE}/menu/c/${"0".repeat(64)}`, { redirect: "manual" });
+check(caminoFalso.status === 404, `token de camino inventado → ${caminoFalso.status}`);
+const sinToken = await fetch(`${BASE}/menu/c`, { redirect: "manual" });
+check(sinToken.status === 404, `/menu/c a secas → ${sinToken.status}`);
+
 // Lo que eligió por su enlace se conserva cuando el equipo guarda sin tocarlo
 await admin.from("meal_choices").update({ chosen_via: "peregrino" }).eq("reservation_id", cena.reservation_id).eq("pilgrim_id", b.id);
 const { error: e5 } = await rpc([{
@@ -230,6 +255,7 @@ await admin.from("reservation_opt_outs").delete().eq("reservation_id", cena.rese
 const { error: delMenu } = await admin.from("reservation_menu_courses").delete().eq("reservation_id", cena.reservation_id);
 if (delMenu) throw delMenu;
 await admin.from("registrations").update({ menu_token: b.token ?? null, menu_token_created_at: null }).eq("id", b.reg);
+await admin.from("departures").update({ menu_token: depPrev?.menu_token ?? null }).eq("id", DEP);
 const { count: quedanCh } = await admin.from("meal_choices").select("id", { count: "exact", head: true }).eq("reservation_id", cena.reservation_id);
 const { count: quedanOp } = await admin.from("reservation_menu_options").select("id", { count: "exact", head: true }).in("course_id", cursos.map((x) => x.id));
 check(quedanCh === 0 && quedanOp === 0, "borrar el menú borró en cascada platos y elecciones");
