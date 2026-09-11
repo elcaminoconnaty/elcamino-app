@@ -92,9 +92,31 @@ export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
             </select>
           </div>
           <div className="grid gap-2"><Label>Fecha de nacimiento</Label><Input name="birth_date" type="date" defaultValue={pilgrim.birth_date ?? ""} /></div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2"><Label>Contacto emergencia</Label><Input name="emergency_contact_name" defaultValue={pilgrim.emergency_contact_name ?? ""} /></div>
+            <div className="grid gap-2"><Label>Parentesco</Label><Input name="emergency_contact_relation" defaultValue={pilgrim.emergency_contact_relation ?? ""} placeholder="Mamá, esposo…" /></div>
             <div className="grid gap-2"><Label>Teléfono emergencia</Label><Input name="emergency_contact_phone" defaultValue={pilgrim.emergency_contact_phone ?? ""} /></div>
+          </div>
+          {/* Lo que pide el formulario de inscripción (antes el Google Form): apodo, Instagram y tallas del kit. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2"><Label>Apodo</Label><Input name="nickname" defaultValue={pilgrim.nickname ?? ""} placeholder="Cómo le gusta que le digan" /></div>
+            <div className="grid gap-2"><Label>Instagram</Label><Input name="instagram" defaultValue={pilgrim.instagram ?? ""} placeholder="usuario, sin @" /></div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Talla camiseta</Label>
+              <select name="shirt_size" defaultValue={pilgrim.shirt_size ?? ""} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Sin dato</option>
+                {["XS", "S", "M", "L", "XL"].map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Talla sandalias</Label>
+              <select name="sandal_size" defaultValue={pilgrim.sandal_size ?? ""} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Sin dato</option>
+                {[35, 36, 37, 38, 39, 40, 41, 42].map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
           <div className="grid gap-2"><Label>Notas dietarias</Label><Textarea name="dietary_notes" rows={2} defaultValue={pilgrim.dietary_notes ?? ""} /></div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} defaultValue={pilgrim.notes ?? ""} /></div>

@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
  * iframe: si la ruta del PDF pide sesión, el peregrino ve el recuadro vacío y no puede leer
  * lo que está a punto de firmar. Se autentica con el mismo token que la página.
  */
-const PUBLICAS = ["/firmar", "/verificar", "/viaje", "/correo", "/menu", "/api/pdf/contrato/publico", "/api/pdf/viaje"];
+const PUBLICAS = ["/firmar", "/verificar", "/viaje", "/correo", "/menu", "/registro", "/api/pdf/contrato/publico", "/api/pdf/viaje"];
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],

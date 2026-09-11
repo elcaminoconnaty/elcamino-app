@@ -6,17 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatEUR, formatCOP } from "@/lib/utils";
 import { AddPilgrimToDeparture } from "@/components/departures/add-pilgrim-to-departure";
+import { CopiarEnlaceRegistro, SolicitudesRegistro } from "@/components/departures/registro-controles";
+import { formatDate } from "@/lib/utils";
 
 export async function PeregrinosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: rows }, { data: allPilgrims }] = await Promise.all([
+  const [{ data: rows }, { data: allPilgrims }, { data: formularios }, { data: solicitudes }] = await Promise.all([
     supabase
       .from("v_pilgrim_balance")
       .select("*")
       .eq("departure_id", departureId)
       .order("pilgrim_name", { ascending: true }),
     supabase.from("pilgrims").select("id, full_name, email, phone").is("deleted_at", null).order("full_name"),
+    supabase.from("registrations").select("id, registration_form_submitted_at").eq("departure_id", departureId),
+    supabase.from("registration_requests").select("id, full_name, email, phone, payload, created_at").eq("departure_id", departureId).eq("status", "pendiente").order("created_at"),
   ]);
+  const formularioDe = new Map<string, string | null>((formularios ?? []).map((f: any) => [f.id, f.registration_form_submitted_at ?? null]));
 
   const activos = (rows ?? []).filter((r: any) => r.status !== "cancelado");
   const retirados = (rows ?? []).filter((r: any) => r.status === "cancelado");
@@ -25,9 +30,11 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <CopiarEnlaceRegistro departureId={departureId} />
         <AddPilgrimToDeparture departureId={departureId} pilgrims={allPilgrims ?? []} />
       </div>
+      <SolicitudesRegistro solicitudes={(solicitudes ?? []) as any} />
       <Card>
         <CardContent className="p-0">
           {activos.length === 0 ? (
@@ -38,6 +45,7 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                 <TableRow>
                   <TableHead>Peregrino</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Formulario</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Pagado</TableHead>
                   {hayCierre && <TableHead className="text-right">Acreditado</TableHead>}
@@ -56,6 +64,13 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                         <Link href={rutaPeregrino(r.pilgrim_id, departureId)} className="hover:underline font-medium">{r.pilgrim_name}</Link>
                       </TableCell>
                       <TableCell><Badge variant="muted">{r.status}</Badge></TableCell>
+                      <TableCell>
+                        {formularioDe.get(r.registration_id) ? (
+                          <Badge variant="success" title="Llenó el formulario de inscripción">{formatDate(String(formularioDe.get(r.registration_id)).slice(0, 10))}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">pendiente</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
                       <TableCell className="text-right">{formatEUR(r.paid_eur)}</TableCell>
                       {hayCierre && (

@@ -28,5 +28,10 @@ export function createAdminClient() {
   }
   return createSupabaseClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Next.js cachea los `fetch` del servidor por URL, y la consulta de una página pública
+    // es siempre la misma URL: sin esto, el peregrino que vuelve a su enlace ve lo que
+    // había ANTES de guardar (se vio en el formulario de inscripción: la lista seguía en
+    // "por llenar" después de enviar). Estas páginas son dinámicas por definición.
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
   });
 }

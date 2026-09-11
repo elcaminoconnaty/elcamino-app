@@ -27,6 +27,12 @@ export async function createPilgrim(formData: FormData) {
     dietary_notes: formData.get("dietary_notes")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
+  // Lo del formulario de inscripción: solo se escribe si el formulario lo trae, para que
+  // una pantalla que no lo muestra no lo borre.
+  for (const campo of ["nickname", "instagram", "emergency_contact_relation", "shirt_size"]) {
+    if (formData.has(campo)) (payload as any)[campo] = formData.get(campo)?.toString().trim() || null;
+  }
+  if (formData.has("sandal_size")) (payload as any).sandal_size = formData.get("sandal_size") ? Number(formData.get("sandal_size")) : null;
   const { data, error } = await supabase.from("pilgrims").insert(payload).select().single();
   if (error) throw new Error(error.message);
   revalidatePath("/peregrinos");
@@ -57,6 +63,12 @@ export async function updatePilgrim(id: string, formData: FormData) {
     dietary_notes: formData.get("dietary_notes")?.toString() || null,
     notes: formData.get("notes")?.toString() || null,
   };
+  // Lo del formulario de inscripción: solo se escribe si el formulario lo trae, para que
+  // una pantalla que no lo muestra no lo borre.
+  for (const campo of ["nickname", "instagram", "emergency_contact_relation", "shirt_size"]) {
+    if (formData.has(campo)) (payload as any)[campo] = formData.get(campo)?.toString().trim() || null;
+  }
+  if (formData.has("sandal_size")) (payload as any).sandal_size = formData.get("sandal_size") ? Number(formData.get("sandal_size")) : null;
   const { error } = await supabase.from("pilgrims").update(payload).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/peregrinos/${id}`);
