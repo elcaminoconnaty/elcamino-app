@@ -24,6 +24,8 @@ import { useResync } from "@/lib/hooks/use-resync";
 import { saveMenusBoard, obtenerEnlaceMenu, enlacesMenuDelCamino, obtenerEnlaceMenuCamino, rotarEnlaceMenuCamino, type Dinner } from "@/lib/actions/menus";
 import type { PilgrimOf } from "@/lib/data/pilgrims-of";
 import { MenuEditor } from "@/components/departures/menu-editor";
+import { EnviarProveedorDialog } from "@/components/departures/enviar-proveedor-dialog";
+import { GmailThreadDialog } from "@/components/departures/gmail-thread-dialog";
 import {
   ChevronDown,
   ChevronRight,
@@ -462,7 +464,9 @@ export function MenusBoard({
                     </div>
                   )}
 
-                  <div className="pt-1">
+                  <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                    {!sinMenu && <EnviarProveedorDialog tipo="menu" reservationId={d.id} proveedor={d.provider_name} enviadoEl={d.menu_sent_at} />}
+                    <GmailThreadDialog reservationId={d.id} departureId={departureId} providerName={d.provider_name} hilo={d.gmail_thread} />
                     <Button asChild variant="ghost" size="sm">
                       <a href={`/api/export/caminos/${departureId}/cenas?restaurante=${d.provider_id}`} download>
                         <Download className="h-3 w-3" /> Excel solo de {d.provider_name}

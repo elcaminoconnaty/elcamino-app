@@ -31,6 +31,10 @@ export type Dinner = {
   /** Lo que ve el peregrino arriba del menú ("bebidas incluidas: agua y vino"). */
   menu_notes_pilgrim: string | null;
   provider_contact_name: string | null;
+  provider_email: string | null;
+  /** El hilo de Gmail enlazado a la reserva, si lo hay. */
+  gmail_thread: { threadId: string; subject: string | null } | null;
+  menu_sent_at: string | null;
   courses: MenuCourse[];
   choices: MealChoice[];
   /** Quiénes no cenan esa noche. */
@@ -87,11 +91,14 @@ export async function getMenusBoard(departureId: string): Promise<{ dinners: Din
   const ids = (reservas ?? []).map((r: any) => r.reservation_id);
   if (ids.length === 0) return { dinners: [], pilgrims };
 
-  const [menus, { data: choices }, { data: optOuts }] = await Promise.all([
+  const [menus, { data: choices }, { data: optOuts }, { data: extras }] = await Promise.all([
     menusDe(supabase, ids),
     supabase.from("meal_choices").select("*").in("reservation_id", ids),
     supabase.from("reservation_opt_outs").select("reservation_id, pilgrim_id").in("reservation_id", ids).eq("kind", "cena"),
+    supabase.from("reservations").select("id, gmail_thread_id, gmail_thread_subject, menu_sent_at").in("id", ids),
   ]);
+  const extraDe = new Map<string, any>();
+  for (const e of (extras ?? []) as any[]) extraDe.set(e.id, e);
   const chBy = new Map<string, MealChoice[]>();
   for (const c of (choices ?? []) as MealChoice[]) chBy.set(c.reservation_id, [...(chBy.get(c.reservation_id) ?? []), c]);
   const optBy = new Map<string, string[]>();
@@ -111,6 +118,11 @@ export async function getMenusBoard(departureId: string): Promise<{ dinners: Din
     via_rooms: !r.via_meal_kind && !!r.via_rooms,
     menu_notes_pilgrim: r.menu_notes_pilgrim ?? null,
     provider_contact_name: r.provider_contact_name ?? null,
+    provider_email: r.provider_email ?? null,
+    gmail_thread: extraDe.get(r.reservation_id)?.gmail_thread_id
+      ? { threadId: extraDe.get(r.reservation_id).gmail_thread_id, subject: extraDe.get(r.reservation_id).gmail_thread_subject ?? null }
+      : null,
+    menu_sent_at: extraDe.get(r.reservation_id)?.menu_sent_at ?? null,
     courses: menus.get(r.reservation_id) ?? [],
     choices: chBy.get(r.reservation_id) ?? [],
     optOuts: optBy.get(r.reservation_id) ?? [],

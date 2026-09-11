@@ -36,7 +36,7 @@ import {
   UserX,
   Wand2,
 } from "lucide-react";
-import { EnviarRoomingDialog } from "@/components/departures/enviar-rooming-dialog";
+import { EnviarProveedorDialog } from "@/components/departures/enviar-proveedor-dialog";
 import { GmailThreadDialog } from "@/components/departures/gmail-thread-dialog";
 
 type Pilgrim = { id: string; full_name: string; sex: string | null; is_team: boolean };
@@ -519,7 +519,7 @@ export function RoomingBoard({
 
                       {night.provider_id && (
                         <div className="pt-1 flex flex-wrap items-center gap-1.5">
-                          <EnviarRoomingDialog reservationId={night.id} hotel={night.provider_name} enviadoEl={night.rooming_sent_at} />
+                          <EnviarProveedorDialog tipo="rooming" reservationId={night.id} proveedor={night.provider_name} enviadoEl={night.rooming_sent_at} />
                           <GmailThreadDialog reservationId={night.id} departureId={departureId} providerName={night.provider_name} hilo={night.gmail_thread} />
                           <Button asChild variant="ghost" size="sm">
                             <a

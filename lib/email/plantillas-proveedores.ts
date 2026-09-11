@@ -2,6 +2,7 @@ import { COLOR, CONTACTO, FUENTE_CORREO } from "@/lib/brand";
 import { esc, fila, envolturaCorreo, P, P_MINI } from "@/lib/email/shell";
 import { firmaHtml, firmaTexto } from "@/lib/email/firma";
 import type { HabitacionRooming } from "@/lib/export/rooming";
+import type { ConteoSeccion } from "@/lib/export/cenas";
 
 /**
  * Los correos que van a proveedores (hoteles, restaurantes). Son la versión con marca de
@@ -100,6 +101,85 @@ export function correoRoomingList(o: {
     html: envolturaCorreo({
       eyebrow: "Rooming list",
       preheader: `Rooming list de ${o.camino} para ${o.hotel}: ${o.habitaciones.length} habitaciones, ${personas} personas.`,
+      contenido: partes.join("\n"),
+      pie: `${CONTACTO.marca} · ${CONTACTO.correo} · ${CONTACTO.whatsapp}`,
+    }),
+    text,
+  };
+}
+
+/** Una tabla por sección: Plato | Cantidad, con el total, como el correo manual. */
+export function tablasMenu(restaurante: string, secciones: ConteoSeccion[]): string {
+  const bloques = secciones
+    .map(
+      (s) => `<tr><th colspan="2" style="${TH}text-align:center;background:${COLOR.musgo};">${esc(s.seccion)}</th></tr>
+      <tr><th style="${TH}background:${COLOR.piedra};color:${COLOR.noche};">Plato</th><th style="${TH}background:${COLOR.piedra};color:${COLOR.noche};text-align:right;">Cantidad</th></tr>
+      ${s.platos
+        .map(
+          (p) => `<tr><td style="${TD}">${esc(p.plato)}${p.todos ? ` <span style="color:${COLOR.castano};font-size:12px;">· para todos</span>` : ""}</td><td style="${TD}text-align:right;">${p.n}</td></tr>`
+        )
+        .join("")}
+      <tr><td style="${TD}font-weight:bold;background:${COLOR.alba};">TOTAL</td><td style="${TD}font-weight:bold;text-align:right;background:${COLOR.alba};">${s.total}</td></tr>`
+    )
+    .join("");
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid ${COLOR.piedra};border-radius:4px;margin:0 0 18px;">
+    <tr><th colspan="2" style="${TH}text-align:center;font-size:13px;letter-spacing:2px;">${esc(restaurante.toUpperCase())}</th></tr>
+    ${bloques}
+  </table>`;
+}
+
+export function correoMenuRestaurante(o: {
+  contacto: string | null;
+  restaurante: string;
+  camino: string;
+  /** "29 de septiembre de 2026". */
+  fecha: string;
+  referencia: string | null;
+  comensales: number;
+  pendientes: number;
+  secciones: ConteoSeccion[];
+  /** Secciones que se deciden en la mesa. */
+  enSitio: string[];
+  dietas: [string, string][];
+  notaExtra?: string | null;
+}): Correo {
+  const hola = saludo(o.contacto, `equipo de ${o.restaurante}`);
+  const partes: string[] = [];
+  partes.push(fila(`<p style="${P}">${esc(hola)}</p>`));
+  partes.push(fila(`<p style="${P}">Adjunto la elección de menú para la cena del ${esc(o.fecha)}${o.referencia ? ` (ref. ${esc(o.referencia)})` : ""} de <strong>${esc(o.camino)}</strong>: ${o.comensales} comensales.</p>`));
+  if (o.secciones.length > 0) partes.push(fila(tablasMenu(o.restaurante, o.secciones)));
+  else partes.push(fila(`<p style="${P}">El menú es el mismo para todos; no hay platos que elegir.</p>`));
+  if (o.pendientes > 0) partes.push(fila(`<p style="${P_MINI}">Faltan ${o.pendientes} persona${o.pendientes === 1 ? "" : "s"} por elegir; te mando el ajuste apenas lo tenga.</p>`));
+  if (o.enSitio.length > 0) partes.push(fila(`<p style="${P_MINI}">${esc(o.enSitio.join(" y "))}: se elige en la mesa.</p>`));
+  if (o.dietas.length > 0) partes.push(fila(`<p style="${P_MINI}"><strong>Alimentación:</strong> ${o.dietas.map(([n, d]) => `${esc(n)}: ${esc(d)}`).join(" · ")}.</p>`));
+  if (o.notaExtra?.trim()) partes.push(fila(`<p style="${P}">${esc(o.notaExtra.trim()).replace(/\n/g, "<br>")}</p>`));
+  partes.push(fila(`<p style="${P}">Quedo muy atento.<br>Saludos,</p>${firmaHtml()}<div style="height:18px;"></div>`));
+
+  const subject = `Menú cena ${o.fecha} · ${o.restaurante} · ${CONTACTO.marca} (${o.comensales} personas)`;
+  const text = [
+    hola,
+    "",
+    `Adjunto la elección de menú para la cena del ${o.fecha}${o.referencia ? ` (ref. ${o.referencia})` : ""} de ${o.camino}: ${o.comensales} comensales.`,
+    "",
+    ...o.secciones.flatMap((s) => [s.seccion.toUpperCase(), ...s.platos.map((p) => `  ${p.plato}${p.todos ? " (para todos)" : ""}: ${p.n}`), `  TOTAL: ${s.total}`, ""]),
+    o.pendientes > 0 ? `Faltan ${o.pendientes} por elegir; te mando el ajuste apenas lo tenga.` : "",
+    o.enSitio.length > 0 ? `${o.enSitio.join(" y ")}: se elige en la mesa.` : "",
+    o.dietas.length > 0 ? `Alimentación: ${o.dietas.map(([n, d]) => `${n}: ${d}`).join(" · ")}.` : "",
+    o.notaExtra?.trim() ?? "",
+    "",
+    "Quedo muy atento.",
+    "Saludos,",
+    "",
+    firmaTexto(),
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
+
+  return {
+    subject,
+    html: envolturaCorreo({
+      eyebrow: "Elección de menú",
+      preheader: `Menú de la cena del ${o.fecha} en ${o.restaurante}: ${o.comensales} comensales.`,
       contenido: partes.join("\n"),
       pie: `${CONTACTO.marca} · ${CONTACTO.correo} · ${CONTACTO.whatsapp}`,
     }),
