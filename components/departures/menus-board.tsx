@@ -216,6 +216,10 @@ export function MenusBoard({
 
   const conMenu = dinners.filter((d) => !menuIsEmpty(d.courses));
   const completas = conMenu.filter((d) => dinnerProgress(ids, grid[d.id] ?? {}, d.courses, optOuts[d.id] ?? []).completa).length;
+  // Quién cerró su elección con el botón "Enviar" de su enlace. Es lo que dice si ya se
+  // le puede mandar la lista al restaurante sin que después cambie.
+  const enviaron = pilgrims.filter((p) => p.menu_submitted_at);
+  const faltanEnviar = pilgrims.filter((p) => !p.menu_submitted_at);
 
   if (dinners.length === 0) {
     return (
@@ -242,6 +246,17 @@ export function MenusBoard({
                 )}
               </span>
             </div>
+            {conMenu.length > 0 && pilgrims.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <strong className={enviaron.length === pilgrims.length ? "text-ok-700" : "text-foreground"}>
+                  {enviaron.length}/{pilgrims.length}
+                </strong>{" "}
+                ya enviaron su elección desde su enlace
+                {faltanEnviar.length > 0 && faltanEnviar.length <= 6 && (
+                  <span> · falta{faltanEnviar.length > 1 ? "n" : ""} {faltanEnviar.map((p) => p.full_name.split(" ")[0]).join(", ")}</span>
+                )}
+              </p>
+            )}
             {dirty.size > 0 && <p className="text-xs text-ocre-profundo mt-1">{dirty.size} cena(s) con cambios sin guardar</p>}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -404,6 +419,9 @@ export function MenusBoard({
                                 {p.is_team ? <span className="text-muted-foreground"> (equipo)</span> : ""}
                                 {porSuCuenta[d.id]?.has(p.id) && !noCena && (
                                   <span className="ml-1.5 rounded-full bg-ok-50 text-ok-700 px-1.5 py-0.5 text-[10px]" title="Eligió desde su enlace">por su cuenta</span>
+                                )}
+                                {!p.menu_submitted_at && (
+                                  <span className="ml-1.5 text-[10px] text-muted-foreground" title="Todavía no tocó Enviar en su enlace: puede cambiar de opinión">sin enviar</span>
                                 )}
                               </td>
                               {columnas.map((c) => {

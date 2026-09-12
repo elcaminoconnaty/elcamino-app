@@ -1,6 +1,6 @@
 "use server";
 
-import { guardarEleccionPorAcceso, marcarNoCenaPorAcceso } from "@/lib/menus/por-token";
+import { guardarEleccionPorAcceso, marcarNoCenaPorAcceso, enviarEleccionesPorAcceso } from "@/lib/menus/por-token";
 
 /**
  * Las acciones del enlace del camino. El `registrationId` lo manda el cliente (es a quien
@@ -12,4 +12,9 @@ export async function accionElegirCamino(args: { token: string; registrationId: 
 
 export async function accionNoCenaCamino(args: { token: string; registrationId: string; reservationId: string; noCena: boolean }) {
   return marcarNoCenaPorAcceso(args);
+}
+
+/** El botón "Enviar" del final: cierra la elección del peregrino. */
+export async function accionEnviarCamino(args: { token: string; registrationId: string }) {
+  return enviarEleccionesPorAcceso(args);
 }

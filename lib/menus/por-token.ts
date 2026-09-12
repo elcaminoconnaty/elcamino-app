@@ -38,18 +38,20 @@ export type MenuParaElegir = {
   nombre: string;
   camino: string;
   cenas: CenaParaElegir[];
+  /** Cuándo tocó "Enviar" por última vez. Null = todavía no cerró su elección. */
+  enviadoEl: string | null;
 };
 
 /** Cómo llegó el peregrino: por su enlace personal o por el del camino más su inscripción. */
 export type Acceso = { token: string; registrationId?: string | null };
 
-type Inscripcion = { id: string; pilgrim_id: string; departure_id: string; status: string; nombre: string; camino: string };
+type Inscripcion = { id: string; pilgrim_id: string; departure_id: string; status: string; nombre: string; camino: string; enviadoEl: string | null };
 
 async function inscripcionPorTokenPersonal(supabase: any, token: string): Promise<Inscripcion | null> {
   if (!tokenPlausible(token)) return null;
   const { data: reg } = await supabase
     .from("registrations")
-    .select("id, pilgrim_id, departure_id, status, pilgrims:pilgrim_id(full_name, deleted_at), departures:departure_id(name)")
+    .select("id, pilgrim_id, departure_id, status, menu_submitted_at, pilgrims:pilgrim_id(full_name, deleted_at), departures:departure_id(name)")
     .eq("menu_token", token)
     .maybeSingle();
   if (!reg || !reg.pilgrims || reg.pilgrims.deleted_at) return null;
@@ -60,6 +62,7 @@ async function inscripcionPorTokenPersonal(supabase: any, token: string): Promis
     status: reg.status,
     nombre: reg.pilgrims.full_name,
     camino: reg.departures?.name ?? "tu Camino",
+    enviadoEl: reg.menu_submitted_at ?? null,
   };
 }
 
@@ -76,12 +79,20 @@ async function inscripcionPorTokenDeCamino(supabase: any, token: string, registr
   if (!/^[0-9a-f-]{36}$/i.test(registrationId ?? "")) return null;
   const { data: reg } = await supabase
     .from("registrations")
-    .select("id, pilgrim_id, departure_id, status, pilgrims:pilgrim_id(full_name, deleted_at)")
+    .select("id, pilgrim_id, departure_id, status, menu_submitted_at, pilgrims:pilgrim_id(full_name, deleted_at)")
     .eq("id", registrationId)
     .eq("departure_id", camino.id)
     .maybeSingle();
   if (!reg || !reg.pilgrims || reg.pilgrims.deleted_at) return null;
-  return { id: reg.id, pilgrim_id: reg.pilgrim_id, departure_id: reg.departure_id, status: reg.status, nombre: reg.pilgrims.full_name, camino: camino.name };
+  return {
+    id: reg.id,
+    pilgrim_id: reg.pilgrim_id,
+    departure_id: reg.departure_id,
+    status: reg.status,
+    nombre: reg.pilgrims.full_name,
+    camino: camino.name,
+    enviadoEl: reg.menu_submitted_at ?? null,
+  };
 }
 
 async function inscripcionPorAcceso(supabase: any, acceso: Acceso): Promise<Inscripcion | null> {
@@ -140,8 +151,8 @@ export async function menuPorAcceso(acceso: Acceso): Promise<MenuParaElegir | nu
   const supabase = createAdminClient();
   const reg = await inscripcionPorAcceso(supabase, acceso);
   if (!reg) return null;
-  if (reg.status === "cancelado") return { estado: "inactivo", nombre: reg.nombre, camino: reg.camino, cenas: [] };
-  return { estado: "activo", nombre: reg.nombre, camino: reg.camino, cenas: await cenasDe(supabase, reg) };
+  if (reg.status === "cancelado") return { estado: "inactivo", nombre: reg.nombre, camino: reg.camino, cenas: [], enviadoEl: null };
+  return { estado: "activo", nombre: reg.nombre, camino: reg.camino, cenas: await cenasDe(supabase, reg), enviadoEl: reg.enviadoEl };
 }
 
 /** El enlace personal (compatibilidad: es lo que usa /menu/[token]). */
@@ -149,7 +160,14 @@ export async function menuPorToken(token: string): Promise<MenuParaElegir | null
   return menuPorAcceso({ token });
 }
 
-export type PeregrinoDeLista = { registration_id: string; nombre: string; completo: boolean; noCenaTodas: boolean };
+export type PeregrinoDeLista = {
+  registration_id: string;
+  nombre: string;
+  /** Ya eligió todo lo que le tocaba (aunque no haya tocado "Enviar"). */
+  completo: boolean;
+  /** Ya cerró su elección con el botón "Enviar". */
+  enviado: boolean;
+};
 export type ListaDelCamino = { camino: string; peregrinos: PeregrinoDeLista[]; hayCenas: boolean };
 
 /**
@@ -163,7 +181,7 @@ export async function listaPorTokenDeCamino(token: string): Promise<ListaDelCami
   const [{ data: regs }, { data: cenas }] = await Promise.all([
     supabase
       .from("registrations")
-      .select("id, pilgrim_id, status, pilgrims!inner(full_name, deleted_at)")
+      .select("id, pilgrim_id, status, menu_submitted_at, pilgrims!inner(full_name, deleted_at)")
       .eq("departure_id", camino.id)
       .neq("status", "cancelado"),
     supabase.from("v_dinner_reservations").select("reservation_id").eq("departure_id", camino.id),
@@ -206,7 +224,12 @@ export async function listaPorTokenDeCamino(token: string): Promise<ListaDelCami
     camino: camino.name,
     hayCenas: ids.length > 0,
     peregrinos: gente
-      .map((r: any) => ({ registration_id: r.id, nombre: r.pilgrims.full_name, completo: completos.has(r.id), noCenaTodas: false }))
+      .map((r: any) => ({
+        registration_id: r.id,
+        nombre: r.pilgrims.full_name,
+        completo: completos.has(r.id),
+        enviado: !!r.menu_submitted_at,
+      }))
       .sort((a: PeregrinoDeLista, b: PeregrinoDeLista) => a.nombre.localeCompare(b.nombre, "es")),
   };
 }
@@ -314,6 +337,22 @@ export async function marcarNoCenaPorAcceso(args: Acceso & { reservationId: stri
     const { error } = await supabase.from("reservation_opt_outs").delete().eq("reservation_id", args.reservationId).eq("pilgrim_id", reg.pilgrim_id).eq("kind", "cena");
     if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   }
+  revalidatePath(`/caminos/${reg.departure_id}`);
+  return { ok: true };
+}
+
+/**
+ * "Enviar": el peregrino cierra su elección. No guarda nada nuevo (cada plato ya se
+ * guardó solo al tocarlo); deja la marca de que terminó, que es lo que el equipo mira
+ * antes de mandarle la lista al restaurante. Volver a enviarlo actualiza la fecha.
+ */
+export async function enviarEleccionesPorAcceso(acceso: Acceso): Promise<Resultado> {
+  const supabase = createAdminClient();
+  const reg = await inscripcionPorAcceso(supabase, acceso);
+  if (!reg) return { ok: false, error: "Enlace no válido." };
+  if (reg.status === "cancelado") return { ok: false, error: "Esta inscripción ya no está activa." };
+  const { error } = await supabase.from("registrations").update({ menu_submitted_at: new Date().toISOString() }).eq("id", reg.id);
+  if (error) return { ok: false, error: "No se pudo enviar. Vuelve a intentar." };
   revalidatePath(`/caminos/${reg.departure_id}`);
   return { ok: true };
 }

@@ -6,8 +6,8 @@ import {
   courseTitle, menuIsEmpty, menuNeedsChoice, courseApplies, requiredCoursesFor, applyChoice, dependentsOf,
 } from "@/lib/data/menus";
 import type { CenaParaElegir, MenuParaElegir } from "@/lib/menus/por-token";
-import { accionElegir, accionNoCena } from "./actions";
-import { accionElegirCamino, accionNoCenaCamino } from "@/app/menu/c/[token]/actions";
+import { accionElegir, accionNoCena, accionEnviar } from "./actions";
+import { accionElegirCamino, accionNoCenaCamino, accionEnviarCamino } from "@/app/menu/c/[token]/actions";
 
 /** Por dónde entró: enlace personal (solo token) o enlace del camino (token + inscripción). */
 export type ContextoMenu = { token: string; registrationId?: string | null };
@@ -15,8 +15,10 @@ export type ContextoMenu = { token: string; registrationId?: string | null };
 type Estado = { tipo: "idle" | "guardando" | "guardado" | "error"; mensaje?: string };
 
 /**
- * Una tarjeta por cena, con un radio por plato. Se guarda con cada cambio (en el celular
- * es más natural que un botón al final) y cada tarjeta muestra si quedó guardado.
+ * Una tarjeta por cena, con un radio por plato. Cada elección se guarda sola (en el
+ * celular es más natural que ir hasta el final para no perder nada), y al final está el
+ * botón "Enviar", que es el que cierra: le dice al equipo que esta persona ya terminó y
+ * que se le puede mandar la lista al restaurante. Se puede volver a enviar si cambia algo.
  * Los platos que van igual para todos se muestran como información; los que se eligen
  * en el restaurante también; las secciones condicionales aparecen solo cuando aplican.
  */
@@ -30,8 +32,19 @@ export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: Co
     acceso.registrationId
       ? accionNoCenaCamino({ token: acceso.token, registrationId: acceso.registrationId, ...args })
       : accionNoCena({ token: acceso.token, ...args });
+  const enviarEnServidor = () =>
+    acceso.registrationId
+      ? accionEnviarCamino({ token: acceso.token, registrationId: acceso.registrationId })
+      : accionEnviar({ token: acceso.token });
   const [cenas, setCenas] = useState<CenaParaElegir[]>(datos.cenas);
   const [estados, setEstados] = useState<Record<string, Estado>>({});
+  const [enviado, setEnviado] = useState<string | null>(datos.enviadoEl);
+  /** Cambió algo después de haber enviado: hay que volver a enviar. */
+  const [sinEnviar, setSinEnviar] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  /** Con cenas sin elegir, el botón pide un segundo toque antes de mandar. */
+  const [confirmar, setConfirmar] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [, empezar] = useTransition();
 
   const conMenu = cenas.filter((c) => !menuIsEmpty(c.courses));
@@ -42,6 +55,49 @@ export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: Co
 
   function setEstado(id: string, e: Estado) {
     setEstados((prev) => ({ ...prev, [id]: e }));
+    if (e.tipo === "guardado" && enviado) setSinEnviar(true);
+  }
+
+  /** Lo que eligió en una cena, en una línea, para el resumen del final. */
+  function resumenDe(cena: CenaParaElegir): string {
+    if (cena.noCena) return "No cenas esa noche";
+    if (menuIsEmpty(cena.courses)) return "Todavía sin menú";
+    const partes: string[] = [];
+    for (const c of cena.courses) {
+      if (!courseApplies(c, cena.elegido, cena.courses)) continue;
+      if (c.mode === "fijo") {
+        if (c.options[0]) partes.push(c.options[0].name);
+        continue;
+      }
+      if (c.mode === "en_sitio") continue;
+      const elegido = c.options.find((o) => o.id === cena.elegido[c.id]);
+      if (elegido) partes.push(elegido.name);
+      else if (c.required) partes.push("— falta elegir —");
+    }
+    return partes.join(" · ") || "Sin nada elegido";
+  }
+
+  function enviar() {
+    // Un confirm del navegador en el celular es un modal feo y a pantalla completa; acá
+    // basta con pedir el segundo toque, como en el editor de menú del equipo.
+    if (faltan > 0 && !confirmar) {
+      setConfirmar(true);
+      return;
+    }
+    setEnviando(true);
+    setErrorEnvio(null);
+    empezar(async () => {
+      const r = await enviarEnServidor();
+      if (r.ok) {
+        setEnviado(new Date().toISOString());
+        setSinEnviar(false);
+        setConfirmar(false);
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      } else {
+        setErrorEnvio(r.error);
+      }
+      setEnviando(false);
+    });
   }
 
   function elegir(cena: CenaParaElegir, courseId: string, optionId: string) {
@@ -233,6 +289,66 @@ export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: Co
           </section>
         );
       })}
+
+      {cenas.length > 0 && (
+        <section className="rounded p-5" style={{ background: "#fff", border: `1px solid ${COLOR.piedra}` }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: 21, color: COLOR.atlantico, margin: 0 }}>Esto es lo que vamos a pedir</h2>
+          <ul className="mt-3 space-y-1.5" style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
+            {cenas.map((cena) => (
+              <li key={cena.id} style={{ fontSize: 14, color: COLOR.castano, lineHeight: 1.5 }}>
+                <strong style={{ color: COLOR.atlantico }}>{cena.restaurante}</strong>
+                {cena.fecha ? ` · ${cena.fecha}` : ""}
+                <span style={{ display: "block" }}>{resumenDe(cena)}</span>
+              </li>
+            ))}
+          </ul>
+
+          {enviado && !sinEnviar ? (
+            <p className="mt-4 rounded px-3 py-2" style={{ background: "#e6efe8", color: COLOR.atlantico, fontSize: 14, lineHeight: 1.6 }}>
+              ¡Gracias! Ya recibimos tu elección. Si algo cambia, corrígelo acá arriba y vuelve a tocar Enviar.
+            </p>
+          ) : (
+            <p className="mt-4" style={{ fontSize: 14, color: COLOR.castano, lineHeight: 1.6 }}>
+              {sinEnviar
+                ? "Cambiaste algo después de enviar: toca Enviar otra vez para que nos llegue."
+                : "Cuando termines, toca Enviar y le pasamos tu elección al restaurante."}
+            </p>
+          )}
+
+          {faltan > 0 && confirmar && (
+            <p className="mt-2 rounded px-3 py-2" style={{ background: COLOR.piedra, color: COLOR.atlantico, fontSize: 14, lineHeight: 1.6 }}>
+              Te falta{faltan > 1 ? "n" : ""} {faltan} cena{faltan > 1 ? "s" : ""} por elegir. Toca otra vez para enviarlo así; puedes volver a este enlace y completarlo después.
+            </p>
+          )}
+
+          {errorEnvio && <p className="mt-2" style={{ color: "#9b2c2c", fontSize: 14 }}>{errorEnvio}</p>}
+
+          <button
+            type="button"
+            onClick={enviar}
+            disabled={enviando}
+            className="mt-3 w-full rounded px-4 py-3"
+            style={{
+              background: enviado && !sinEnviar ? COLOR.piedra : COLOR.ocreProfundo,
+              color: enviado && !sinEnviar ? COLOR.atlantico : COLOR.alba,
+              border: 0,
+              fontSize: 16,
+              letterSpacing: 1,
+              cursor: enviando ? "default" : "pointer",
+            }}
+          >
+            {enviando
+              ? "Enviando…"
+              : faltan > 0 && confirmar
+                ? "Enviar así"
+                : enviado && !sinEnviar
+                  ? "Enviado ✓ · volver a enviar"
+                  : sinEnviar
+                    ? "Volver a enviar"
+                    : "Enviar mi elección"}
+          </button>
+        </section>
+      )}
     </div>
   );
 }

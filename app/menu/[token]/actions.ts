@@ -1,6 +1,6 @@
 "use server";
 
-import { guardarEleccionPorToken, marcarNoCenaPorToken } from "@/lib/menus/por-token";
+import { guardarEleccionPorToken, marcarNoCenaPorToken, enviarEleccionesPorAcceso } from "@/lib/menus/por-token";
 
 /** Las acciones de la página pública de elección de menú. Todo se autoriza por el token. */
 export async function accionElegir(args: { token: string; reservationId: string; courseId: string; optionId: string | null }) {
@@ -9,4 +9,9 @@ export async function accionElegir(args: { token: string; reservationId: string;
 
 export async function accionNoCena(args: { token: string; reservationId: string; noCena: boolean }) {
   return marcarNoCenaPorToken(args);
+}
+
+/** El botón "Enviar" del final: cierra la elección del peregrino. */
+export async function accionEnviar(args: { token: string }) {
+  return enviarEleccionesPorAcceso(args);
 }

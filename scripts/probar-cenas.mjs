@@ -144,6 +144,8 @@ check(lista.headers.get("referrer-policy") === "no-referrer" && (lista.headers.g
 const yo = await fetch(`${BASE}/menu/c/${tokenCamino}?yo=${b.reg}`, { redirect: "manual" });
 const yoHtml = await yo.text();
 check(yo.status === 200 && yoHtml.includes(b.name.split(" ")[0]) && yoHtml.includes(REST) && yoHtml.includes("No soy yo"), `?yo=<inscripción> → ${yo.status}, entra como ${b.name}`);
+check(yoHtml.includes("Esto es lo que vamos a pedir") && yoHtml.includes("Enviar mi elección"), "el formulario termina con el resumen y el botón Enviar");
+check(listaHtml.includes("POR ELEGIR") || listaHtml.includes("por elegir"), "la lista marca a quién le falta");
 const { data: otraReg } = await admin.from("registrations").select("id").neq("departure_id", DEP).limit(1).maybeSingle();
 if (otraReg) {
   const ajeno = await fetch(`${BASE}/menu/c/${tokenCamino}?yo=${otraReg.id}`, { redirect: "manual" });

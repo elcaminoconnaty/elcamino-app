@@ -84,8 +84,8 @@ export function ElegirNombre({ token, lista }: { token: string; lista: ListaDelC
             >
               <span>{p.nombre}</span>
               {lista.hayCenas && (
-                <span style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: p.completo ? "#4A5E47" : COLOR.ocreProfundo }}>
-                  {p.completo ? "listo" : "por elegir"}
+                <span style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: p.enviado ? "#4A5E47" : COLOR.ocreProfundo }}>
+                  {p.enviado ? "enviado" : p.completo ? "por enviar" : "por elegir"}
                 </span>
               )}
             </button>
