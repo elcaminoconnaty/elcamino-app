@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { COLOR } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/client";
+import { ACEPTA_PASAPORTE, revisarArchivoDePasaporte } from "@/lib/passport/formatos";
 import { REGISTRO, TALLAS_CAMISETA, TALLAS_SANDALIA, INDICATIVOS } from "@/lib/registro/textos";
 import type { FichaParaFormulario } from "@/lib/registro/por-token";
 import { accionUrlPasaporte, accionLeerPasaporte, accionEnviarFormulario } from "./actions";
@@ -74,8 +75,11 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
   async function subirFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setFoto({ estado: "error", mensaje: "Sube una foto (jpg o png)." });
+    // Las mismas reglas que usa el equipo desde la plataforma: si el archivo no se va a
+    // poder leer, se avisa acá y no después de gastarle los datos del celular.
+    const problema = revisarArchivoDePasaporte(file);
+    if (problema) {
+      setFoto({ estado: "error", mensaje: problema });
       return;
     }
     setFoto({ estado: "subiendo" });
@@ -84,7 +88,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
       if (!u.ok) throw new Error(u.error);
       const supabase = createClient();
       const { error: upErr } = await supabase.storage.from("passports").uploadToSignedUrl(u.path, u.uploadToken, file, { contentType: file.type });
-      if (upErr) throw new Error("No se pudo subir la foto. Revisa tu conexión.");
+      if (upErr) throw new Error("No se pudo subir el archivo. Revisa tu conexión.");
       setFoto({ estado: "leyendo" });
       const r = await accionLeerPasaporte({ token, registrationId, path: u.path });
       if (!r.ok) throw new Error(r.error);
@@ -93,15 +97,15 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         passport_number: p.passport_number || (r.passport_number ?? ""),
         birth_date: p.birth_date || (r.birth_date ?? ""),
       }));
-      setFoto({ estado: "lista", mensaje: r.passport_number ? "Leímos tu pasaporte; revisa que el número y la fecha estén bien." : "Foto guardada." });
+      setFoto({ estado: "lista", mensaje: r.passport_number ? "Leímos tu pasaporte; revisa que el número y la fecha estén bien." : "Archivo guardado." });
     } catch (err: any) {
-      setFoto({ estado: "error", mensaje: err?.message ?? "No se pudo subir la foto." });
+      setFoto({ estado: "error", mensaje: err?.message ?? "No se pudo subir el archivo." });
     }
   }
 
   function enviar(ev: React.FormEvent) {
     ev.preventDefault();
-    const falta = foto.estado !== "lista" ? "Falta la foto de tu pasaporte." : !f.shirt_size ? "Elige tu talla de camiseta." : !f.sandal_size ? "Elige tu talla de sandalias." : null;
+    const falta = foto.estado !== "lista" ? "Falta tu pasaporte." : !f.shirt_size ? "Elige tu talla de camiseta." : !f.sandal_size ? "Elige tu talla de sandalias." : null;
     if (falta) {
       setError(falta);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -179,16 +183,17 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         </Campo>
       </div>
 
-      <Campo label="Foto de tu pasaporte" ayuda={REGISTRO.pasaporte}>
+      <Campo label="Tu pasaporte" ayuda={REGISTRO.pasaporte}>
         <div className="rounded p-4" style={{ background: "#fff", border: `1px dashed ${COLOR.ocre}` }}>
           {foto.estado === "lista" && (
             <p style={{ color: "#4A5E47", fontSize: 14, margin: "0 0 8px" }}>✓ {foto.mensaje ?? "Ya tenemos tu pasaporte. Súbelo de nuevo solo si cambió."}</p>
           )}
           {foto.estado === "error" && <p style={{ color: "#9b2c2c", fontSize: 14, margin: "0 0 8px" }}>{foto.mensaje}</p>}
           {(foto.estado === "subiendo" || foto.estado === "leyendo") && (
-            <p style={{ color: COLOR.castano, fontSize: 14, margin: "0 0 8px" }}>{foto.estado === "subiendo" ? "Subiendo la foto…" : "Leyendo el pasaporte…"}</p>
+            <p style={{ color: COLOR.castano, fontSize: 14, margin: "0 0 8px" }}>{foto.estado === "subiendo" ? "Subiendo el archivo…" : "Leyendo el pasaporte…"}</p>
           )}
-          <input type="file" accept="image/*" capture="environment" onChange={subirFoto} disabled={foto.estado === "subiendo" || foto.estado === "leyendo"} style={{ fontSize: 14, color: COLOR.atlantico }} />
+          <input type="file" accept={ACEPTA_PASAPORTE} onChange={subirFoto} disabled={foto.estado === "subiendo" || foto.estado === "leyendo"} style={{ fontSize: 14, color: COLOR.atlantico }} />
+          <p style={{ color: COLOR.castano, fontSize: 13, margin: "8px 0 0" }}>Una foto o el PDF del escaneo. Se ve la página de los datos.</p>
         </div>
       </Campo>
 

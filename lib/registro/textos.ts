@@ -9,7 +9,7 @@ export const REGISTRO = {
     "Estamos felices de que seas parte de la familia de peregrinos.",
     "Para continuar con el proceso, necesitamos estos datos:",
   ],
-  pasaporte: "Uso exclusivo para las reservas de hoteles y transporte. La foto se borra cuando termina el camino.",
+  pasaporte: "Uso exclusivo para las reservas de hoteles y transporte. Se borra cuando termina el camino.",
   apodo: "Nos encantaría saber si tienes alguna forma especial en que te guste que nos refiramos a ti.",
   contacto: "Es importante que esta persona responda oportunamente por WhatsApp: será el medio por el que la contactaremos en caso de ser necesario.",
   sandalias: "Usa la guía de tallas para confirmar la tuya.",
