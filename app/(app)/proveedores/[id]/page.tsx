@@ -9,6 +9,7 @@ import { PROVIDER_TYPES } from "@/lib/constants";
 import { NewProviderPaymentDialog } from "@/components/providers/new-provider-payment-dialog";
 import { EditProviderForm } from "@/components/providers/edit-provider-form";
 import { HotelPhotos } from "@/components/providers/hotel-photos";
+import { PaymentAccountsCard } from "@/components/providers/payment-accounts-card";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,12 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
   const { data: provider } = await supabase.from("providers").select("*").eq("id", params.id).maybeSingle();
   if (!provider) notFound();
 
-  const [{ data: reservations }, { data: payments }, { data: departures }] = await Promise.all([
+  const [{ data: reservations }, { data: payments }, { data: departures }, { data: cuentas }] = await Promise.all([
     supabase.from("reservations").select("*, departures(name)").eq("provider_id", params.id).order("check_in", { ascending: true, nullsFirst: false }),
     supabase.from("provider_payments").select("*, departures(name), reservations(type, location)").eq("provider_id", params.id).order("paid_at", { ascending: true }),
     supabase.from("departures").select("id, name").order("start_date"),
+    supabase.from("provider_payment_accounts").select("*").eq("provider_id", params.id).eq("active", true)
+      .order("is_default", { ascending: false }).order("created_at"),
   ]);
 
   // Las fotos solo tienen sentido para alojamientos: son las del documento de viaje.
@@ -128,12 +131,26 @@ export default async function ProviderDetailPage({ params }: { params: { id: str
           </Card>
         </div>
 
-        <Card>
-          <CardHeader><CardTitle>Datos</CardTitle></CardHeader>
-          <CardContent>
-            <EditProviderForm provider={provider} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cómo se le paga</CardTitle>
+              <div className="text-sm text-muted-foreground">
+                Las formas de cobro de este proveedor. Cada reserva elige con cuál se le paga, que es lo que cambia de un camino a otro.
+              </div>
+            </CardHeader>
+            <CardContent>
+              <PaymentAccountsCard providerId={provider.id} cuentas={cuentas ?? []} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Datos</CardTitle></CardHeader>
+            <CardContent>
+              <EditProviderForm provider={provider} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

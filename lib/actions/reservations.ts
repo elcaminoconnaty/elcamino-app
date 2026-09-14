@@ -40,6 +40,12 @@ export async function createReservation(formData: FormData) {
       ? formData.get("menu_required") === "on" || formData.get("menu_required") === "true"
       : (formData.get("meal_kind")?.toString() || null) === "cena",
     menu_notes_pilgrim: formData.get("menu_notes_pilgrim")?.toString().trim() || null,
+    // Cómo se paga esta reserva: la negociación de este camino con este proveedor.
+    payment_account_id: formData.get("payment_account_id")?.toString() || null,
+    payment_method: formData.get("payment_method")?.toString() || null,
+    pay_from_account: formData.get("pay_from_account")?.toString() || null,
+    payment_terms: formData.get("payment_terms")?.toString() || null,
+    payment_reference: formData.get("payment_reference")?.toString() || null,
   };
   const { data, error } = await supabase.from("reservations").insert(payload).select("id").single();
   if (error) throw new Error(error.message);
@@ -109,10 +115,11 @@ export async function updateProvider(id: string, formData: FormData) {
 
   // Lo que sale impreso en el documento de viaje. Solo se escribe si el formulario lo trae,
   // para que un formulario que no lo muestra no lo borre.
+  // Los datos bancarios ya no viven acá: cada proveedor tiene sus cuentas de cobro en
+  // provider_payment_accounts, porque una sola cuenta no alcanza cuando la negociación
+  // cambia de un camino a otro.
   for (const campo of [
     "address", "postal_code", "maps_url", "description", "check_in_time", "breakfast_time",
-    // Datos de pago: salen en el informe de pagos pendientes que se le entrega a Naty.
-    "payment_method_default", "bank_name", "account_holder", "iban", "swift_bic", "bizum_phone", "payment_notes",
   ]) {
     if (formData.has(campo)) payload[campo] = formData.get(campo)?.toString() || null;
   }
@@ -121,6 +128,34 @@ export async function updateProvider(id: string, formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath(`/proveedores/${id}`);
   revalidatePath("/proveedores");
+}
+
+/** La cuenta que la reserva tenía elegida, o la predeterminada del proveedor. */
+async function cuentaDeLaReserva(supabase: any, reservationId: string): Promise<string | null> {
+  const { data: r } = await supabase
+    .from("reservations")
+    .select("payment_account_id, provider_id")
+    .eq("id", reservationId)
+    .maybeSingle();
+  if (!r) return null;
+  if (r.payment_account_id) return r.payment_account_id;
+  const { data: def } = await supabase
+    .from("provider_payment_accounts")
+    .select("id")
+    .eq("provider_id", r.provider_id)
+    .eq("is_default", true)
+    .maybeSingle();
+  return def?.id ?? null;
+}
+
+/** Copia congelada de la cuenta, para que el histórico no se reescriba solo. */
+async function retratoDeCuenta(supabase: any, accountId: string) {
+  const { data } = await supabase
+    .from("provider_payment_accounts")
+    .select("alias, method, currency, bank_name, account_holder, iban, swift_bic, bizum_phone")
+    .eq("id", accountId)
+    .maybeSingle();
+  return data ?? null;
 }
 
 export async function createProviderPayment(formData: FormData) {
@@ -133,10 +168,20 @@ export async function createProviderPayment(formData: FormData) {
     throw new Error("Para pagos en USD indicá la tasa USD→EUR (ej. 0.92).");
   }
   assertGlobal66Rate(formData.get("method")?.toString(), currency, trm);
+
+  const reservationId = formData.get("reservation_id")?.toString() || null;
+  // A qué cuenta se giró de verdad. Se copia acá porque si mañana el proveedor cambia
+  // de IBAN, el recibo de este pago tiene que seguir diciendo a dónde fue la plata.
+  const accountId = formData.get("payment_account_id")?.toString()
+    || (reservationId ? await cuentaDeLaReserva(supabase, reservationId) : null);
+  const paidTo = accountId ? await retratoDeCuenta(supabase, accountId) : null;
+
   // amount_eur lo calcula el trigger de la BD (fuente única de conversión)
   const payload = {
     provider_id: formData.get("provider_id")?.toString() || "",
-    reservation_id: formData.get("reservation_id")?.toString() || null,
+    reservation_id: reservationId,
+    payment_account_id: accountId,
+    paid_to: paidTo,
     budget_item_id: formData.get("budget_item_id")?.toString() || null,
     departure_id: formData.get("departure_id")?.toString() || null,
     paid_at: formData.get("paid_at")?.toString() || new Date().toISOString().slice(0, 10),

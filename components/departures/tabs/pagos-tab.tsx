@@ -160,7 +160,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
-              title="PDF con lo que falta por pagar, el medio de pago y los datos bancarios de cada proveedor"
+              title="PDF con una fila por pago: importe, fecha límite y los datos para girar, agrupados por medio de pago"
             >
               <FileText className="h-4 w-4" /> Informe de pagos (PDF)
             </a>

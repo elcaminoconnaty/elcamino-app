@@ -27,6 +27,15 @@ export const RESERVATION_PAYMENT_METHODS = [
   { value: "booking", label: "Booking / plataforma" },
   { value: "otro", label: "Otro" },
 ] as const;
+
+/**
+ * Medios que se giran de verdad: son los que van al informe con datos para copiar al
+ * banco. Tarjeta, efectivo y Booking se pagan solos y van en la hoja aparte.
+ */
+export const MEDIOS_QUE_SE_GIRAN = ["transferencia", "bizum"] as const;
+
+/** Monedas en las que un proveedor puede pedir el cobro. El modelo de plata sigue en EUR. */
+export const PROVIDER_CURRENCIES = ["EUR", "GBP", "USD", "CHF", "COP", "Otra"] as const;
 export const CURRENCIES = ["EUR", "COP", "USD"] as const;
 
 export const ACCOUNTS = [

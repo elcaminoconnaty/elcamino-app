@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Settings,
   CalendarClock,
+  Banknote,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +25,8 @@ const items: Item[] = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/caminos", label: "Caminos", icon: Map, tree: "caminos" },
   { href: "/peregrinos", label: "Peregrinos", icon: Users, tree: "peregrinos" },
-  { href: "/pagos", label: "Pagos", icon: CalendarClock },
+  { href: "/pagos", label: "Cobros a peregrinos", icon: CalendarClock },
+  { href: "/pagos-proveedores", label: "Pagos a proveedores", icon: Banknote },
   { href: "/proveedores", label: "Proveedores", icon: Building2 },
   { href: "/gastos", label: "Gastos", icon: Wallet },
   { href: "/trm", label: "TRM", icon: TrendingUp },

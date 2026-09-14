@@ -13,7 +13,8 @@ import { getReservationSchedule, setReservationSchedule } from "@/lib/actions/re
 import type { RoomInput } from "@/lib/data/rooms";
 import { RoomsEditor } from "@/components/departures/rooms-editor";
 import { ReservationPaymentScheduleEditor, type ScheduleItem } from "@/components/departures/reservation-payment-schedule-editor";
-import { RESERVATION_STATUSES, PROVIDER_TYPES, PAYMENT_METHODS, ACCOUNTS, RESERVATION_PAYMENT_METHODS } from "@/lib/constants";
+import { BloquePagoReserva, type ValoresPago } from "@/components/departures/bloque-pago-reserva";
+import { RESERVATION_STATUSES, PROVIDER_TYPES, PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { formatEUR } from "@/lib/utils";
 import { Pencil, Trash2, AlertTriangle, CreditCard, UtensilsCrossed } from "lucide-react";
@@ -45,6 +46,16 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
   );
   const [checkIn, setCheckIn] = useState(reservation.check_in ?? "");
   const [checkOut, setCheckOut] = useState(reservation.check_out ?? "");
+
+  // El proveedor manda sobre qué cuentas de cobro se ofrecen, así que va controlado.
+  const [providerId, setProviderId] = useState<string>(reservation.provider_id ?? "");
+  const [pago, setPago] = useState<ValoresPago>({
+    payment_account_id: reservation.payment_account_id ?? null,
+    payment_method: reservation.payment_method ?? null,
+    pay_from_account: reservation.pay_from_account ?? null,
+    payment_terms: reservation.payment_terms ?? null,
+    payment_reference: reservation.payment_reference ?? null,
+  });
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [scheduleInitial, setScheduleInitial] = useState<ScheduleItem[] | null>(null);
 
@@ -191,8 +202,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 notes: fd.get("notes")?.toString() || null,
                 menu_required: menuRequired,
                 menu_notes_pilgrim: menuNotes.trim() || null,
-                payment_method: fd.get("payment_method")?.toString() || null,
-                pay_from_account: fd.get("pay_from_account")?.toString() || null,
+                ...pago,
               };
 
               if (isMeal) {
@@ -274,7 +284,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
         >
           <div className="grid gap-2">
             <Label>Proveedor</Label>
-            <select name="provider_id" defaultValue={reservation.provider_id} required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
               {providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
@@ -451,27 +461,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
               )}
             </div>
           )}
-          {/* Cómo y desde dónde se paga esta reserva: es lo que sale en el informe de pagos pendientes. */}
-          <div className="rounded-md border bg-alba/60 p-3 space-y-2">
-            <div className="text-xs uppercase tracking-widest text-ocre-profundo">Cómo se paga</div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs">Medio de pago al proveedor</Label>
-                <select name="payment_method" defaultValue={reservation.payment_method ?? ""} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="">Como siempre con este proveedor</option>
-                  {RESERVATION_PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs">Desde qué cuenta nuestra</Label>
-                <select name="pay_from_account" defaultValue={reservation.pay_from_account ?? ""} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="">Sin definir</option>
-                  {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Los datos bancarios (IBAN, Bizum) se cargan una vez en la ficha del proveedor.</p>
-          </div>
+          <BloquePagoReserva providerId={providerId || null} valores={pago} onChange={setPago} />
           <div className="rounded-md border bg-alba/60 p-3 space-y-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={menuRequired} onChange={(e) => setMenuRequired(e.target.checked)} />

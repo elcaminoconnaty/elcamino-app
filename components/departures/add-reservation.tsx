@@ -10,6 +10,7 @@ import { createReservation } from "@/lib/actions/reservations";
 import { setReservationRooms } from "@/lib/actions/reservation-rooms";
 import type { RoomInput } from "@/lib/data/rooms";
 import { RoomsEditor } from "@/components/departures/rooms-editor";
+import { BloquePagoReserva, type ValoresPago } from "@/components/departures/bloque-pago-reserva";
 import { RESERVATION_STATUSES, PROVIDER_TYPES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
@@ -31,6 +32,14 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
   const [checkOut, setCheckOut] = useState("");
   const [menuRequired, setMenuRequired] = useState(false);
   const [menuNotes, setMenuNotes] = useState("");
+  const [providerId, setProviderId] = useState("");
+  const [pago, setPago] = useState<ValoresPago>({
+    payment_account_id: null,
+    payment_method: null,
+    pay_from_account: null,
+    payment_terms: null,
+    payment_reference: null,
+  });
   const router = useRouter();
 
   const isMeal = type === "cenas";
@@ -44,6 +53,8 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
 
   function resetAll() {
     setRooms([]); setRoomTotals({ beds: 0, cost: 0 });
+    setProviderId("");
+    setPago({ payment_account_id: null, payment_method: null, pay_from_account: null, payment_terms: null, payment_reference: null });
     setType(defaultType ?? "alojamiento");
     setMealPersons(""); setMealPrice("");
     setPricingMode("total"); setServicePersons(""); setServicePrice(""); setTransportTotal("");
@@ -126,6 +137,9 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
                 }
               }
               fd.set("departure_id", departureId);
+              for (const [campo, valor] of Object.entries(pago)) {
+                if (valor) fd.set(campo, String(valor));
+              }
               const created = await createReservation(fd);
               if (isLodging && rooms.length > 0 && (created as any)?.id) {
                 await setReservationRooms((created as any).id, rooms, departureId);
@@ -142,7 +156,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
         >
           <div className="grid gap-2">
             <Label>Proveedor *</Label>
-            <select name="provider_id" required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
               <option value="">— Seleccionar —</option>
               {providers.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
             </select>
@@ -254,6 +268,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
             </div>
             <div className="grid gap-2"><Label>Ref. confirmación</Label><Input name="confirmation_ref" /></div>
           </div>
+          <BloquePagoReserva providerId={providerId || null} valores={pago} onChange={setPago} />
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <div className="rounded-md border bg-alba/60 p-3 space-y-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">

@@ -218,6 +218,29 @@ export type BudgetItem = {
   position: number;
 };
 
+/**
+ * Una forma de cobrar de un proveedor. El mismo hotel puede tener varias (la cuenta de
+ * la sociedad, el Bizum del dueño, la cuenta que pidió para un camino puntual) y cada
+ * reserva elige con cuál se le paga.
+ */
+export type ProviderPaymentAccount = {
+  id: string;
+  provider_id: string;
+  alias: string | null;
+  method: "transferencia" | "bizum" | "tarjeta" | "efectivo" | "booking" | "otro";
+  currency: string;
+  /** Unidades de `currency` por 1 EUR; solo si no cobra en euros. */
+  fx_per_eur: number | null;
+  bank_name: string | null;
+  account_holder: string | null;
+  iban: string | null;
+  swift_bic: string | null;
+  bizum_phone: string | null;
+  notes: string | null;
+  is_default: boolean;
+  active: boolean;
+};
+
 export type Expense = {
   id: string;
   expense_date: string;
