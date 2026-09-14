@@ -27,9 +27,9 @@ function enDias(dias: number) {
 function FilaGiro({ g }: { g: Giro }) {
   const datos =
     g.medio === "transferencia"
-      ? [g.titular, g.iban, g.swift].filter(Boolean).join(" · ")
+      ? [g.titular, g.nif, g.iban, g.swift].filter(Boolean).join(" · ")
       : g.medio === "bizum"
-        ? [g.bizum, g.titular].filter(Boolean).join(" · ")
+        ? [g.bizum, g.titular, g.nif].filter(Boolean).join(" · ")
         : g.titular ?? "";
   return (
     <TableRow className={g.vencida ? "bg-error-50/50" : undefined}>

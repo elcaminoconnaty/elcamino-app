@@ -10,6 +10,7 @@ export type CuentaInput = {
   fx_per_eur: number | null;
   bank_name: string | null;
   account_holder: string | null;
+  tax_id: string | null;
   iban: string | null;
   swift_bic: string | null;
   bizum_phone: string | null;
@@ -57,6 +58,8 @@ function armarCuenta(fd: FormData): CuentaInput {
     fx_per_eur: currency !== "EUR" && fxRaw ? Number(fxRaw) : null,
     bank_name: limpiar(fd, "bank_name"),
     account_holder: holder,
+    // El NIF va en mayúscula sin espacios ni guiones, que es como lo pide el banco.
+    tax_id: limpiar(fd, "tax_id")?.toUpperCase().replace(/[\s-]/g, "") ?? null,
     iban,
     swift_bic: swift,
     bizum_phone: limpiar(fd, "bizum_phone"),

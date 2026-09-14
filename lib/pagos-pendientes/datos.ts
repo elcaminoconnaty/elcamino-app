@@ -38,6 +38,8 @@ export type Giro = {
   cuenta_origen: string | null;
   cuenta_alias: string | null;
   titular: string | null;
+  /** NIF del titular: el banco lo pide para identificar al beneficiario. */
+  nif: string | null;
   banco: string | null;
   iban: string | null;
   swift: string | null;
@@ -150,7 +152,7 @@ export async function armarInformePagos(
               "payment_method, pay_from_account, payment_terms, payment_reference, payment_account_id, " +
               "departures(name), " +
               "providers(id, name), " +
-              "provider_payment_accounts!reservations_payment_account_id_fkey(alias, method, currency, fx_per_eur, bank_name, account_holder, iban, swift_bic, bizum_phone, notes)"
+              "provider_payment_accounts!reservations_payment_account_id_fkey(alias, method, currency, fx_per_eur, bank_name, account_holder, tax_id, iban, swift_bic, bizum_phone, notes)"
           )
           .neq("status", "cancelado")
       ).order("check_in", { ascending: true, nullsFirst: false }),
@@ -177,7 +179,7 @@ export async function armarInformePagos(
   if (proveedoresSinCuenta.length > 0) {
     const { data: defs } = await supabase
       .from("provider_payment_accounts")
-      .select("provider_id, alias, method, currency, fx_per_eur, bank_name, account_holder, iban, swift_bic, bizum_phone, notes")
+      .select("provider_id, alias, method, currency, fx_per_eur, bank_name, account_holder, tax_id, iban, swift_bic, bizum_phone, notes")
       .in("provider_id", proveedoresSinCuenta)
       .eq("is_default", true)
       .eq("active", true);
@@ -225,6 +227,7 @@ export async function armarInformePagos(
       cuenta_origen: r.pay_from_account ?? null,
       cuenta_alias: cuenta?.alias ?? null,
       titular: cuenta?.account_holder ?? null,
+      nif: cuenta?.tax_id ?? null,
       banco: cuenta?.bank_name ?? null,
       iban: cuenta?.iban ? formatearIban(cuenta.iban) : null,
       swift: cuenta?.swift_bic ?? null,

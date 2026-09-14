@@ -17,14 +17,17 @@ function Detalle({ c }: { c: any }) {
   const lineas: string[] = [];
   if (c.method === "transferencia") {
     if (c.account_holder) lineas.push(`Titular: ${c.account_holder}`);
+    if (c.tax_id) lineas.push(`NIF: ${c.tax_id}`);
     if (c.bank_name) lineas.push(`Banco: ${c.bank_name}`);
     if (c.iban) lineas.push(`IBAN: ${formatearIban(c.iban)}`);
     if (c.swift_bic) lineas.push(`SWIFT: ${c.swift_bic}`);
   } else if (c.method === "bizum") {
     if (c.bizum_phone) lineas.push(`Bizum: ${c.bizum_phone}`);
     if (c.account_holder) lineas.push(`A nombre de: ${c.account_holder}`);
-  } else if (c.account_holder) {
-    lineas.push(c.account_holder);
+    if (c.tax_id) lineas.push(`NIF: ${c.tax_id}`);
+  } else {
+    if (c.account_holder) lineas.push(c.account_holder);
+    if (c.tax_id) lineas.push(`NIF: ${c.tax_id}`);
   }
   if (c.currency && c.currency !== "EUR") lineas.push(`Cobra en ${c.currency}${c.fx_per_eur ? ` · ${c.fx_per_eur} ${c.currency}/EUR` : ""}`);
   if (c.notes) lineas.push(c.notes);

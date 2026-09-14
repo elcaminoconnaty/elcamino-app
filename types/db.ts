@@ -233,6 +233,8 @@ export type ProviderPaymentAccount = {
   fx_per_eur: number | null;
   bank_name: string | null;
   account_holder: string | null;
+  /** NIF del titular (CIF si es sociedad). */
+  tax_id: string | null;
   iban: string | null;
   swift_bic: string | null;
   bizum_phone: string | null;

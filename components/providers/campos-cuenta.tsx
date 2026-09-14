@@ -44,8 +44,9 @@ export function CamposCuenta({ cuenta }: { cuenta?: any }) {
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Titular *</Label><Input name="account_holder" defaultValue={cuenta?.account_holder ?? ""} placeholder="Como figura en el banco" required /></div>
-            <div className="grid gap-2"><Label>Banco</Label><Input name="bank_name" defaultValue={cuenta?.bank_name ?? ""} placeholder="Abanca, Santander…" /></div>
+            <div className="grid gap-2"><Label>NIF del titular</Label><Input name="tax_id" defaultValue={cuenta?.tax_id ?? ""} placeholder="B12345678 · 12345678Z" /></div>
           </div>
+          <div className="grid gap-2"><Label>Banco</Label><Input name="bank_name" defaultValue={cuenta?.bank_name ?? ""} placeholder="Abanca, Santander…" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>IBAN *</Label>
@@ -63,14 +64,20 @@ export function CamposCuenta({ cuenta }: { cuenta?: any }) {
       )}
 
       {esBizum && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2"><Label>Teléfono Bizum *</Label><Input name="bizum_phone" defaultValue={cuenta?.bizum_phone ?? ""} placeholder="+34 600 00 00 00" required /></div>
-          <div className="grid gap-2"><Label>A nombre de</Label><Input name="account_holder" defaultValue={cuenta?.account_holder ?? ""} /></div>
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2"><Label>Teléfono Bizum *</Label><Input name="bizum_phone" defaultValue={cuenta?.bizum_phone ?? ""} placeholder="+34 600 00 00 00" required /></div>
+            <div className="grid gap-2"><Label>A nombre de</Label><Input name="account_holder" defaultValue={cuenta?.account_holder ?? ""} /></div>
+          </div>
+          <div className="grid gap-2"><Label>NIF</Label><Input name="tax_id" defaultValue={cuenta?.tax_id ?? ""} placeholder="B12345678 · 12345678Z" /></div>
+        </>
       )}
 
       {!esTransferencia && !esBizum && (
-        <div className="grid gap-2"><Label>A nombre de / referencia</Label><Input name="account_holder" defaultValue={cuenta?.account_holder ?? ""} placeholder="Ej.: se paga en el mostrador al llegar" /></div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2"><Label>A nombre de / referencia</Label><Input name="account_holder" defaultValue={cuenta?.account_holder ?? ""} placeholder="Ej.: se paga en el mostrador al llegar" /></div>
+          <div className="grid gap-2"><Label>NIF</Label><Input name="tax_id" defaultValue={cuenta?.tax_id ?? ""} placeholder="Para la factura" /></div>
+        </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">

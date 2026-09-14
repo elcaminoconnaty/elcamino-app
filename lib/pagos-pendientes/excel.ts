@@ -32,6 +32,7 @@ function filaTransferencia(g: Giro, trm: number | null) {
   return {
     ...comunes(g, trm),
     "TITULAR": g.titular ?? "",
+    "NIF": g.nif ?? "",
     "IBAN": g.iban ?? "",
     "SWIFT / BIC": g.swift ?? "",
     "BANCO": g.banco ?? "",
@@ -50,6 +51,7 @@ function filaBizum(g: Giro, trm: number | null) {
     ...comunes(g, trm),
     "TELÉFONO BIZUM": g.bizum ?? "",
     "A NOMBRE DE": g.titular ?? "",
+    "NIF": g.nif ?? "",
     "CONCEPTO / REFERENCIA": g.referencia ?? "",
     "SALE DE": g.cuenta_origen ?? "",
     "NOTAS": g.notas ?? "",
@@ -62,6 +64,7 @@ function filaOtro(g: Giro, trm: number | null) {
     ...comunes(g, trm),
     "MEDIO": g.medio_label,
     "DÓNDE / A NOMBRE DE": g.titular ?? g.cuenta_alias ?? "",
+    "NIF": g.nif ?? "",
     "CONDICIÓN PACTADA": g.condicion ?? "",
     "NOTAS": g.notas ?? "",
     "FALTA": g.faltan.join(", "),

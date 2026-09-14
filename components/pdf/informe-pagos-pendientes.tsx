@@ -45,12 +45,14 @@ function DatosDePago({ g }: { g: Giro }) {
   const lineas: string[] = [];
   if (g.medio === "transferencia") {
     if (g.titular) lineas.push(`Titular: ${g.titular}`);
+    if (g.nif) lineas.push(`NIF: ${g.nif}`);
     if (g.iban) lineas.push(`IBAN: ${g.iban}`);
     if (g.swift) lineas.push(`SWIFT: ${g.swift}`);
     if (g.banco) lineas.push(`Banco: ${g.banco}`);
   } else if (g.medio === "bizum") {
     if (g.bizum) lineas.push(`Bizum: ${g.bizum}`);
     if (g.titular) lineas.push(`A nombre de: ${g.titular}`);
+    if (g.nif) lineas.push(`NIF: ${g.nif}`);
   } else if (g.medio === "booking") {
     lineas.push("Se paga por la plataforma (Booking)");
   } else if (g.medio === "tarjeta") {
