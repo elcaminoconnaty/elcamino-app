@@ -1,6 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { PDF, tipoDeArchivoDePasaporte, porQueNoSirve } from "@/lib/passport/formatos";
+import { armarNombreCompleto } from "@/lib/passport/nombres";
 
 /**
  * Lee un pasaporte con Claude (visión) a partir de la foto que ya está en el bucket
@@ -8,7 +9,10 @@ import { PDF, tipoDeArchivoDePasaporte, porQueNoSirve } from "@/lib/passport/for
  * ficha del peregrino (equipo) y el formulario público de inscripción.
  */
 export type PassportData = {
+  /** Ya compuesto como lo guardamos: "Nombre Apellido". */
   full_name: string | null;
+  given_names: string | null;
+  surnames: string | null;
   passport_number: string | null;
   nationality: string | null;
   sex: string | null;
@@ -26,7 +30,8 @@ const PASSPORT_TOOL = {
   input_schema: {
     type: "object" as const,
     properties: {
-      full_name: { type: ["string", "null"] },
+      given_names: { type: ["string", "null"], description: "SOLO los nombres de pila, del campo 'Nombres / Given names'" },
+      surnames: { type: ["string", "null"], description: "SOLO los apellidos, del campo 'Apellidos / Surname'" },
       passport_number: { type: ["string", "null"] },
       nationality: { type: ["string", "null"] },
       sex: { type: ["string", "null"], enum: ["M", "F", null] },
@@ -80,14 +85,17 @@ export async function extraerDatosPasaporte(supabase: any, storagePath: string):
         role: "user",
         content: [
           adjunto,
-          { type: "text", text: "Extraé todos los datos posibles de este pasaporte. Si hay MRZ legible (las 2 líneas inferiores con < <), usala para validar. Si el archivo trae varias páginas, buscá la de la foto y los datos. Si un dato no es claro devolvé null y bajá confidence." },
+          { type: "text", text: "Extraé todos los datos posibles de este pasaporte. Los apellidos y los nombres van en campos SEPARADOS: copiá cada uno del rótulo que le corresponde ('Apellidos / Surname' y 'Nombres / Given names') y no los juntes ni los inviertas. Si hay MRZ legible (las 2 líneas inferiores con < <), usala para validar. Si el archivo trae varias páginas, buscá la de la foto y los datos. Si un dato no es claro devolvé null y bajá confidence." },
         ],
       },
     ],
   });
   const toolUse = message.content.find((c: any) => c.type === "tool_use") as any;
   if (!toolUse) throw new Error("Claude no devolvió datos");
-  return toolUse.input as PassportData;
+  const leido = toolUse.input as PassportData;
+
+  // El nombre no se guarda como vino: se compone acá, siempre nombre antes que apellido.
+  return { ...leido, full_name: armarNombreCompleto(leido) || null };
 }
 
 /** Los campos de `pilgrims` que salen de una lectura (solo los que vinieron con dato). */

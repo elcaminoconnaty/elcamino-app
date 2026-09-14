@@ -8,6 +8,7 @@ import { formatEUR, formatCOP } from "@/lib/utils";
 import { AddPilgrimToDeparture } from "@/components/departures/add-pilgrim-to-departure";
 import { CopiarEnlaceRegistro, SolicitudesRegistro } from "@/components/departures/registro-controles";
 import { formatDate } from "@/lib/utils";
+import { compararNombres } from "@/lib/passport/nombres";
 
 export async function PeregrinosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
@@ -23,8 +24,10 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
   ]);
   const formularioDe = new Map<string, string | null>((formularios ?? []).map((f: any) => [f.id, f.registration_form_submitted_at ?? null]));
 
-  const activos = (rows ?? []).filter((r: any) => r.status !== "cancelado");
-  const retirados = (rows ?? []).filter((r: any) => r.status === "cancelado");
+  // Alfabético en español, igual que la lista general y el menú lateral.
+  const porNombre = (a: any, b: any) => compararNombres(a.pilgrim_name, b.pilgrim_name);
+  const activos = (rows ?? []).filter((r: any) => r.status !== "cancelado").sort(porNombre);
+  const retirados = (rows ?? []).filter((r: any) => r.status === "cancelado").sort(porNombre);
   // Con tasa de cierre fijada, el saldo que manda es el liquidado; si no, el histórico.
   const hayCierre = activos.some((r: any) => r.settlement_trm != null);
 

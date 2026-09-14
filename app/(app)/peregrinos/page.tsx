@@ -6,6 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { NewPilgrimDialog } from "@/components/pilgrims/new-pilgrim-dialog";
 import { ordenarCaminos } from "@/lib/data/nav-caminos";
+import { compararNombres } from "@/lib/passport/nombres";
 import { rutaCamino, rutaPeregrino, rutaPeregrinosDeCamino } from "@/lib/rutas";
 import { formatDate } from "@/lib/utils";
 import { Download, Map as MapIcon } from "lucide-react";
@@ -57,6 +58,12 @@ export default async function PilgrimsListPage() {
     }
     if (!enAlguno) sinCamino.push(datos);
   }
+  // El orden lo pone el español, no la collation de Postgres: así "Álvarez" cae junto a
+  // "Alvarez" y la Ñ va donde tiene que ir.
+  for (const g of Array.from(grupos.values())) {
+    g.peregrinos.sort((a: Peregrino, b: Peregrino) => compararNombres(a.full_name, b.full_name));
+  }
+  sinCamino.sort((a, b) => compararNombres(a.full_name, b.full_name));
   const caminos = ordenarCaminos(Array.from(grupos.values()));
   const total = pilgrims?.length ?? 0;
 
