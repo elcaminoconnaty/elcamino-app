@@ -28,7 +28,7 @@ export type VistaPreviaRooming = {
 type Armado = {
   reservation: any;
   correo: ReturnType<typeof correoRoomingList>;
-  libro: NonNullable<ReturnType<typeof libroDeHotel>>;
+  libro: NonNullable<Awaited<ReturnType<typeof libroDeHotel>>>;
   personas: number;
   habitaciones: number;
 };
@@ -68,7 +68,7 @@ async function armar(supabase: any, reservationId: string, notaExtra?: string | 
     menuPendiente: !!r.menu_required,
     notaExtra: notaExtra ?? null,
   });
-  const libro = libroDeHotel(datos, filas);
+  const libro = await libroDeHotel(datos, filas);
   if (!libro) return { ok: false, error: "No se pudo armar el Excel." };
   return { ok: true, reservation: r, correo, libro, personas, habitaciones: habitaciones.length };
 }

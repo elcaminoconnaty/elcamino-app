@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { xlsxResponse } from "@/lib/export";
+import { respuestaExcel } from "@/lib/export/bonito";
 import { cargarRooming, filasDe, libroDeHotel, libroCompleto } from "@/lib/export/rooming";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +18,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!datos) return NextResponse.json({ error: "Camino no encontrado" }, { status: 404 });
 
   if (hotelFiltro) {
-    const libro = libroDeHotel(datos, filasDe(datos, { hotelId: hotelFiltro }));
+    const libro = await libroDeHotel(datos, filasDe(datos, { hotelId: hotelFiltro }));
     if (!libro) return NextResponse.json({ error: "Ese hotel no tiene habitaciones en este camino" }, { status: 404 });
-    return xlsxResponse(libro.wb, libro.filename);
+    return respuestaExcel(libro.buffer, libro.filename);
   }
 
-  const { wb, filename } = libroCompleto(datos);
-  return xlsxResponse(wb, filename);
+  const { buffer, filename } = await libroCompleto(datos);
+  return respuestaExcel(buffer, filename);
 }

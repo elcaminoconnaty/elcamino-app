@@ -1,6 +1,7 @@
 import "server-only";
-import * as XLSX from "xlsx";
-import { appendSheet, appendAoaSheet, fileSlug, sheetName } from "@/lib/export";
+import { fileSlug } from "@/lib/export";
+import { ExcelJS, hojaDeDatos, libroABuffer, nombreDeHoja } from "@/lib/export/bonito";
+import { hojaDeHotel } from "@/lib/export/rooming-hoja";
 import { ROOM_TYPE_LABELS, type RoomType } from "@/lib/data/rooms";
 
 /**
@@ -55,69 +56,6 @@ export function habitacionesDe(rows: FilaRooming[]): HabitacionRooming[] {
       notas: h.room_notes ?? null,
     };
   });
-}
-
-/**
- * La hoja que se le manda al hotel: encabezado con sus datos y una fila por habitación
- * con los huéspedes y su pasaporte en columnas, que es el formato que esperan recibir.
- */
-export function hotelSheet(rows: FilaRooming[], caminoNombre: string, noSeHospedan: Map<string, string[]>): (string | number)[][] {
-  const r0 = rows[0];
-  const habitaciones = byRoom(rows);
-  const maxCapacidad = Math.max(...Array.from(habitaciones.values()).map((g) => Number(g[0].capacity_per_room) || 1), 1);
-
-  const aoa: (string | number)[][] = [];
-  aoa.push([r0.provider_name ?? ""]);
-  const ubicacion = [r0.provider_address, r0.location ?? r0.provider_city].filter(Boolean).join(" · ");
-  if (ubicacion) aoa.push([ubicacion]);
-  const contacto = [r0.provider_phone, r0.provider_email].filter(Boolean).join(" · ");
-  if (contacto) aoa.push([contacto]);
-  aoa.push([caminoNombre]);
-
-  const refs = Array.from(new Set(rows.map((r) => r.confirmation_ref).filter(Boolean)));
-  if (refs.length > 0) aoa.push([`Reserva: ${refs.join(", ")}`]);
-
-  const personas = new Set(rows.filter((r) => r.pilgrim_id).map((r) => r.pilgrim_id)).size;
-  const plazas = Array.from(habitaciones.values()).reduce((s, g) => s + (Number(g[0].capacity_per_room) || 0), 0);
-  aoa.push([`${habitaciones.size} habitaciones · ${plazas} plazas · ${personas} personas`]);
-  aoa.push([]);
-
-  const cabecera = ["Día", "Check-in", "Check-out", "Habitación", "Capacidad"];
-  for (let i = 1; i <= maxCapacidad; i++) cabecera.push(`Huésped ${i}`, `Pasaporte ${i}`);
-  cabecera.push("Desayuno", "Cena", "Notas");
-  aoa.push(cabecera);
-
-  for (const grupo of Array.from(habitaciones.values())) {
-    const h = grupo[0];
-    const huespedes = grupo.filter((x) => x.pilgrim_id);
-    const fila: (string | number)[] = [h.day_number ?? "", h.check_in ?? "", h.check_out ?? "", roomName(h), h.capacity_per_room ?? ""];
-    for (let i = 0; i < maxCapacidad; i++) fila.push(huespedes[i]?.pilgrim_name ?? "", huespedes[i]?.passport_number ?? "");
-    fila.push(h.includes_breakfast ? "Sí" : "No", h.includes_dinner ? "Sí" : "No", h.room_notes ?? "");
-    aoa.push(fila);
-  }
-
-  // Quienes no se hospedan alguna de estas noches: el hotel no los espera.
-  const reservasDelHotel = Array.from(new Set(rows.map((r) => r.reservation_id)));
-  const excluidos = reservasDelHotel.flatMap((id) => {
-    const nombres = noSeHospedan.get(id) ?? [];
-    if (nombres.length === 0) return [];
-    const fecha = rows.find((r) => r.reservation_id === id)?.check_in ?? "";
-    return [`${reservasDelHotel.length > 1 && fecha ? `${fecha}: ` : ""}${nombres.join(", ")}`];
-  });
-  if (excluidos.length > 0) {
-    aoa.push([]);
-    aoa.push(["No se hospedan", ...excluidos]);
-  }
-
-  // Notas dietarias: lo que el hotel necesita saber antes de cocinar.
-  const dietas = rows.filter((r) => r.pilgrim_id && r.dietary_notes);
-  if (dietas.length > 0) {
-    aoa.push([]);
-    aoa.push(["Alimentación"]);
-    for (const d of dietas) aoa.push([d.pilgrim_name, d.dietary_notes]);
-  }
-
-  return aoa;
 }
 
 export type DatosRooming = {
@@ -175,19 +113,21 @@ export function filasDe(datos: DatosRooming, filtro: { hotelId?: string | null; 
   return datos.rows.filter((r) => (!filtro.hotelId || r.provider_id === filtro.hotelId) && (!filtro.reservationId || r.reservation_id === filtro.reservationId));
 }
 
-/** El libro de un solo hotel: una pestaña, con el nombre de archivo que se le manda. */
-export function libroDeHotel(datos: DatosRooming, filas: FilaRooming[]): { wb: XLSX.WorkBook; filename: string; buffer: Buffer } | null {
+/** El libro de un solo hotel: la plantilla con la marca, lista para adjuntar. */
+export async function libroDeHotel(datos: DatosRooming, filas: FilaRooming[]): Promise<{ filename: string; buffer: Buffer } | null> {
   if (filas.length === 0) return null;
-  const wb = XLSX.utils.book_new();
-  appendAoaSheet(wb, sheetName(filas[0].provider_name ?? "Hotel"), hotelSheet(filas, datos.caminoNombre, datos.noSeHospedan));
-  const filename = `rooming-${fileSlug(filas[0].provider_name ?? "hotel")}-${fileSlug(datos.caminoNombre)}.xlsx`;
-  return { wb, filename, buffer: XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer };
+  const wb = new ExcelJS.Workbook();
+  hojaDeHotel(wb, filas, datos.caminoNombre, datos.noSeHospedan);
+  return {
+    filename: `rooming-${fileSlug(filas[0].provider_name ?? "hotel")}-${fileSlug(datos.caminoNombre)}.xlsx`,
+    buffer: await libroABuffer(wb),
+  };
 }
 
 /** El libro completo del camino: resumen, una pestaña por hotel, distribución y matriz. */
-export function libroCompleto(datos: DatosRooming): { wb: XLSX.WorkBook; filename: string } {
+export async function libroCompleto(datos: DatosRooming): Promise<{ filename: string; buffer: Buffer }> {
   const { rows, caminoNombre, noSeHospedan, alojamientos } = datos;
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
 
   const porHotel = new Map<string, FilaRooming[]>();
   for (const r of rows) {
@@ -260,16 +200,15 @@ export function libroCompleto(datos: DatosRooming): { wb: XLSX.WorkBook; filenam
     });
   }
   noches.sort((a, b) => String(a["Check-in"] || "9999").localeCompare(String(b["Check-in"] || "9999")));
-  appendSheet(wb, "Resumen", noches, "Este camino no tiene habitaciones cargadas.");
+  hojaDeDatos(wb, "Resumen", noches, "Este camino no tiene habitaciones cargadas.");
 
   // Una pestaña por hotel, en el orden en que aparecen en la ruta
   const usadas = new Map<string, number>();
   for (const grupo of Array.from(porHotel.values())) {
-    let nombre = sheetName(grupo[0].provider_name ?? "Hotel");
-    const n = (usadas.get(nombre) ?? 0) + 1;
-    usadas.set(nombre, n);
-    if (n > 1) nombre = sheetName(`${nombre} ${n}`);
-    appendAoaSheet(wb, nombre, hotelSheet(grupo, caminoNombre, noSeHospedan));
+    const base = nombreDeHoja(grupo[0].provider_name ?? "Hotel");
+    const n = (usadas.get(base) ?? 0) + 1;
+    usadas.set(base, n);
+    hojaDeHotel(wb, grupo, caminoNombre, noSeHospedan, n > 1 ? nombreDeHoja(`${base} ${n}`) : base);
   }
 
   // ── Vistas transversales, para Naty ──────────────────────────────────────
@@ -293,7 +232,7 @@ export function libroCompleto(datos: DatosRooming): { wb: XLSX.WorkBook; filenam
     "Notas habitación": r.room_notes ?? "",
     "Aviso": r.fuera_de_rango ? "Habitación fuera del cupo reservado" : "",
   }));
-  appendSheet(wb, "Distribución", distribucion, "Este camino no tiene habitaciones cargadas.");
+  hojaDeDatos(wb, "Distribución", distribucion, "Este camino no tiene habitaciones cargadas.");
 
   const usadosLabel = new Map<string, number>();
   const nochesOrdenadas = Array.from(porNoche.values()).map((g) => {
@@ -314,7 +253,7 @@ export function libroCompleto(datos: DatosRooming): { wb: XLSX.WorkBook; filenam
       }
       return fila;
     });
-  appendSheet(wb, "Matriz por peregrino", matriz, "Nadie tiene habitación asignada todavía.");
+  hojaDeDatos(wb, "Matriz por peregrino", matriz, "Nadie tiene habitación asignada todavía.");
 
-  return { wb, filename: `habitaciones-${fileSlug(caminoNombre)}-${new Date().toISOString().slice(0, 10)}.xlsx` };
+  return { filename: `habitaciones-${fileSlug(caminoNombre)}-${new Date().toISOString().slice(0, 10)}.xlsx`, buffer: await libroABuffer(wb) };
 }

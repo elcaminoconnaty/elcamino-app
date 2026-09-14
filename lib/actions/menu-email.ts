@@ -42,7 +42,7 @@ async function armar(supabase: any, reservationId: string, notaExtra?: string | 
     dietas: dietasDe(cena),
     notaExtra: notaExtra ?? null,
   });
-  const libro = libroDeRestaurante(datos, grupo);
+  const libro = await libroDeRestaurante(datos, grupo);
   if (!libro) return { ok: false as const, error: "No se pudo armar el Excel." };
   return { ok: true as const, reservation: r, correo, libro, progreso };
 }

@@ -1,6 +1,7 @@
 import "server-only";
-import * as XLSX from "xlsx";
-import { appendSheet, appendAoaSheet, fileSlug, sheetName } from "@/lib/export";
+import { fileSlug } from "@/lib/export";
+import { ExcelJS, hojaDeDatos, libroABuffer, nombreDeHoja } from "@/lib/export/bonito";
+import { hojaDeRestaurante, filasNominales } from "@/lib/export/cenas-hoja";
 import { COURSE_LABELS, type CourseKind } from "@/lib/data/menus";
 
 /**
@@ -103,88 +104,6 @@ export function dietasDe(cena: Cena): [string, string][] {
     .sort((a, b) => a[0].localeCompare(b[0], "es"));
 }
 
-/**
- * La hoja que se le manda al restaurante: sus datos, la lista nominal con lo que eligió
- * cada uno, quiénes no cenan, el conteo por plato y las notas de alimentación.
- */
-export function restaurantSheet(cenas: Cena[], caminoNombre: string): (string | number)[][] {
-  const r0 = cenas[0].info;
-  const aoa: (string | number)[][] = [];
-  aoa.push([r0.provider_name ?? ""]);
-  const ubicacion = [r0.provider_address, r0.location ?? r0.provider_city].filter(Boolean).join(" · ");
-  if (ubicacion) aoa.push([ubicacion]);
-  const contacto = [r0.provider_phone, r0.provider_email].filter(Boolean).join(" · ");
-  if (contacto) aoa.push([contacto]);
-  aoa.push([caminoNombre]);
-
-  for (const cena of cenas) {
-    const d = cena.info;
-    const { personas, cenan, eligieron } = progresoDe(cena);
-    const columnas = cena.courses.filter((c) => c.mode !== "en_sitio");
-    aoa.push([]);
-    aoa.push([`Cena del ${d.check_in ?? "?"}${d.day_number != null ? ` (día ${d.day_number})` : ""}${d.confirmation_ref ? ` · Reserva: ${d.confirmation_ref}` : ""}`]);
-    aoa.push([`${personas} personas · ${cenan} cenan · ${eligieron} eligieron · ${Math.max(cenan - eligieron, 0)} pendiente${cenan - eligieron === 1 ? "" : "s"}`]);
-    aoa.push([]);
-
-    if (cena.courses.length === 0) {
-      aoa.push(["⚠ Este restaurante todavía no tiene menú cargado; no hay elecciones que mandar."]);
-      continue;
-    }
-
-    if (d.menu_notes_pilgrim) aoa.push([`Nota: ${d.menu_notes_pilgrim}`]);
-    const fijos = cena.courses.filter((c) => c.mode === "fijo" && c.fixed);
-    if (fijos.length > 0) aoa.push([`Igual para todos: ${fijos.map((c) => `${c.label}: ${c.fixed}`).join(" · ")}`]);
-    const enSitio = cena.courses.filter((c) => c.mode === "en_sitio");
-    if (enSitio.length > 0) aoa.push([`Se elige en el restaurante: ${enSitio.map((c) => c.label).join(" · ")}`]);
-    aoa.push(["Peregrino", ...columnas.map((c) => (c.mode === "fijo" ? `${c.label} (todos)` : c.label)), "Alimentación", "Notas"]);
-    const nombres = Array.from(cena.porPeregrino.entries())
-      .filter(([id]) => !cena.noCenan.includes(id))
-      .map(([id, filas]) => [id, filas[0].pilgrim_name as string, filas] as const)
-      .sort((a, b) => a[1].localeCompare(b[1], "es"));
-    for (const [, nombre, filas] of nombres) {
-      const porCurso = new Map(filas.map((f) => [f.course_id, f]));
-      const fila: (string | number)[] = [nombre];
-      for (const c of columnas) {
-        if (c.mode === "fijo") {
-          fila.push(c.fixed ?? "");
-          continue;
-        }
-        const f = porCurso.get(c.id);
-        if (!aplica(c, filas)) {
-          fila.push("—");
-          continue;
-        }
-        fila.push(f?.option_name ?? (c.required ? "— sin elegir —" : ""));
-      }
-      fila.push(filas[0].dietary_notes ?? "", Array.from(new Set(filas.map((f) => f.choice_notes).filter(Boolean))).join("; "));
-      aoa.push(fila);
-    }
-
-    if (cena.noCenan.length > 0) {
-      const nombresNo = cena.noCenan.map((id) => cena.porPeregrino.get(id)?.[0]?.pilgrim_name ?? "").filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
-      aoa.push([]);
-      aoa.push(["No cenan", nombresNo.join(", ")]);
-    }
-
-    // Resumen por plato: lo que el restaurante realmente necesita para la cocina.
-    const conteo = conteoPorSeccion(cena);
-    if (conteo.length > 0) {
-      aoa.push([]);
-      aoa.push(["Resumen por plato"]);
-      aoa.push(["Sección", "Plato", "Cantidad"]);
-      for (const s of conteo) for (const p of s.platos) aoa.push([s.seccion, p.todos ? `${p.plato} (todos)` : p.plato, p.n]);
-    }
-
-    const dietas = dietasDe(cena);
-    if (dietas.length > 0) {
-      aoa.push([]);
-      aoa.push(["Alimentación"]);
-      for (const d2 of dietas) aoa.push(d2);
-    }
-  }
-  return aoa;
-}
-
 /** Carga las cenas del camino con las elecciones. `null` si el camino no existe. */
 export async function cargarCenas(supabase: any, departureId: string): Promise<DatosCenas | null> {
   const [{ data: departure }, { data: choices }, { data: cenasTodas }] = await Promise.all([
@@ -239,19 +158,22 @@ export function cenasDe(datos: DatosCenas, filtro: { providerId?: string | null;
   return datos.cenas.filter((c) => (!filtro.providerId || c.info.provider_id === filtro.providerId) && (!filtro.reservationId || c.reservation_id === filtro.reservationId));
 }
 
-/** El libro de un solo restaurante: una pestaña, con el nombre de archivo que se le manda. */
-export function libroDeRestaurante(datos: DatosCenas, grupo: Cena[]): { wb: XLSX.WorkBook; filename: string; buffer: Buffer } | null {
+/** El libro de un solo restaurante: la plantilla para la cocina y el detalle nominal. */
+export async function libroDeRestaurante(datos: DatosCenas, grupo: Cena[]): Promise<{ filename: string; buffer: Buffer } | null> {
   if (grupo.length === 0) return null;
-  const wb = XLSX.utils.book_new();
-  appendAoaSheet(wb, sheetName(grupo[0].info.provider_name ?? "Restaurante"), restaurantSheet(grupo, datos.caminoNombre));
-  const filename = `menu-${fileSlug(grupo[0].info.provider_name ?? "restaurante")}-${fileSlug(datos.caminoNombre)}.xlsx`;
-  return { wb, filename, buffer: XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer };
+  const wb = new ExcelJS.Workbook();
+  hojaDeRestaurante(wb, grupo, datos.caminoNombre);
+  hojaDeDatos(wb, "Detalle por peregrino", filasNominales(grupo), "Nadie ha elegido menú todavía.");
+  return {
+    filename: `menu-${fileSlug(grupo[0].info.provider_name ?? "restaurante")}-${fileSlug(datos.caminoNombre)}.xlsx`,
+    buffer: await libroABuffer(wb),
+  };
 }
 
 /** El libro completo del camino: resumen, una pestaña por restaurante y la matriz por peregrino. */
-export function libroCompletoCenas(datos: DatosCenas): { wb: XLSX.WorkBook; filename: string } {
+export async function libroCompletoCenas(datos: DatosCenas): Promise<{ filename: string; buffer: Buffer }> {
   const { caminoNombre, cenas } = datos;
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
 
   const porRestaurante = new Map<string, Cena[]>();
   for (const c of cenas) {
@@ -282,16 +204,18 @@ export function libroCompletoCenas(datos: DatosCenas): { wb: XLSX.WorkBook; file
       "Notas": c.info.reservation_notes ?? "",
     };
   });
-  appendSheet(wb, "Resumen", resumen, "Este camino no tiene cenas cargadas.");
+  hojaDeDatos(wb, "Resumen", resumen, "Este camino no tiene cenas cargadas.");
 
   const usadas = new Map<string, number>();
   for (const grupo of Array.from(porRestaurante.values())) {
-    let nombre = sheetName(grupo[0].info.provider_name ?? "Restaurante");
-    const n = (usadas.get(nombre) ?? 0) + 1;
-    usadas.set(nombre, n);
-    if (n > 1) nombre = sheetName(`${nombre} ${n}`);
-    appendAoaSheet(wb, nombre, restaurantSheet(grupo, caminoNombre));
+    const base = nombreDeHoja(grupo[0].info.provider_name ?? "Restaurante");
+    const n = (usadas.get(base) ?? 0) + 1;
+    usadas.set(base, n);
+    hojaDeRestaurante(wb, grupo, caminoNombre, n > 1 ? nombreDeHoja(`${base} ${n}`) : base);
   }
+
+  // La lista nominal de todas las cenas, que ya no cabe en la hoja de cada restaurante.
+  hojaDeDatos(wb, "Detalle por peregrino", filasNominales(cenas), "Nadie ha elegido menú todavía.");
 
   const usadosLabel = new Map<string, number>();
   const cenasOrdenadas = cenas.map((c) => {
@@ -321,7 +245,7 @@ export function libroCompletoCenas(datos: DatosCenas): { wb: XLSX.WorkBook; file
       }
       return fila;
     });
-  appendSheet(wb, "Matriz por peregrino", matriz, "Nadie ha elegido menú todavía.");
+  hojaDeDatos(wb, "Matriz por peregrino", matriz, "Nadie ha elegido menú todavía.");
 
-  return { wb, filename: `cenas-${fileSlug(caminoNombre)}-${new Date().toISOString().slice(0, 10)}.xlsx` };
+  return { filename: `cenas-${fileSlug(caminoNombre)}-${new Date().toISOString().slice(0, 10)}.xlsx`, buffer: await libroABuffer(wb) };
 }
