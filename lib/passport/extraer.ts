@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { PDF, tipoDeArchivoDePasaporte, porQueNoSirve } from "@/lib/passport/formatos";
 
 /**
  * Lee un pasaporte con Claude (visión) a partir de la foto que ya está en el bucket
@@ -44,13 +45,29 @@ export function ocrDisponible(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
-/** Baja la foto del bucket y se la pasa a Claude. Lanza si no hay clave o no se puede leer. */
+/**
+ * Baja el pasaporte del bucket y se lo pasa a Claude. Lanza si no hay clave, no se puede
+ * leer o el formato no sirve.
+ *
+ * Un PDF no se manda como imagen: va en un bloque `document`, que es como la API acepta
+ * los PDF (los rasteriza ella y además lee el texto embebido, que en un escaneo de
+ * pasaporte suele traer la MRZ limpia).
+ */
 export async function extraerDatosPasaporte(supabase: any, storagePath: string): Promise<PassportData> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("Falta ANTHROPIC_API_KEY en las variables.");
   const { data: file, error: dlErr } = await supabase.storage.from("passports").download(storagePath);
   if (dlErr || !file) throw new Error(`No pude leer el pasaporte: ${dlErr?.message}`);
+
+  // El tipo que reporta el Storage manda; si viene vacío, lo deducimos de la extensión.
+  const mimeType = file.type || (storagePath.toLowerCase().endsWith(".pdf") ? PDF : "image/jpeg");
+  const clase = tipoDeArchivoDePasaporte(mimeType);
+  if (!clase) throw new Error(porQueNoSirve(mimeType));
+
   const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const mimeType = file.type || "image/jpeg";
+  const adjunto =
+    clase === "pdf"
+      ? { type: "document" as const, source: { type: "base64" as const, media_type: PDF as any, data: base64 } }
+      : { type: "image" as const, source: { type: "base64" as const, media_type: mimeType as any, data: base64 } };
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const message = await client.messages.create({
@@ -62,8 +79,8 @@ export async function extraerDatosPasaporte(supabase: any, storagePath: string):
       {
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: mimeType as any, data: base64 } },
-          { type: "text", text: "Extraé todos los datos posibles de este pasaporte. Si hay MRZ legible (las 2 líneas inferiores con < <), usala para validar. Si un dato no es claro devolvé null y bajá confidence." },
+          adjunto,
+          { type: "text", text: "Extraé todos los datos posibles de este pasaporte. Si hay MRZ legible (las 2 líneas inferiores con < <), usala para validar. Si el archivo trae varias páginas, buscá la de la foto y los datos. Si un dato no es claro devolvé null y bajá confidence." },
         ],
       },
     ],
