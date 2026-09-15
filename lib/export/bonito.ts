@@ -1,7 +1,7 @@
 import "server-only";
 import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
-import { COLOR } from "@/lib/brand";
+import { COLOR, CONTACTO, ESTADO } from "@/lib/brand";
 
 /**
  * Excel con la papelería de la marca.
@@ -23,6 +23,10 @@ export const TINTA = {
   ocre: argb(COLOR.ocre),
   ocreProfundo: argb(COLOR.ocreProfundo),
   castano: argb(COLOR.castano),
+  ocreClaro: argb(COLOR.ocreClaro),
+  niebla: argb(COLOR.niebla),
+  /** Para lo vencido y lo que está frenado: mismo rojo cálido de la paleta de estado. */
+  error: argb(ESTADO.error),
   blanco: "FFFFFFFF",
 } as const;
 
@@ -145,6 +149,16 @@ export function hojaDeDatos(wb: ExcelJS.Workbook, nombre: string, filas: Record<
   });
   ws.views = [{ showGridLines: false, state: "frozen", ySplit: 1 }];
   return ws;
+}
+
+/** El pie de marca con el que se cierra cada hoja de papelería. */
+export function pie(ws: ExcelJS.Worksheet, fila: number, columnas: number) {
+  ws.mergeCells(fila, 1, fila, columnas);
+  const c = ws.getCell(fila, 1);
+  c.value = `${CONTACTO.marca} · ${CONTACTO.sitio}`;
+  c.font = { name: FUENTE, size: 8, italic: true, color: { argb: TINTA.castano } };
+  c.alignment = { horizontal: "center" };
+  return c;
 }
 
 export async function libroABuffer(wb: ExcelJS.Workbook): Promise<Buffer> {

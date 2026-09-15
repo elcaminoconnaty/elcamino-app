@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { xlsxResponse, fileSlug } from "@/lib/export";
+import { fileSlug } from "@/lib/export";
+import { respuestaExcel } from "@/lib/export/bonito";
 import { armarInformePagos } from "@/lib/pagos-pendientes/datos";
 import { construirExcelPagos } from "@/lib/pagos-pendientes/excel";
 
@@ -13,8 +14,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const data = await armarInformePagos(supabase, { departureId: params.id, hasta });
   if (!data) return NextResponse.json({ error: "Camino no encontrado" }, { status: 404 });
 
-  return xlsxResponse(
-    construirExcelPagos(data),
+  return respuestaExcel(
+    await construirExcelPagos(data),
     `pagos-proveedores-${fileSlug(data.titulo)}-${new Date().toISOString().slice(0, 10)}.xlsx`
   );
 }

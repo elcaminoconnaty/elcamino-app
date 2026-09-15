@@ -119,6 +119,18 @@ export default async function PagosProveedoresPage({ searchParams }: { searchPar
   if (!data) return <div className="text-sm text-muted-foreground">No se pudo armar el informe.</div>;
 
   const qs = hasta ? `?hasta=${hasta}` : "";
+
+  // Los informes salen por camino, nunca con todos mezclados: un Excel de pagos es algo
+  // que se lleva a una reunión de un camino, y ahí los giros de otro no pintan nada.
+  const caminos = Array.from(
+    data.giros
+      .reduce((m, g) => {
+        const prev = m.get(g.departure_id) ?? { id: g.departure_id, nombre: g.camino, total: 0, pagos: 0 };
+        m.set(g.departure_id, { ...prev, total: prev.total + g.monto_eur, pagos: prev.pagos + 1 });
+        return m;
+      }, new Map<string, { id: string; nombre: string; total: number; pagos: number }>())
+      .values()
+  ).sort((a, b) => b.total - a.total);
   const transferencias = data.giros.filter((g) => g.medio === "transferencia");
   const bizums = data.giros.filter((g) => g.medio === "bizum");
   const resto = data.giros.filter((g) => g.medio !== "transferencia" && g.medio !== "bizum");
@@ -130,6 +142,7 @@ export default async function PagosProveedoresPage({ searchParams }: { searchPar
         <h1 className="font-display text-2xl sm:text-3xl text-noche">Qué hay que pagar</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Todo lo que se le debe a proveedores, de todos los caminos, con los datos para girar al lado.
+          Los informes se bajan camino por camino.
         </p>
         <div className="brand-yellow-bar mt-2" />
       </div>
@@ -149,15 +162,42 @@ export default async function PagosProveedoresPage({ searchParams }: { searchPar
             </Link>
           ))}
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/export/pagos-proveedores${qs}`}><Download className="h-4 w-4" /> Excel</a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/pdf/pagos-proveedores${qs}`} target="_blank" rel="noreferrer"><FileText className="h-4 w-4" /> PDF</a>
-          </Button>
-        </div>
       </div>
+
+      {caminos.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Bajar el informe</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Un informe por camino, con una pestaña por proveedor. Respeta el plazo elegido arriba.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {caminos.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap border-b border-piedra-suave last:border-0 pb-2 last:pb-0">
+                <div>
+                  <Link href={rutaCamino(c.id)} className="font-medium hover:underline">{c.nombre}</Link>
+                  <div className="text-xs text-muted-foreground">
+                    {c.pagos} pago{c.pagos > 1 ? "s" : ""} · {formatEUR(c.total)}
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button asChild variant="outline" size="sm">
+                    <a href={`/api/export/caminos/${c.id}/pagos-pendientes${qs}`}>
+                      <Download className="h-4 w-4" /> Excel
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={`/api/pdf/pagos-pendientes/${c.id}${qs}`} target="_blank" rel="noreferrer">
+                      <FileText className="h-4 w-4" /> PDF
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardContent className="pt-6">
