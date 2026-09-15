@@ -10,7 +10,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 import { writeFileSync } from "node:fs";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cargarRooming, filasDe, libroDeHotel, libroCompleto } from "@/lib/export/rooming";
+import { cargarRooming, filasDe, libroDeHotel, libroCompleto, porNoche } from "@/lib/export/rooming";
 import { ExcelJS } from "@/lib/export/bonito";
 
 let fallos = 0;
@@ -67,6 +67,88 @@ async function main() {
     const marca = fondo(ws.getCell(n, 1)) === "FF3D5A6E" ? "██" : fondo(ws.getCell(n, 1)) === "FFE8D9C0" ? "▓▓" : "  ";
     console.log(`  ${String(n).padStart(2)} ${marca} ${celdas[0].padEnd(20)} | ${celdas[1].padEnd(34)} | ${celdas[2]}`);
   });
+
+  // ── Un hotel con varias noches: cada una con su tabla ────────────────────
+  // Es el caso del Araguaney en Santiago: dos noches seguidas y la gente cambia de una a
+  // otra. Con todo en una tabla el hotel no sabía qué habitación era de qué noche.
+  const nochesPorHotel = new Map<string, Set<string>>();
+  for (const r of datos.rows as any[]) {
+    const set = nochesPorHotel.get(r.provider_id) ?? new Set<string>();
+    set.add(r.reservation_id);
+    nochesPorHotel.set(r.provider_id, set);
+  }
+  const conVariasNoches = Array.from(nochesPorHotel.entries()).find((e) => e[1].size > 1);
+
+  if (conVariasNoches) {
+    const filasHotel = filasDe(datos, { hotelId: conVariasNoches[0] });
+    const nombreHotel = filasHotel[0].provider_name;
+    const noches = Array.from(porNoche(filasHotel).values());
+    console.log(`\n— ${nombreHotel}: ${noches.length} noches —`);
+
+    const libro2 = await libroDeHotel(datos, filasHotel);
+    const wb3 = new ExcelJS.Workbook();
+    await wb3.xlsx.load(libro2!.buffer as any);
+    const hoja = wb3.worksheets[0];
+
+    // Una cabecera "HABITACIÓN" por noche: si sale una sola, están todas en la misma tabla.
+    const cabeceras: number[] = [];
+    const rotulos: string[] = [];
+    hoja.eachRow((row, n) => {
+      const v = String(row.getCell(1).value ?? "").toUpperCase();
+      if (v === "HABITACIÓN") cabeceras.push(n);
+      if (v.startsWith("NOCHE DEL")) rotulos.push(String(row.getCell(1).value));
+    });
+    check(cabeceras.length === noches.length, `${cabeceras.length} tabla(s) para ${noches.length} noche(s)`);
+    check(rotulos.length === noches.length, `cada noche con su rótulo: ${rotulos.join(" | ")}`);
+
+    // La tabla de una noche termina donde empieza la primera fila combinada A:C, que es
+    // el siguiente rótulo o bloque ("No se hospedan", "Alimentación", la noche siguiente).
+    const anchas = new Set<number>(
+      ((hoja as any).model?.merges ?? [])
+        .map((m: string) => /^A(\d+):C\d+$/.exec(m))
+        .filter(Boolean)
+        .map((m: RegExpExecArray) => Number(m[1]))
+    );
+    // Una habitación combinada sobre sus huéspedes repite su valor en cada fila del merge:
+    // solo la primera fila cuenta como habitación nueva.
+    const continuacion = new Set<number>();
+    for (const m of ((hoja as any).model?.merges ?? []) as string[]) {
+      const g = /^A(\d+):A(\d+)$/.exec(m);
+      if (!g) continue;
+      for (let n = Number(g[1]) + 1; n <= Number(g[2]); n++) continuacion.add(n);
+    }
+
+    const finDeTabla = (desde: number) => {
+      for (let n = desde + 1; n <= hoja.rowCount; n++) if (anchas.has(n)) return n;
+      return hoja.rowCount + 1;
+    };
+
+    for (const [i, noche] of Array.from(noches.entries())) {
+      const desde = cabeceras[i];
+      const hasta = finDeTabla(desde);
+
+      const vistos: string[] = [];
+      const enHoja = new Set<string>();
+      for (let n = desde + 1; n < hasta; n++) {
+        const hab = String(hoja.getCell(n, 1).value ?? "").trim();
+        if (hab && !continuacion.has(n)) vistos.push(hab);
+        const quien = String(hoja.getCell(n, 2).value ?? "").trim();
+        if (quien && quien !== "— libre —") enHoja.add(quien);
+      }
+
+      const repetidos = vistos.filter((v, j) => vistos.indexOf(v) !== j);
+      check(repetidos.length === 0, `noche ${i + 1}: ${vistos.length} habitaciones, sin nombres repetidos${repetidos.length ? ` (repite ${repetidos.join(", ")})` : ""}`);
+
+      // La gente de cada tabla es la de esa reserva, no la de las dos noches juntas.
+      const gente = new Set(noche.filter((r: any) => r.pilgrim_id).map((r: any) => String(r.pilgrim_name)));
+      const sobran = Array.from(enHoja).filter((x) => !gente.has(x));
+      const faltan = Array.from(gente).filter((x) => !enHoja.has(x as string));
+      check(sobran.length === 0, `noche ${i + 1}: ${enHoja.size} huéspedes, ninguno de otra noche${sobran.length ? ` (sobra ${sobran.join(", ")})` : ""}`);
+      check(faltan.length === 0, `noche ${i + 1}: están todos los de esa noche${faltan.length ? ` (falta ${faltan.join(", ")})` : ""}`);
+    }
+  } else {
+    console.log("\n  (ningún hotel de este camino tiene más de una noche)");
+  }
 
   const completo = await libroCompleto(datos);
   const wb2 = new ExcelJS.Workbook();

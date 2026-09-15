@@ -16,9 +16,48 @@ export function roomLabel(t: string) {
   return ROOM_TYPE_LABELS[t as RoomType] ?? t;
 }
 
-/** "Doble 2" — el nombre con el que se le habla al hotel. */
-export function roomName(r: FilaRooming) {
-  return `${roomLabel(r.room_type)} ${r.room_index}`;
+/**
+ * "Doble 2" — el nombre con el que se le habla al hotel.
+ *
+ * El `room_index` se reinicia en cada bloque de habitaciones de la reserva, así que una
+ * noche con dos bloques de dobles tiene **dos "Doble 1"**. Para un documento que sale al
+ * hotel eso no sirve: hay que pasarle el mapa de `nombresDeHabitacion`, que renumera
+ * corrido dentro de cada noche. Sin mapa se cae al nombre crudo.
+ */
+export function roomName(r: FilaRooming, nombres?: Map<string, string>) {
+  return nombres?.get(roomKey(r)) ?? `${roomLabel(r.room_type)} ${r.room_index}`;
+}
+
+/**
+ * Un nombre único por habitación dentro de su noche: si la noche tiene cinco dobles en un
+ * bloque y una sexta en otro, la sexta es "Doble 6" y no un segundo "Doble 1".
+ *
+ * La numeración se reinicia en cada noche a propósito: al hotel se le habla de una noche
+ * a la vez, y "Doble 1" es la primera doble de *esa* noche.
+ */
+export function nombresDeHabitacion(rows: FilaRooming[]): Map<string, string> {
+  const nombres = new Map<string, string>();
+  for (const filas of Array.from(porNoche(rows).values())) {
+    const contador = new Map<string, number>();
+    for (const [key, grupo] of Array.from(byRoom(filas).entries())) {
+      const tipo = roomLabel(grupo[0].room_type);
+      const n = (contador.get(tipo) ?? 0) + 1;
+      contador.set(tipo, n);
+      nombres.set(key, `${tipo} ${n}`);
+    }
+  }
+  return nombres;
+}
+
+/** Las filas agrupadas por noche (una reserva = una noche), en orden de calendario. */
+export function porNoche(rows: FilaRooming[]) {
+  const m = new Map<string, FilaRooming[]>();
+  for (const r of rows) m.set(r.reservation_id, [...(m.get(r.reservation_id) ?? []), r]);
+  return new Map(
+    Array.from(m.entries()).sort((a, b) =>
+      String(a[1][0].check_in ?? "9999").localeCompare(String(b[1][0].check_in ?? "9999"))
+    )
+  );
 }
 
 /** Etiqueta corta de una noche, para encabezar columnas de la matriz. */
@@ -27,7 +66,7 @@ function nightLabel(r: FilaRooming) {
   return [r.day_number != null ? `D${r.day_number}` : null, fecha, r.provider_name].filter(Boolean).join(" · ");
 }
 
-function roomKey(r: FilaRooming) {
+export function roomKey(r: FilaRooming) {
   return `${r.reservation_room_id}:${r.room_index}`;
 }
 
@@ -43,10 +82,11 @@ export type HabitacionRooming = { nombre: string; capacidad: number; huespedes: 
 
 /** Las habitaciones de un grupo de filas (una reserva o un hotel), listas para pintar. */
 export function habitacionesDe(rows: FilaRooming[]): HabitacionRooming[] {
+  const nombres = nombresDeHabitacion(rows);
   return Array.from(byRoom(rows).values()).map((grupo) => {
     const h = grupo[0];
     return {
-      nombre: roomName(h),
+      nombre: roomName(h, nombres),
       capacidad: Number(h.capacity_per_room) || 1,
       huespedes: grupo
         .filter((x) => x.pilgrim_id)
@@ -128,6 +168,9 @@ export async function libroDeHotel(datos: DatosRooming, filas: FilaRooming[]): P
 export async function libroCompleto(datos: DatosRooming): Promise<{ filename: string; buffer: Buffer }> {
   const { rows, caminoNombre, noSeHospedan, alojamientos } = datos;
   const wb = new ExcelJS.Workbook();
+  // Los mismos nombres de habitación que ve el hotel en su pestaña, para que las vistas
+  // transversales no lo contradigan.
+  const nombres = nombresDeHabitacion(rows);
 
   const porHotel = new Map<string, FilaRooming[]>();
   for (const r of rows) {
@@ -218,7 +261,7 @@ export async function libroCompleto(datos: DatosRooming): Promise<{ filename: st
     "Check-out": r.check_out ?? "",
     "Hospedaje": r.provider_name ?? "",
     "Ciudad": r.location ?? r.provider_city ?? "",
-    "Habitación": roomName(r),
+    "Habitación": roomName(r, nombres),
     "Capacidad": r.capacity_per_room ?? "",
     "Peregrino": r.pilgrim_name ?? "— libre —",
     "Pasaporte": r.passport_number ?? "",
@@ -249,7 +292,7 @@ export async function libroCompleto(datos: DatosRooming): Promise<{ filename: st
       const fila: Record<string, any> = { "Peregrino": nombre };
       for (const n of nochesOrdenadas) {
         const hit = rows.find((r) => r.reservation_id === n.id && r.pilgrim_id === pilgrimId);
-        fila[n.label] = hit ? roomName(hit) : (noSeHospedan.get(n.id) ?? []).includes(nombre) ? "no duerme" : "";
+        fila[n.label] = hit ? roomName(hit, nombres) : (noSeHospedan.get(n.id) ?? []).includes(nombre) ? "no duerme" : "";
       }
       return fila;
     });
