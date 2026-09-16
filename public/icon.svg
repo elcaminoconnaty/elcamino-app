@@ -1,5 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#fdfaf3"/>
-  <circle cx="256" cy="256" r="180" fill="none" stroke="#f5c518" stroke-width="16"/>
-  <text x="256" y="290" text-anchor="middle" font-family="Georgia,serif" font-size="140" font-weight="600" fill="#1a1a1a">EC</text>
+  <circle cx="256" cy="256" r="240" fill="#F5EEE3" stroke="#C4822A" stroke-width="22"/>
+  
+  <g transform="translate(64,62) scale(4.8)">
+    <path d="M40,72 L18,72 Q12,72 12,66 L12,40 Q12,34 16,30 L40,8 L64,30 Q68,34 68,40 L68,66 Q68,72 62,72 Z"
+          fill="none" stroke="#3D5A6E" stroke-width="4" stroke-linejoin="round"/>
+    <line x1="40" y1="8" x2="40" y2="72" stroke="#3D5A6E" stroke-width="2.6" opacity=".6"/>
+    <line x1="24" y1="20" x2="18" y2="72" stroke="#3D5A6E" stroke-width="1.8" opacity=".4"/>
+    <line x1="31" y1="12" x2="28" y2="72" stroke="#3D5A6E" stroke-width="1.8" opacity=".4"/>
+    <line x1="49" y1="12" x2="52" y2="72" stroke="#3D5A6E" stroke-width="1.8" opacity=".4"/>
+    <line x1="56" y1="20" x2="62" y2="72" stroke="#3D5A6E" stroke-width="1.8" opacity=".4"/>
+    <line x1="12" y1="72" x2="68" y2="72" stroke="#3D5A6E" stroke-width="4" stroke-linecap="round"/>
+  </g>
 </svg>
