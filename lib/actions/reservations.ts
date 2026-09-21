@@ -81,6 +81,25 @@ export async function deleteProviderPayment(id: string) {
   revalidatePath("/proveedores");
 }
 
+/**
+ * Las direcciones alternas llegan del formulario como una sola línea separada por comas
+ * o saltos. Solo sirven para encontrar el hilo de Gmail; el envío sigue saliendo a `email`.
+ */
+function direccionesAlternas(formData: FormData): string[] {
+  const crudo = formData.get("alt_emails")?.toString() ?? "";
+  const vistas = new Set<string>();
+  const salida: string[] = [];
+  for (const parte of crudo.split(/[,;\n]/)) {
+    const dir = parte.trim();
+    if (!dir) continue;
+    const clave = dir.toLowerCase();
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    salida.push(dir);
+  }
+  return salida;
+}
+
 export async function createProvider(formData: FormData) {
   const supabase = createClient();
   const payload = {
@@ -88,6 +107,7 @@ export async function createProvider(formData: FormData) {
     type: formData.get("type")?.toString() || "otro",
     contact_name: formData.get("contact_name")?.toString() || null,
     email: formData.get("email")?.toString() || null,
+    alt_emails: direccionesAlternas(formData),
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     city: formData.get("city")?.toString() || null,
@@ -106,6 +126,7 @@ export async function updateProvider(id: string, formData: FormData) {
     type: formData.get("type")?.toString(),
     contact_name: formData.get("contact_name")?.toString() || null,
     email: formData.get("email")?.toString() || null,
+    alt_emails: direccionesAlternas(formData),
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     city: formData.get("city")?.toString() || null,

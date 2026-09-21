@@ -31,6 +31,20 @@ export function EditProviderForm({ provider }: { provider: any }) {
       </div>
       <div className="grid gap-2"><Label>Contacto</Label><Input name="contact_name" defaultValue={provider.contact_name ?? ""} /></div>
       <div className="grid gap-2"><Label>Email</Label><Input name="email" type="email" defaultValue={provider.email ?? ""} /></div>
+      {/* El proveedor cambia de dirección con los años (el Parador pasó de comercial.santiago2@
+          a comercial.santiago@) y a veces la cena se habla en el hilo de otro alojamiento.
+          Estas solo sirven para encontrar el hilo de Gmail; el correo sigue saliendo a Email. */}
+      <div className="grid gap-2">
+        <Label>Otras direcciones</Label>
+        <Input
+          name="alt_emails"
+          defaultValue={(provider.alt_emails ?? []).join(", ")}
+          placeholder="reservas@hotel.es, comercial@hotel.es"
+        />
+        <p className="text-xs text-muted-foreground">
+          Separadas por coma. Se usan para buscar el hilo de Gmail, no para enviar.
+        </p>
+      </div>
       <div className="grid gap-2"><Label>Teléfono</Label><Input name="phone" defaultValue={provider.phone ?? ""} /></div>
       <div className="grid gap-2"><Label>Ciudad</Label><Input name="city" defaultValue={provider.city ?? ""} /></div>
       <div className="grid gap-2"><Label>País</Label><Input name="country" defaultValue={provider.country ?? ""} /></div>
