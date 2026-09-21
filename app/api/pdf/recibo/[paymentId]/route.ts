@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
 
   const { data: balance } = await supabase
     .from("v_pilgrim_balance")
-    .select("paid_eur, paid_eur_cierre, pending_eur, net_total_eur, saldo_final_eur, saldo_final_cop, settlement_trm, settlement_date, settlement_mode, paid_in_cop_originally")
+    .select("paid_eur, paid_eur_cierre, pending_eur, net_total_eur, saldo_final_eur, saldo_final_cop, settlement_trm, settlement_date, settlement_mode, paid_in_cop_originally, penalidad_eur, penalidad_cop, penalidad_concepto")
     .eq("registration_id", pay.registration_id)
     .maybeSingle();
 
@@ -40,6 +40,7 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
         reference: pay.reference,
         notes: pay.notes,
         kind: pay.kind ?? "abono",
+        concept: pay.concept ?? null,
         pilgrim_name: (reg as any)?.pilgrims?.full_name ?? "—",
         pilgrim_email: (reg as any)?.pilgrims?.email ?? null,
         departure_name: (reg as any)?.departures?.name ?? "—",
@@ -54,6 +55,9 @@ export async function GET(_req: Request, { params }: { params: { paymentId: stri
         settlement_date: balance?.settlement_date ?? null,
         settlement_mode: balance?.settlement_mode ?? "recalculo",
         paid_in_cop_originally: !!balance?.paid_in_cop_originally,
+        penalidad_eur: Number(balance?.penalidad_eur ?? 0),
+        penalidad_cop: balance?.penalidad_cop != null ? Number(balance.penalidad_cop) : null,
+        penalidad_concepto: balance?.penalidad_concepto ?? null,
       },
     }) as any
   );

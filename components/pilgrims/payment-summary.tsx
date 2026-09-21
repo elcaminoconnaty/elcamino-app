@@ -7,9 +7,9 @@ export function PaymentSummary({
   penaltyEur = 0,
 }: {
   payments: any[];
-  /** Total acordado, con la penalidad ya incluida. */
+  /** Precio acordado de los viajes. La penalidad no va acá. */
   totalEur: number;
-  /** Penalidades cobradas (ej. cambio de camino); solo para mostrarlas aparte. */
+  /** Penalidades registradas, en positivo: ya vienen restadas de los abonos. */
   penaltyEur?: number;
 }) {
   let copPaid = 0;
@@ -21,7 +21,10 @@ export function PaymentSummary({
 
   for (const p of payments) {
     const eurEq = Number(p.amount_eur || 0);
+    // El acreditado sí cuenta la penalidad (le resta); los cortes por divisa y
+    // por cuenta no, porque ahí solo va la plata que efectivamente se movió.
     totalEurEquivalent += eurEq;
+    if (p.kind === "penalidad") continue;
     if (p.currency === "COP") {
       copPaid += Number(p.amount);
       copEurEquivalent += eurEq;
@@ -57,22 +60,10 @@ export function PaymentSummary({
         </div>
 
         <div className="space-y-1.5 text-sm">
-          {penaltyEur > 0 && (
-            <>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Precio del viaje</span>
-                <span>{formatEUR(totalEur - penaltyEur)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Penalidad</span>
-                <span className="text-aviso-800">+ {formatEUR(penaltyEur)}</span>
-              </div>
-              <div className="flex justify-between font-medium pb-1.5 border-b mb-1.5">
-                <span>Total acordado</span>
-                <span>{formatEUR(totalEur)}</span>
-              </div>
-            </>
-          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Precio del viaje</span>
+            <span>{formatEUR(totalEur)}</span>
+          </div>
           {copPaid > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Pagado en COP</span>
@@ -89,6 +80,12 @@ export function PaymentSummary({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Pagado en USD</span>
               <span>{usdPaid.toLocaleString("es-CO")} USD</span>
+            </div>
+          )}
+          {penaltyEur > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Penalidad</span>
+              <span className="text-aviso-800">− {formatEUR(penaltyEur)}</span>
             </div>
           )}
           <div className="flex justify-between font-medium pt-1.5 border-t mt-1.5">

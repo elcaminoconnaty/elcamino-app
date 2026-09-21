@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatEUR, formatCOP, formatDate } from "@/lib/utils";
 import { NewPaymentDialog } from "@/components/pilgrims/new-payment-dialog";
+import { NewPenaltyDialog } from "@/components/pilgrims/new-penalty-dialog";
 import { EditPilgrimDialog } from "@/components/pilgrims/edit-pilgrim-form";
 import { DeletePilgrimDialog } from "@/components/pilgrims/delete-pilgrim-dialog";
 import { EditRegistrationDialog } from "@/components/pilgrims/edit-registration-dialog";
@@ -128,7 +129,10 @@ export default async function PilgrimDetailPage({
     )
   );
 
-  const paidEur = pagos.reduce((acc, p) => acc + Number(p.amount_eur || 0), 0);
+  // Lo que decide qué pasa al eliminar al peregrino son los abonos reales; una
+  // penalidad no es plata que haya entrado.
+  const abonos = pagos.filter((p) => p.kind !== "penalidad");
+  const paidEur = abonos.reduce((acc, p) => acc + Number(p.amount_eur || 0), 0);
 
   // Si llegaste desde un camino (?camino=...), "volver" regresa a los peregrinos de ese
   // camino y no a la lista general.
@@ -170,7 +174,7 @@ export default async function PilgrimDetailPage({
             <DeletePilgrimDialog
               pilgrimId={pilgrim.id}
               pilgrimName={pilgrim.full_name}
-              paymentsCount={payments?.length ?? 0}
+              paymentsCount={abonos.length}
               paidEur={paidEur}
               volverHref={volverHref}
             />
@@ -226,33 +230,22 @@ export default async function PilgrimDetailPage({
                 <CardDescription>{formatDate(r.start_date)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
-                {Number(r.penalty_eur) > 0 ? (
-                  <>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Precio del viaje</span><span><EurCop value={Number(r.net_total_eur) - Number(r.penalty_eur)} /></span></div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Penalidad
-                        {r.penalty_note && <span className="block text-[11px] leading-tight">{r.penalty_note}</span>}
-                        {r.penalty_trm_eur_cop && (
-                          <span className="block text-[11px] leading-tight">
-                            Tasa {Number(r.penalty_trm_eur_cop).toLocaleString("es-CO")} COP/EUR
-                            {r.penalty_date ? ` del ${formatDate(r.penalty_date)}` : ""}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-aviso-800 text-right">
-                        + {formatEUR(r.penalty_eur)}
-                        {r.penalty_cop != null && (
-                          <span className="block text-[11px] text-muted-foreground">{formatCOP(r.penalty_cop)}</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-medium"><span>Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
-                  </>
-                ) : (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Abonado (menos penalidades)</span><span><EurCop value={r.paid_eur} /></span></div>
+                {Number(r.penalidad_eur) > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {r.penalidad_concepto ?? "Penalidad"}
+                      <span className="block text-[11px] leading-tight">ya descontada de lo abonado</span>
+                    </span>
+                    <span className="text-aviso-800 text-right">
+                      − {formatEUR(r.penalidad_eur)}
+                      {r.penalidad_cop != null && (
+                        <span className="block text-[11px] text-muted-foreground">{formatCOP(r.penalidad_cop)}</span>
+                      )}
+                    </span>
+                  </div>
                 )}
-                <div className="flex justify-between"><span className="text-muted-foreground">Pagado (euros que entraron)</span><span><EurCop value={r.paid_eur} /></span></div>
                 {r.settlement_trm ? (
                   <>
                     <div className="flex justify-between"><span className="text-muted-foreground">Acreditado a la tasa de cierre</span><span><EurCop value={r.paid_eur_cierre} /></span></div>
@@ -279,17 +272,13 @@ export default async function PilgrimDetailPage({
                 />
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
+                  <NewPenaltyDialog registrationId={r.registration_id} />
                   <EditRegistrationDialog
                     registration={{
                       registration_id: r.registration_id,
                       departure_id: r.departure_id,
                       total_eur: Number(r.total_eur ?? r.net_total_eur ?? 0),
                       discount_eur: Number(r.discount_eur ?? 0),
-                      penalty_eur: Number(r.penalty_eur ?? 0),
-                      penalty_note: r.penalty_note ?? null,
-                      penalty_date: r.penalty_date ?? null,
-                      penalty_trm_eur_cop: r.penalty_trm_eur_cop != null ? Number(r.penalty_trm_eur_cop) : null,
-                      penalty_cop: r.penalty_cop != null ? Number(r.penalty_cop) : null,
                       status: r.status,
                       paid_in_cop_originally: r.paid_in_cop_originally,
                       notes: notesByReg.get(r.registration_id) ?? null,
@@ -354,18 +343,27 @@ export default async function PilgrimDetailPage({
                   <TableBody>
                     {pagos.map((p) => {
                       const esDevolucion = p.kind === "devolucion";
+                      const esPenalidad = p.kind === "penalidad";
                       const difPago = Number(p.fx_diff_eur ?? 0);
                       return (
                         <TableRow key={p.id}>
                           <TableCell className="whitespace-nowrap">
                             {formatDate(p.paid_at)}
                             {p.kind !== "abono" && (
-                              <Badge variant={esDevolucion ? "accent" : "success"} className="ml-1.5 align-middle text-[10px]">
+                              <Badge
+                                variant={esDevolucion ? "accent" : esPenalidad ? "warning" : "success"}
+                                className="ml-1.5 align-middle text-[10px]"
+                              >
                                 {PAYMENT_KIND[p.kind].short}
                               </Badge>
                             )}
+                            {p.concept && (
+                              <span className="block text-[11px] leading-tight text-muted-foreground">{p.concept}</span>
+                            )}
                           </TableCell>
-                          <TableCell className={`text-right whitespace-nowrap ${esDevolucion ? "text-info-800" : ""}`}>
+                          <TableCell
+                            className={`text-right whitespace-nowrap ${esDevolucion ? "text-info-800" : esPenalidad ? "text-aviso-800" : ""}`}
+                          >
                             {Number(p.amount).toLocaleString("es-CO")} {p.currency}
                           </TableCell>
                           <TableCell className="text-right">{p.trm_eur_cop ? Number(p.trm_eur_cop).toLocaleString("es-CO") : "—"}</TableCell>
@@ -382,7 +380,7 @@ export default async function PilgrimDetailPage({
                                   )}
                                 </>
                               ) : (
-                                <span className="text-xs text-muted-foreground" title={motivoSinRecalculo(p.currency, p.method)}>
+                                <span className="text-xs text-muted-foreground" title={motivoSinRecalculo(p.currency, p.method, p.kind)}>
                                   igual
                                 </span>
                               )}
@@ -410,7 +408,7 @@ export default async function PilgrimDetailPage({
         <PaymentSummary
           payments={pagos}
           totalEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.net_total_eur || 0), 0)}
-          penaltyEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.penalty_eur || 0), 0)}
+          penaltyEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.penalidad_eur || 0), 0)}
         />
       </section>
     </div>

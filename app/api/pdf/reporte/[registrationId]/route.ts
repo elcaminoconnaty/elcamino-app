@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
 
   const { data: payments } = await supabase
     .from("v_pilgrim_payment_settlement")
-    .select("paid_at, amount, currency, trm_eur_cop, amount_eur, amount_eur_cierre, se_revalora, method, kind")
+    .select("paid_at, amount, currency, trm_eur_cop, amount_eur, amount_eur_cierre, se_revalora, method, kind, concept")
     .eq("registration_id", params.registrationId)
     .order("paid_at", { ascending: true });
 
@@ -41,11 +41,9 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
         departure_name: (reg as any)?.departures?.name ?? "—",
         departure_start_date: (reg as any)?.departures?.start_date ?? null,
         total_eur: Number(balance.net_total_eur ?? 0),
-        penalty_eur: Number(balance.penalty_eur ?? 0),
-        penalty_note: balance.penalty_note ?? null,
-        penalty_date: balance.penalty_date ?? null,
-        penalty_trm_eur_cop: balance.penalty_trm_eur_cop != null ? Number(balance.penalty_trm_eur_cop) : null,
-        penalty_cop: balance.penalty_cop != null ? Number(balance.penalty_cop) : null,
+        penalidad_eur: Number(balance.penalidad_eur ?? 0),
+        penalidad_cop: balance.penalidad_cop != null ? Number(balance.penalidad_cop) : null,
+        penalidad_concepto: balance.penalidad_concepto ?? null,
         paid_eur: Number(balance.paid_eur ?? 0),
         pending_eur: Number(balance.pending_eur ?? 0),
         pending_cop_reference: balance.pending_cop_reference != null ? Number(balance.pending_cop_reference) : null,
@@ -67,6 +65,7 @@ export async function GET(_req: Request, { params }: { params: { registrationId:
           se_revalora: !!p.se_revalora,
           method: p.method,
           kind: p.kind ?? "abono",
+          concept: p.concept ?? null,
         })),
       },
     }) as any

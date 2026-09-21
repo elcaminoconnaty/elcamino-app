@@ -17,7 +17,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
   const sinTasa = s.estado_liquidacion === "sin_tasa";
   const conRecalculo = s.settlement_mode === "recalculo";
   const dif = Number(s.fx_difference_eur ?? 0);
-  const penalidad = Number(s.penalty_eur ?? 0);
+  const penalidad = Number(s.penalidad_eur ?? 0);
   // Una inscripción cancelada no se liquida: sus abonos se retienen o se
   // reembolsan por el flujo de eliminación, no por la tasa de cierre.
   const cancelada = s.status === "cancelado";
@@ -85,25 +85,7 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
           <>
             {/* El recálculo, paso por paso */}
             <div className="space-y-1.5 text-sm">
-              {penalidad > 0 ? (
-                <>
-                  <Row label="Precio del viaje" value={formatEUR(Number(s.net_total_eur) - penalidad)} />
-                  <Row
-                    label="Penalidad"
-                    sub={[
-                      s.penalty_note,
-                      s.penalty_trm_eur_cop
-                        ? `Tasa ${Number(s.penalty_trm_eur_cop).toLocaleString("es-CO")} COP/EUR${s.penalty_date ? ` del ${formatDate(s.penalty_date)}` : ""}`
-                        : null,
-                    ].filter(Boolean).join(" · ") || undefined}
-                    value={`+ ${formatEUR(penalidad)}`}
-                    cop={s.penalty_cop != null ? Number(s.penalty_cop) : null}
-                  />
-                  <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
-                </>
-              ) : (
-                <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
-              )}
+              <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
               {conRecalculo && s.cop_revalorado > 0 && (
                 <Row
                   label="Abonos en pesos, re-valorados"
@@ -113,6 +95,14 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
               )}
               {conRecalculo && s.eur_fijo !== 0 && (
                 <Row label="Abonos ya en euros" sub="No se re-valoran" value={formatEUR(s.eur_fijo)} />
+              )}
+              {penalidad > 0 && (
+                <Row
+                  label={s.penalidad_concepto ?? "Penalidad"}
+                  sub="Se descuenta de lo abonado"
+                  value={`− ${formatEUR(penalidad)}`}
+                  cop={s.penalidad_cop != null ? Number(s.penalidad_cop) : null}
+                />
               )}
               <div className="flex justify-between pt-1.5 border-t">
                 <span className="text-muted-foreground">{conRecalculo ? "Total acreditado" : "Total abonado"}</span>

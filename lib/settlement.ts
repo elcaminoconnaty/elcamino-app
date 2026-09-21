@@ -21,11 +21,29 @@ import { GLOBAL66 } from "@/lib/constants";
  * recálculo, pero un camino puede liquidarse `sin_recalculo` y entonces no hay
  * tasa de cierre ni diferencia en cambio — el saldo es lo acordado menos lo
  * abonado. El último pago y las devoluciones funcionan igual en los dos modos.
+ *
+ * La penalidad (p. ej. por cambiarse de grupo) no sube el precio del viaje: se
+ * registra como un movimiento negativo más en la lista de pagos, así que en el
+ * recibo el peregrino ve el precio que se le cotizó y la penalidad restándole a
+ * sus propios abonos. El saldo da igual que si se la sumáramos al total. Sus
+ * euros quedan fijados el día que se pactó: una penalidad nunca se re-valora.
  */
 
 export type EstadoLiquidacion = "sin_tasa" | "por_cobrar" | "por_devolver" | "liquidado" | "devuelto";
 
-export type PaymentKind = "abono" | "cierre" | "devolucion";
+/**
+ * Los movimientos de una inscripción. `abono` y `cierre` son plata que entró;
+ * `devolucion` es plata que salió; `penalidad` no es plata sino un cargo pactado
+ * (p. ej. por cambiarse de grupo) que se le resta a los abonos en vez de
+ * sumarse al precio del viaje.
+ */
+export type PaymentKind = "abono" | "cierre" | "devolucion" | "penalidad";
+
+/** Los que viven con monto negativo. */
+export const MOVIMIENTOS_NEGATIVOS: PaymentKind[] = ["devolucion", "penalidad"];
+
+/** Concepto por defecto de una penalidad, editable al registrarla. */
+export const CONCEPTO_PENALIDAD = "Penalidad por cambio de grupo";
 
 /**
  * Modo de liquidación del camino.
@@ -64,15 +82,8 @@ export type PilgrimSettlement = {
   departure_name: string;
   start_date: string | null;
   status: string;
-  /** total_eur − discount_eur + penalty_eur. */
+  /** Precio acordado: total_eur − discount_eur. La penalidad NO va acá. */
   net_total_eur: number;
-  /** Penalidad en EUR ya incluida en `net_total_eur` (p. ej. por cambio de camino). */
-  penalty_eur: number;
-  penalty_note: string | null;
-  /** Día en que se pactó la penalidad, tasa COP/EUR de ese día y el valor en pesos que se le informó. */
-  penalty_date: string | null;
-  penalty_trm_eur_cop: number | null;
-  penalty_cop: number | null;
   /** Tasa de cierre con la que se re-valoran los pagos en pesos. */
   settlement_trm: number | null;
   settlement_date: string | null;
@@ -101,6 +112,11 @@ export type PilgrimSettlement = {
   pagos_cierre: number;
   acreditado_eur: number;
   estado_liquidacion: EstadoLiquidacion;
+  /** Penalidades registradas, en positivo: lo que le restan a los abonos. */
+  penalidad_eur: number;
+  /** Los pesos de la penalidad, cuando se registró en COP. */
+  penalidad_cop: number | null;
+  penalidad_concepto: string | null;
 };
 
 export type PaymentSettlement = {
@@ -117,6 +133,8 @@ export type PaymentSettlement = {
   reference: string | null;
   notes: string | null;
   kind: PaymentKind;
+  /** Para lo que no es un abono corriente: "Penalidad por cambio de grupo". */
+  concept: string | null;
   settlement_trm: number | null;
   se_revalora: boolean;
   amount_eur_cierre: number | null;
@@ -158,6 +176,7 @@ export const PAYMENT_KIND: Record<PaymentKind, { label: string; short: string }>
   abono: { label: "Abono", short: "Abono" },
   cierre: { label: "Pago de cierre", short: "Cierre" },
   devolucion: { label: "Devolución", short: "Devolución" },
+  penalidad: { label: "Penalidad", short: "Penalidad" },
 };
 
 /** Misma regla que `payment_fx_recalc` en la BD: qué pagos se re-valoran. */
@@ -171,7 +190,12 @@ export function seRevalora(
 }
 
 /** Por qué un pago no entra al recálculo — para explicarlo en la UI y el PDF. */
-export function motivoSinRecalculo(currency: string | null | undefined, method: string | null | undefined): string {
+export function motivoSinRecalculo(
+  currency: string | null | undefined,
+  method: string | null | undefined,
+  kind?: PaymentKind | null
+): string {
+  if (kind === "penalidad") return "La penalidad quedó fijada el día que se pactó";
   if (method === GLOBAL66) return `${GLOBAL66} cambió a euros el mismo día`;
   if (currency === "EUR") return "Ya estaba en euros";
   if (currency === "USD") return "Cambiado a euros el día del pago";

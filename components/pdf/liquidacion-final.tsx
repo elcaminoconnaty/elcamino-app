@@ -50,13 +50,12 @@ export type LiquidacionData = {
   pilgrim_email: string | null;
   departure_name: string;
   departure_start_date: string | null;
-  /** Valor del viaje con la penalidad incluida. */
+  /** Precio acordado del viaje. La penalidad no va acá: se resta de los abonos. */
   net_total_eur: number;
-  penalty_eur: number;
-  penalty_note: string | null;
-  penalty_date: string | null;
-  penalty_trm_eur_cop: number | null;
-  penalty_cop: number | null;
+  /** Penalidades registradas, en positivo. Ya vienen descontadas de `paid_eur_*`. */
+  penalidad_eur: number;
+  penalidad_cop: number | null;
+  penalidad_concepto: string | null;
   settlement_trm: number;
   settlement_date: string | null;
   paid_eur_historico: number;
@@ -84,6 +83,7 @@ export type LiquidacionData = {
     se_revalora: boolean;
     method: string | null;
     kind: string;
+    concept: string | null;
   }>;
 };
 
@@ -110,7 +110,7 @@ const fmt = {
   },
 };
 
-const KIND_LABEL: Record<string, string> = { abono: "", cierre: " (cierre)", devolucion: " (devolución)" };
+const KIND_LABEL: Record<string, string> = { abono: "", cierre: " (cierre)", devolucion: " (devolución)", penalidad: "" };
 
 /**
  * Recibo final del viaje: el historial completo de abonos con la tasa de cada
@@ -146,24 +146,6 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
           <Text style={base.sectionTitle}>Peregrino</Text>
           <View style={base.row}><Text style={base.rowLabel}>Nombre</Text><Text style={base.rowValue}>{data.pilgrim_name}</Text></View>
           {data.pilgrim_email && <View style={base.row}><Text style={base.rowLabel}>Email</Text><Text>{data.pilgrim_email}</Text></View>}
-          {data.penalty_eur > 0 && (
-            <>
-              <View style={base.row}><Text style={base.rowLabel}>Precio del viaje</Text><Text>{fmt.eur(data.net_total_eur - data.penalty_eur)}</Text></View>
-              <View style={base.row}>
-                <Text style={base.rowLabel}>Penalidad{data.penalty_note ? ` (${data.penalty_note})` : ""}</Text>
-                <Text>+ {fmt.eur(data.penalty_eur)}</Text>
-              </View>
-              {data.penalty_trm_eur_cop != null && data.penalty_cop != null && (
-                <View style={base.row}>
-                  <Text style={base.rowLabel}>
-                    Penalidad en pesos, a la tasa de {fmt.num(data.penalty_trm_eur_cop, 2)} COP/EUR
-                    {data.penalty_date ? ` del ${fmt.date(data.penalty_date)}` : ""}
-                  </Text>
-                  <Text>{fmt.cop(data.penalty_cop)}</Text>
-                </View>
-              )}
-            </>
-          )}
           <View style={base.row}><Text style={base.rowLabel}>Valor del viaje</Text><Text style={base.rowValue}>{fmt.eur(data.net_total_eur)}</Text></View>
           {data.total_cop_cierre != null && (
             <View style={base.row}><Text style={base.rowLabel}>Valor del viaje en pesos, a la tasa de cierre</Text><Text>{fmt.cop(data.total_cop_cierre)}</Text></View>
@@ -199,6 +181,7 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
                   <Text style={styles.cAmount}>
                     {fmt.num(p.amount, 2)} {p.currency}
                     {KIND_LABEL[p.kind] ?? ""}
+                    {p.kind === "penalidad" ? `\n${p.concept ?? "Penalidad"}` : ""}
                   </Text>
                   <Text style={styles.cRate}>{p.trm_eur_cop ? fmt.num(p.trm_eur_cop, 2) : "—"}</Text>
                   <Text style={styles.cEur}>{fmt.eur(p.amount_eur)}</Text>
@@ -222,14 +205,15 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
             La columna «Valió (EUR)» es lo que valían tus pesos el día que pagaste. «A tasa cierre» es lo que valen
             con la tasa final, y es la que cuenta para tu liquidación. Un «=» significa que ese pago no se recalcula
             porque ya estaba en euros
-            {data.payments.some((p) => p.method === GLOBAL66) ? `, o porque por ${GLOBAL66} los pesos se cambian a euros el mismo día` : ""}.
+            {data.payments.some((p) => p.method === GLOBAL66) ? `, o porque por ${GLOBAL66} los pesos se cambian a euros el mismo día` : ""}
+            {data.penalidad_eur > 0 ? ". La penalidad quedó fijada el día que se pactó y tampoco se recalcula" : ""}.
           </Text>
         </View>
 
         <View style={styles.totalBox}>
           <Text style={base.sectionTitle}>Cómo queda la cuenta</Text>
           <View style={base.row}>
-            <Text style={base.rowLabel}>Valor del viaje{data.penalty_eur > 0 ? `, con penalidad de ${fmt.eur(data.penalty_eur)}` : ""}</Text>
+            <Text style={base.rowLabel}>Valor del viaje</Text>
             <Text>{fmt.eur(data.net_total_eur)}</Text>
           </View>
           {data.cop_revalorado > 0 && (
@@ -244,6 +228,15 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
             <View style={base.row}>
               <Text style={base.rowLabel}>Tus abonos ya en euros</Text>
               <Text>{fmt.eur(data.eur_fijo)}</Text>
+            </View>
+          )}
+          {data.penalidad_eur > 0 && (
+            <View style={base.row}>
+              <Text style={base.rowLabel}>
+                {data.penalidad_concepto ?? "Penalidad"}
+                {data.penalidad_cop != null ? ` (${fmt.cop(data.penalidad_cop)})` : ""}
+              </Text>
+              <Text>- {fmt.eur(data.penalidad_eur)}</Text>
             </View>
           )}
           <View style={base.row}>

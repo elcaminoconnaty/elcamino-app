@@ -13,11 +13,14 @@ type ReciboData = {
   method: string | null;
   reference: string | null;
   notes: string | null;
-  kind: "abono" | "cierre" | "devolucion";
+  kind: "abono" | "cierre" | "devolucion" | "penalidad";
+  /** Concepto, para lo que no es un abono corriente. */
+  concept: string | null;
   pilgrim_name: string;
   pilgrim_email: string | null;
   departure_name: string;
   departure_start_date: string | null;
+  /** Precio acordado del viaje. La penalidad no va acá. */
   total_eur: number;
   /** Euros que realmente entraron, sumando los pagos como se hicieron. */
   paid_total_eur: number;
@@ -32,6 +35,10 @@ type ReciboData = {
   /** "recalculo" | "sin_recalculo": si el camino re-valora los abonos en pesos. */
   settlement_mode: string;
   paid_in_cop_originally: boolean;
+  /** Penalidades registradas, en positivo: ya restadas de lo abonado. */
+  penalidad_eur: number;
+  penalidad_cop: number | null;
+  penalidad_concepto: string | null;
 };
 
 const fmt = {
@@ -57,11 +64,13 @@ const TITULO: Record<string, string> = {
   abono: "Recibo de pago",
   cierre: "Recibo del pago de cierre",
   devolucion: "Comprobante de devolución",
+  penalidad: "Comprobante de penalidad",
 };
 
 export function ReciboPagoPDF({ data }: { data: ReciboData }) {
   const code = data.payment_id.slice(0, 8).toUpperCase();
   const esDevolucion = data.kind === "devolucion";
+  const esPenalidad = data.kind === "penalidad";
   const conRecalculo = data.settlement_mode !== "sin_recalculo";
   const hayCierre = conRecalculo && data.settlement_trm != null && Number(data.settlement_trm) > 0;
   const saldo = data.saldo_final_eur != null ? Number(data.saldo_final_eur) : Number(data.pending_eur);
@@ -81,23 +90,40 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
         </View>
 
         <View style={base.box}>
-          <Text style={base.sectionTitle}>{esDevolucion ? "Monto devuelto" : "Pago recibido"}</Text>
+          <Text style={base.sectionTitle}>
+            {esDevolucion ? "Monto devuelto" : esPenalidad ? data.concept ?? "Penalidad" : "Pago recibido"}
+          </Text>
           <Text style={base.bigAmount}>
             {fmt.num(Math.abs(data.amount))} {data.currency}
           </Text>
-          <View style={base.row}><Text style={base.rowLabel}>Equivalente en EUR</Text><Text style={base.rowValue}>{fmt.eur(Math.abs(Number(data.amount_eur ?? 0)))}</Text></View>
+          {!(esPenalidad && data.currency === "EUR") && (
+            <View style={base.row}><Text style={base.rowLabel}>Equivalente en EUR</Text><Text style={base.rowValue}>{fmt.eur(Math.abs(Number(data.amount_eur ?? 0)))}</Text></View>
+          )}
+          {esPenalidad && data.currency === "EUR" && data.trm_eur_cop != null && (
+            <View style={base.row}>
+              <Text style={base.rowLabel}>Equivalente en pesos, a la tasa de ese día</Text>
+              <Text style={base.rowValue}>{fmt.cop(Math.round(Math.abs(Number(data.amount_eur ?? 0)) * Number(data.trm_eur_cop)))}</Text>
+            </View>
+          )}
           {data.trm_eur_cop && (
             <View style={base.row}>
               {/* Con Global 66 la tasa es la de la plataforma (comisión incluida), no la TRM del día */}
               <Text style={base.rowLabel}>
                 {data.method === GLOBAL66
                   ? `Tasa ${GLOBAL66}`
-                  : data.kind === "abono"
-                    ? "Tasa aplicada"
-                    : "Tasa de cierre"}
+                  : esPenalidad
+                    ? "Tasa del día en que se pactó"
+                    : data.kind === "abono"
+                      ? "Tasa aplicada"
+                      : "Tasa de cierre"}
               </Text>
               <Text>{fmt.num(data.trm_eur_cop)} COP/EUR</Text>
             </View>
+          )}
+          {esPenalidad && (
+            <Text style={base.rowLabel}>
+              La penalidad no cambia el precio de tu viaje: se descuenta de lo que ya abonaste.
+            </Text>
           )}
           {data.method && <View style={base.row}><Text style={base.rowLabel}>Método</Text><Text>{data.method}</Text></View>}
           {data.reference && <View style={base.row}><Text style={base.rowLabel}>Referencia</Text><Text>{data.reference}</Text></View>}
@@ -108,6 +134,21 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
           <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
           {hayCierre ? (
             <>
+              {data.penalidad_eur > 0 && (
+                <>
+                  <View style={base.row}>
+                    <Text style={base.rowLabel}>Abonos recibidos, a la tasa de cierre</Text>
+                    <Text>{fmt.eur(data.paid_eur_cierre + data.penalidad_eur)}</Text>
+                  </View>
+                  <View style={base.row}>
+                    <Text style={base.rowLabel}>
+                      {data.penalidad_concepto ?? "Penalidad"}
+                      {data.penalidad_cop != null ? ` (${fmt.cop(data.penalidad_cop)})` : ""}
+                    </Text>
+                    <Text>- {fmt.eur(data.penalidad_eur)}</Text>
+                  </View>
+                </>
+              )}
               <View style={base.row}>
                 <Text style={base.rowLabel}>Total abonado, a la tasa de cierre</Text>
                 <Text>{fmt.eur(data.paid_eur_cierre)}</Text>
@@ -124,7 +165,22 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
             </>
           ) : (
             <>
-              <View style={base.row}><Text style={base.rowLabel}>Total pagado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
+              {data.penalidad_eur > 0 && (
+                <>
+                  <View style={base.row}>
+                    <Text style={base.rowLabel}>Abonos recibidos</Text>
+                    <Text>{fmt.eur(data.paid_total_eur + data.penalidad_eur)}</Text>
+                  </View>
+                  <View style={base.row}>
+                    <Text style={base.rowLabel}>
+                      {data.penalidad_concepto ?? "Penalidad"}
+                      {data.penalidad_cop != null ? ` (${fmt.cop(data.penalidad_cop)})` : ""}
+                    </Text>
+                    <Text>- {fmt.eur(data.penalidad_eur)}</Text>
+                  </View>
+                </>
+              )}
+              <View style={base.row}><Text style={base.rowLabel}>Total abonado</Text><Text>{fmt.eur(data.paid_total_eur)}</Text></View>
               <View style={base.row}><Text style={base.rowLabel}>Saldo pendiente</Text><Text style={base.rowValue}>{fmt.eur(data.pending_eur)}</Text></View>
             </>
           )}

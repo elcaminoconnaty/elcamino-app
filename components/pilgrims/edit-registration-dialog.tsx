@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -7,18 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateRegistrationDetails } from "@/lib/actions/pilgrims";
-import { getTrmForDate } from "@/lib/actions/payments";
 import { toast } from "@/components/ui/toaster";
-import { formatDate, formatEUR, formatCOP } from "@/lib/utils";
+import { formatDate, formatEUR } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 
 type DepartureOption = { id: string; name: string; start_date: string | null; status: string };
 
 const ESTADOS = ["pre_inscrito", "inscrito", "confirmado", "viajado", "cancelado"];
-
-function hoy() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function EditRegistrationDialog({
   registration,
@@ -29,13 +24,6 @@ export function EditRegistrationDialog({
     departure_id: string;
     total_eur: number;
     discount_eur: number;
-    /** Penalidad en EUR (ej. por cambio de camino). Se suma a lo que debe. */
-    penalty_eur?: number;
-    penalty_note?: string | null;
-    /** Día en que se pactó la penalidad y tasa COP/EUR de ese día. */
-    penalty_date?: string | null;
-    penalty_trm_eur_cop?: number | null;
-    penalty_cop?: number | null;
     status: string;
     paid_in_cop_originally: boolean;
     notes?: string | null;
@@ -47,88 +35,18 @@ export function EditRegistrationDialog({
   const [departureId, setDepartureId] = useState(registration.departure_id);
   const [total, setTotal] = useState(String(registration.total_eur ?? ""));
   const [discount, setDiscount] = useState(String(registration.discount_eur ?? "0"));
-  const [penalty, setPenalty] = useState(String(registration.penalty_eur ?? "0"));
-  const [penaltyCop, setPenaltyCop] = useState(
-    registration.penalty_cop != null ? String(Math.round(Number(registration.penalty_cop))) : ""
-  );
-  const [penaltyNote, setPenaltyNote] = useState(registration.penalty_note ?? "");
-  const [penaltyDate, setPenaltyDate] = useState(registration.penalty_date ?? hoy());
-  const [penaltyTrm, setPenaltyTrm] = useState(
-    registration.penalty_trm_eur_cop ? String(registration.penalty_trm_eur_cop) : ""
-  );
-  const [buscandoTrm, setBuscandoTrm] = useState(false);
   const [status, setStatus] = useState(registration.status);
   const [cop, setCop] = useState(registration.paid_in_cop_originally);
   const [notes, setNotes] = useState(registration.notes ?? "");
   const router = useRouter();
 
   const cambiaCamino = departureId !== registration.departure_id;
-  const penalidad = Number(penalty) || 0;
-  const tasa = Number(penaltyTrm) || 0;
-  const totalAPagar = (Number(total) || 0) - (Number(discount) || 0) + penalidad;
-
-  // La tasa del día de la penalidad sale de /trm; si no hay, se escribe a mano.
-  // Solo se busca cuando el diálogo está abierto y la fecha cambia (o al abrir
-  // sin tasa guardada), para no pisar una tasa que ya quedó registrada.
-  useEffect(() => {
-    if (!open || !penaltyDate) return;
-    if (penaltyDate === registration.penalty_date && registration.penalty_trm_eur_cop) {
-      setPenaltyTrm(String(registration.penalty_trm_eur_cop));
-      return;
-    }
-    let vigente = true;
-    setBuscandoTrm(true);
-    getTrmForDate(penaltyDate)
-      .then((r) => {
-        if (!vigente) return;
-        setPenaltyTrm(r ? String(r) : "");
-      })
-      .finally(() => vigente && setBuscandoTrm(false));
-    return () => {
-      vigente = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, penaltyDate]);
-
-  function cambiarEur(v: string) {
-    setPenalty(v);
-    const eur = Number(v) || 0;
-    setPenaltyCop(tasa > 0 && eur > 0 ? String(Math.round(eur * tasa)) : "");
-  }
-
-  function cambiarCop(v: string) {
-    setPenaltyCop(v);
-    const pesos = Number(v) || 0;
-    if (tasa > 0) setPenalty(pesos > 0 ? (pesos / tasa).toFixed(2) : "0");
-  }
-
-  function cambiarTasa(v: string) {
-    setPenaltyTrm(v);
-    const t = Number(v) || 0;
-    // La penalidad manda en euros: al cambiar la tasa se recalculan los pesos.
-    setPenaltyCop(t > 0 && penalidad > 0 ? String(Math.round(penalidad * t)) : "");
-  }
+  const totalAPagar = (Number(total) || 0) - (Number(discount) || 0);
 
   async function submit() {
     const t = Number(total);
     if (!t || t <= 0) {
       toast({ title: "Total inválido", variant: "destructive" });
-      return;
-    }
-    if (penalidad < 0) {
-      toast({ title: "La penalidad no puede ser negativa", variant: "destructive" });
-      return;
-    }
-    if (penalidad > 0 && !penaltyDate) {
-      toast({ title: "Falta la fecha de la penalidad", variant: "destructive" });
-      return;
-    }
-    if (penalidad > 0 && tasa <= 0) {
-      toast({
-        title: "Falta la tasa de la penalidad",
-        description: "Escribí la tasa COP/EUR del día en que se pactó, o cargala en /trm.",
-        variant: "destructive",
-      });
       return;
     }
     setSaving(true);
@@ -137,11 +55,6 @@ export function EditRegistrationDialog({
         departure_id: departureId,
         total_eur: t,
         discount_eur: Number(discount) || 0,
-        penalty_eur: penalidad,
-        penalty_note: penalidad > 0 ? penaltyNote.trim() || null : null,
-        penalty_date: penalidad > 0 ? penaltyDate : null,
-        penalty_trm_eur_cop: penalidad > 0 ? tasa : null,
-        penalty_cop: penalidad > 0 ? Math.round(penalidad * tasa) : null,
         status,
         paid_in_cop_originally: cop,
         notes: notes || null,
@@ -163,7 +76,7 @@ export function EditRegistrationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar inscripción</DialogTitle>
-          <DialogDescription>Cambiá el camino, el precio acordado, una penalidad o el estado de esta inscripción.</DialogDescription>
+          <DialogDescription>Cambiá el camino, el precio acordado o el estado de esta inscripción.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2">
@@ -182,7 +95,8 @@ export function EditRegistrationDialog({
           {cambiaCamino && (
             <p className="text-xs text-aviso-700">
               Los abonos y el plan de pagos se mueven con la inscripción al nuevo camino. Revisá que las fechas de las
-              cuotas sigan teniendo sentido, y si el cambio tiene penalidad, cargala abajo para que el saldo quede bien.
+              cuotas sigan teniendo sentido. Si el cambio tiene penalidad, registrala con el botón «Penalidad» de los
+              pagos: así le resta a sus abonos en vez de subirle el precio del viaje.
             </p>
           )}
         </div>
@@ -198,66 +112,9 @@ export function EditRegistrationDialog({
           </div>
         </div>
 
-        <div className="rounded-md border border-aviso-200 bg-aviso-50/40 p-3 grid gap-3">
-          <p className="text-sm font-medium">Penalidad</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>Fecha de la penalidad</Label>
-              <Input type="date" value={penaltyDate} onChange={(e) => setPenaltyDate(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Tasa COP/EUR de ese día</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={penaltyTrm}
-                onChange={(e) => cambiarTasa(e.target.value)}
-                placeholder={buscandoTrm ? "Buscando…" : "4500.00"}
-              />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>Penalidad (EUR)</Label>
-              <Input type="number" step="0.01" min="0" value={penalty} onChange={(e) => cambiarEur(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Penalidad (COP)</Label>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                value={penaltyCop}
-                onChange={(e) => cambiarCop(e.target.value)}
-                disabled={tasa <= 0}
-                placeholder={tasa <= 0 ? "Primero la tasa" : "0"}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label>Motivo de la penalidad</Label>
-            <Input
-              value={penaltyNote}
-              onChange={(e) => setPenaltyNote(e.target.value)}
-              placeholder="Cambio de camino"
-              disabled={penalidad <= 0}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Escribís la penalidad en euros o en pesos y la otra se calcula con la tasa de ese día. La tasa queda
-            guardada: aunque después cambie, la penalidad en pesos sigue siendo la que se le dijo al peregrino.
-            {!buscandoTrm && !penaltyTrm && penaltyDate && (
-              <span className="block text-aviso-700 mt-1">No hay TRM cargada para {formatDate(penaltyDate)}. Escribila a mano o cargala en /trm.</span>
-            )}
-          </p>
-        </div>
-
         <p className="text-xs text-muted-foreground -mt-1">
-          La penalidad se suma a lo que debe el peregrino; los abonos que ya hizo quedan como están.
-          {" "}Total a pagar: <strong>{formatEUR(totalAPagar)}</strong>
-          {penalidad > 0 && ` (precio ${formatEUR(totalAPagar - penalidad)} + penalidad ${formatEUR(penalidad)}`}
-          {penalidad > 0 && tasa > 0 && ` · ${formatCOP(Math.round(penalidad * tasa))}`}
-          {penalidad > 0 && ")"}.
+          Total a pagar: <strong>{formatEUR(totalAPagar)}</strong>. Las penalidades no van acá: se registran entre los
+          pagos, en negativo, y se le descuentan de lo abonado.
         </p>
 
         <div className="grid gap-2">

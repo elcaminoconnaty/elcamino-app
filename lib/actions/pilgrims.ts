@@ -111,27 +111,12 @@ export async function updateRegistrationDetails(id: string, input: {
   departure_id?: string;
   total_eur?: number;
   discount_eur?: number;
-  /** Penalidad en EUR (ej. por cambio de camino). Se suma a lo que debe; no toca los abonos. */
-  penalty_eur?: number;
-  penalty_note?: string | null;
-  /** Día en que se pactó la penalidad y la tasa COP/EUR de ese día; `penalty_cop` es el valor en pesos que se le informó. */
-  penalty_date?: string | null;
-  penalty_trm_eur_cop?: number | null;
-  penalty_cop?: number | null;
   status?: string;
   paid_in_cop_originally?: boolean;
   notes?: string | null;
 }) {
-  if (input.penalty_eur != null && (!Number.isFinite(input.penalty_eur) || input.penalty_eur < 0)) {
-    throw new Error("La penalidad no puede ser negativa.");
-  }
-  if (input.penalty_eur != null && input.penalty_eur > 0) {
-    if (!input.penalty_date) throw new Error("Falta la fecha de la penalidad.");
-    if (!input.penalty_trm_eur_cop || input.penalty_trm_eur_cop <= 0) {
-      throw new Error("Falta la tasa COP/EUR del día de la penalidad.");
-    }
-    if (input.penalty_cop == null) input.penalty_cop = Math.round(input.penalty_eur * input.penalty_trm_eur_cop);
-  }
+  // La penalidad no se toca desde acá: vive como movimiento negativo entre los
+  // pagos (`createPenaltyMovement`), no como un recargo sobre el precio.
   const supabase = createClient();
   const { data: before, error: beforeErr } = await supabase
     .from("registrations")
@@ -188,10 +173,13 @@ export async function deletePilgrim(id: string, mode?: DeletePilgrimMode) {
 
   let payments: { registration_id: string }[] = [];
   if (regIds.length) {
+    // Una penalidad no es plata que entró, así que no cuenta para decidir qué
+    // pasa con los abonos al eliminar al peregrino.
     const { data } = await supabase
       .from("pilgrim_payments")
       .select("registration_id")
-      .in("registration_id", regIds);
+      .in("registration_id", regIds)
+      .neq("kind", "penalidad");
     payments = data ?? [];
   }
   const hasPayments = payments.length > 0;
