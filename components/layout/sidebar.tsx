@@ -10,7 +10,7 @@ export default function Sidebar({ role, caminos }: { role: string; caminos: NavC
       <div className="px-5 py-5">
         <Link href="/" className="flex items-center gap-2">
           <div className="h-10 w-10 rounded-full border-2 border-ocre bg-piedra-suave flex items-center justify-center">
-            <span className="font-display text-noche">EC</span>
+            <span className="font-display text-sm tracking-wide text-noche">ECN</span>
           </div>
           <div>
             <div className="text-sm font-display text-noche leading-tight">El Camino</div>

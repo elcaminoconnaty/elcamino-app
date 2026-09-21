@@ -32,7 +32,7 @@ export function MobileMenu({ role, caminos }: { role: string; caminos: NavCamino
           <div className="px-5 py-4 flex items-center justify-between border-b">
             <Link href="/" className="flex items-center gap-2">
               <div className="h-9 w-9 rounded-full border-2 border-ocre bg-piedra-suave flex items-center justify-center">
-                <span className="font-display text-sm text-noche">EC</span>
+                <span className="font-display text-xs tracking-wide text-noche">ECN</span>
               </div>
               <div>
                 <div className="text-sm font-display text-noche leading-tight">El Camino</div>
