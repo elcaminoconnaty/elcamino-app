@@ -20,6 +20,9 @@ type ReporteData = {
   total_eur: number;
   penalty_eur: number;
   penalty_note: string | null;
+  penalty_date: string | null;
+  penalty_trm_eur_cop: number | null;
+  penalty_cop: number | null;
   paid_eur: number;
   pending_eur: number;
   pending_cop_reference: number | null;
@@ -125,6 +128,15 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
                 <Text style={base.rowLabel}>Penalidad{data.penalty_note ? ` (${data.penalty_note})` : ""}</Text>
                 <Text>+ {fmt.eur(data.penalty_eur)}</Text>
               </View>
+              {data.penalty_trm_eur_cop != null && data.penalty_cop != null && (
+                <View style={base.row}>
+                  <Text style={base.rowLabel}>
+                    Penalidad en pesos, a la tasa de {fmt.num(data.penalty_trm_eur_cop)} COP/EUR
+                    {data.penalty_date ? ` del ${fmt.date(data.penalty_date)}` : ""}
+                  </Text>
+                  <Text>{fmt.cop(data.penalty_cop)}</Text>
+                </View>
+              )}
               <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text style={base.rowValue}>{fmt.eur(data.total_eur)}</Text></View>
             </>
           ) : (

@@ -118,6 +118,10 @@ export type Registration = {
   /** Penalidad en EUR que se suma a lo que debe (ej. cambio de camino). */
   penalty_eur: number;
   penalty_note: string | null;
+  /** Día en que se pactó la penalidad, tasa COP/EUR de ese día y el valor en pesos. */
+  penalty_date: string | null;
+  penalty_trm_eur_cop: number | null;
+  penalty_cop: number | null;
   paid_in_cop_originally: boolean;
   frozen_trm_eur_cop: number | null;
   frozen_trm_date: string | null;
@@ -304,6 +308,9 @@ export type PilgrimBalance = {
   /** Ya incluida en `net_total_eur`. */
   penalty_eur: number;
   penalty_note: string | null;
+  penalty_date: string | null;
+  penalty_trm_eur_cop: number | null;
+  penalty_cop: number | null;
 };
 
 export type UpcomingInstallment = {

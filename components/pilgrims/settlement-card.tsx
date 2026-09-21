@@ -88,7 +88,17 @@ export function SettlementCard({ settlement: s }: { settlement: PilgrimSettlemen
               {penalidad > 0 ? (
                 <>
                   <Row label="Precio del viaje" value={formatEUR(Number(s.net_total_eur) - penalidad)} />
-                  <Row label="Penalidad" sub={s.penalty_note ?? undefined} value={`+ ${formatEUR(penalidad)}`} />
+                  <Row
+                    label="Penalidad"
+                    sub={[
+                      s.penalty_note,
+                      s.penalty_trm_eur_cop
+                        ? `Tasa ${Number(s.penalty_trm_eur_cop).toLocaleString("es-CO")} COP/EUR${s.penalty_date ? ` del ${formatDate(s.penalty_date)}` : ""}`
+                        : null,
+                    ].filter(Boolean).join(" · ") || undefined}
+                    value={`+ ${formatEUR(penalidad)}`}
+                    cop={s.penalty_cop != null ? Number(s.penalty_cop) : null}
+                  />
                   <Row label="Total del viaje" value={formatEUR(s.net_total_eur)} cop={s.total_cop_cierre} />
                 </>
               ) : (

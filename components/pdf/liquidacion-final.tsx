@@ -54,6 +54,9 @@ export type LiquidacionData = {
   net_total_eur: number;
   penalty_eur: number;
   penalty_note: string | null;
+  penalty_date: string | null;
+  penalty_trm_eur_cop: number | null;
+  penalty_cop: number | null;
   settlement_trm: number;
   settlement_date: string | null;
   paid_eur_historico: number;
@@ -150,6 +153,15 @@ export function LiquidacionFinalPDF({ data }: { data: LiquidacionData }) {
                 <Text style={base.rowLabel}>Penalidad{data.penalty_note ? ` (${data.penalty_note})` : ""}</Text>
                 <Text>+ {fmt.eur(data.penalty_eur)}</Text>
               </View>
+              {data.penalty_trm_eur_cop != null && data.penalty_cop != null && (
+                <View style={base.row}>
+                  <Text style={base.rowLabel}>
+                    Penalidad en pesos, a la tasa de {fmt.num(data.penalty_trm_eur_cop, 2)} COP/EUR
+                    {data.penalty_date ? ` del ${fmt.date(data.penalty_date)}` : ""}
+                  </Text>
+                  <Text>{fmt.cop(data.penalty_cop)}</Text>
+                </View>
+              )}
             </>
           )}
           <View style={base.row}><Text style={base.rowLabel}>Valor del viaje</Text><Text style={base.rowValue}>{fmt.eur(data.net_total_eur)}</Text></View>

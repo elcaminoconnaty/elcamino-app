@@ -233,8 +233,19 @@ export default async function PilgrimDetailPage({
                       <span className="text-muted-foreground">
                         Penalidad
                         {r.penalty_note && <span className="block text-[11px] leading-tight">{r.penalty_note}</span>}
+                        {r.penalty_trm_eur_cop && (
+                          <span className="block text-[11px] leading-tight">
+                            Tasa {Number(r.penalty_trm_eur_cop).toLocaleString("es-CO")} COP/EUR
+                            {r.penalty_date ? ` del ${formatDate(r.penalty_date)}` : ""}
+                          </span>
+                        )}
                       </span>
-                      <span className="text-aviso-800">+ <EurCop value={r.penalty_eur} /></span>
+                      <span className="text-aviso-800 text-right">
+                        + {formatEUR(r.penalty_eur)}
+                        {r.penalty_cop != null && (
+                          <span className="block text-[11px] text-muted-foreground">{formatCOP(r.penalty_cop)}</span>
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between font-medium"><span>Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
                   </>
@@ -276,6 +287,9 @@ export default async function PilgrimDetailPage({
                       discount_eur: Number(r.discount_eur ?? 0),
                       penalty_eur: Number(r.penalty_eur ?? 0),
                       penalty_note: r.penalty_note ?? null,
+                      penalty_date: r.penalty_date ?? null,
+                      penalty_trm_eur_cop: r.penalty_trm_eur_cop != null ? Number(r.penalty_trm_eur_cop) : null,
+                      penalty_cop: r.penalty_cop != null ? Number(r.penalty_cop) : null,
                       status: r.status,
                       paid_in_cop_originally: r.paid_in_cop_originally,
                       notes: notesByReg.get(r.registration_id) ?? null,

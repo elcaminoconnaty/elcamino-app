@@ -69,6 +69,10 @@ export type PilgrimSettlement = {
   /** Penalidad en EUR ya incluida en `net_total_eur` (p. ej. por cambio de camino). */
   penalty_eur: number;
   penalty_note: string | null;
+  /** Día en que se pactó la penalidad, tasa COP/EUR de ese día y el valor en pesos que se le informó. */
+  penalty_date: string | null;
+  penalty_trm_eur_cop: number | null;
+  penalty_cop: number | null;
   /** Tasa de cierre con la que se re-valoran los pagos en pesos. */
   settlement_trm: number | null;
   settlement_date: string | null;
