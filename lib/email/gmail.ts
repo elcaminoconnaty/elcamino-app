@@ -37,6 +37,8 @@ export type HiloGmail = {
 
 export type EnvioGmail = {
   to: string;
+  /** Direcciones en copia. El workflow descarta las repetidas y la que ya es `to`. */
+  cc?: string[];
   subject: string;
   html: string;
   text: string;
@@ -152,6 +154,7 @@ export async function buscarHilos(args: { emails: string[]; desde?: string | nul
 export async function enviarPorGmail(args: EnvioGmail): Promise<ResultadoGmail> {
   const logArgs = {
     to: args.to,
+    cc: args.cc,
     subject: args.subject,
     html: args.html,
     text: args.text,
@@ -164,6 +167,7 @@ export async function enviarPorGmail(args: EnvioGmail): Promise<ResultadoGmail> 
     {
       action: "message.send",
       to: args.to,
+      cc: args.cc ?? [],
       subject: args.subject,
       html: args.html,
       threadId: args.threadId ?? undefined,
@@ -177,14 +181,14 @@ export async function enviarPorGmail(args: EnvioGmail): Promise<ResultadoGmail> 
     60_000
   );
   if (!r.ok) {
-    const logId = await registrarCorreo(logArgs, "error", { error: r.error, metadata: { via: "gmail", thread_id: args.threadId ?? null } });
+    const logId = await registrarCorreo(logArgs, "error", { error: r.error, metadata: { via: "gmail", thread_id: args.threadId ?? null, cc: args.cc ?? [] } });
     return { ok: false, error: r.error, logId };
   }
   const messageId = r.datos.messageId ? String(r.datos.messageId) : null;
   const threadId = r.datos.threadId ? String(r.datos.threadId) : null;
   const logId = await registrarCorreo(logArgs, messageId ? "confirmado" : "aceptado", {
     messageId,
-    metadata: { via: "gmail", thread_id: threadId, in_reply_to: args.inReplyToMessageId ?? null },
+    metadata: { via: "gmail", thread_id: threadId, in_reply_to: args.inReplyToMessageId ?? null, cc: args.cc ?? [] },
   });
   return { ok: true, threadId, messageId, logId };
 }

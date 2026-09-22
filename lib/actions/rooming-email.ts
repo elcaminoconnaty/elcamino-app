@@ -6,12 +6,15 @@ import { CONTACTO } from "@/lib/brand";
 import { cargarRooming, filasDe, habitacionesDe, libroDeHotel } from "@/lib/export/rooming";
 import { correoRoomingList } from "@/lib/email/plantillas-proveedores";
 import { enviarPorGmail, gmailNoConfigurado } from "@/lib/email/gmail";
+import { copiasDelProveedor } from "@/lib/email/copias";
 import { enviarCorreo } from "@/lib/email/send";
 
 export type Resultado<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 export type VistaPreviaRooming = {
   to: string | null;
+  /** Direcciones que reciben copia, de la ficha del proveedor. */
+  cc: string[];
   subject: string;
   html: string;
   filename: string;
@@ -36,7 +39,7 @@ type Armado = {
 async function armar(supabase: any, reservationId: string, notaExtra?: string | null): Promise<Resultado<Armado>> {
   const { data: r, error } = await supabase
     .from("reservations")
-    .select("id, departure_id, check_in, check_out, confirmation_ref, menu_required, gmail_thread_id, gmail_last_message_id, gmail_thread_subject, rooming_sent_at, providers(id, name, email, contact_name)")
+    .select("id, departure_id, check_in, check_out, confirmation_ref, menu_required, gmail_thread_id, gmail_last_message_id, gmail_thread_subject, rooming_sent_at, providers(id, name, email, cc_emails, contact_name)")
     .eq("id", reservationId)
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
@@ -81,6 +84,7 @@ export async function previsualizarRoomingList(reservationId: string, notaExtra?
   const r = a.reservation;
   const sinGmail = gmailNoConfigurado();
   const to = (r.providers?.email ?? "").trim() || null;
+  const cc = copiasDelProveedor(r.providers, to);
   let aviso: string | null = null;
   if (!to) aviso = `${r.providers?.name ?? "El hotel"} no tiene correo cargado. Ponéselo en Proveedores.`;
   else if (sinGmail) aviso = `${sinGmail} Saldría por Brevo desde reservas@, fuera del hilo.`;
@@ -88,6 +92,7 @@ export async function previsualizarRoomingList(reservationId: string, notaExtra?
   return {
     ok: true,
     to,
+    cc,
     subject: r.gmail_thread_id && r.gmail_thread_subject ? `Re: ${String(r.gmail_thread_subject).replace(/^re:\s*/i, "")}` : a.correo.subject,
     html: a.correo.html,
     filename: a.libro.filename,
@@ -108,14 +113,16 @@ export async function previsualizarRoomingList(reservationId: string, notaExtra?
  */
 export async function enviarRoomingListAlHotel(
   reservationId: string,
-  opts: { copiaAMi?: boolean; notaExtra?: string | null } = {}
-): Promise<Resultado<{ via: "gmail" | "brevo"; to: string }>> {
+  opts: { copiaAMi?: boolean; notaExtra?: string | null; cc?: string[] | null } = {}
+): Promise<Resultado<{ via: "gmail" | "brevo"; to: string; cc: string[] }>> {
   const supabase = createClient();
   const a = await armar(supabase, reservationId, opts.notaExtra);
   if (!a.ok) return a;
   const r = a.reservation;
   const to = opts.copiaAMi ? CONTACTO.correo : ((r.providers?.email ?? "").trim() || null);
   if (!to) return { ok: false, error: `${r.providers?.name ?? "El hotel"} no tiene correo cargado.` };
+  // En la prueba a nuestro buzón no se copia a nadie más: es para revisar, no para avisar.
+  const cc = opts.copiaAMi ? [] : copiasDelProveedor(r.providers, to, opts.cc);
   const adjunto = { filename: a.libro.filename, content: a.libro.buffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
   const enHilo = !opts.copiaAMi && !!r.gmail_thread_id;
   const subject = enHilo && r.gmail_thread_subject ? `Re: ${String(r.gmail_thread_subject).replace(/^re:\s*/i, "")}` : a.correo.subject;
@@ -123,6 +130,7 @@ export async function enviarRoomingListAlHotel(
   if (!gmailNoConfigurado()) {
     const res = await enviarPorGmail({
       to,
+      cc,
       subject,
       html: a.correo.html,
       text: a.correo.text,
@@ -146,14 +154,14 @@ export async function enviarRoomingListAlHotel(
       await supabase.from("reservations").update(cambios).eq("id", reservationId);
       revalidatePath(`/caminos/${r.departure_id}`);
     }
-    return { ok: true, via: "gmail", to };
+    return { ok: true, via: "gmail", to, cc };
   }
 
-  const res = await enviarCorreo({ to, subject, html: a.correo.html, text: a.correo.text, tipo: "rooming_list", adjuntos: [adjunto], reservationId, templateSlug: opts.copiaAMi ? "rooming_list_prueba" : "rooming_list" });
+  const res = await enviarCorreo({ to, cc, subject, html: a.correo.html, text: a.correo.text, tipo: "rooming_list", adjuntos: [adjunto], reservationId, templateSlug: opts.copiaAMi ? "rooming_list_prueba" : "rooming_list" });
   if (!res.ok) return { ok: false, error: res.error };
   if (!opts.copiaAMi) {
     await supabase.from("reservations").update({ rooming_sent_at: new Date().toISOString() }).eq("id", reservationId);
     revalidatePath(`/caminos/${r.departure_id}`);
   }
-  return { ok: true, via: "brevo", to };
+  return { ok: true, via: "brevo", to, cc };
 }

@@ -53,6 +53,8 @@ export type TipoCorreo =
 
 export type EnviarArgs = {
   to: string;
+  /** Direcciones en copia. Se limpian acá: sin repetidas y sin la que ya es `to`. */
+  cc?: string[];
   subject: string;
   /** El HTML ya envuelto en la papelería (`envolturaCorreo`). */
   html: string;
@@ -191,6 +193,21 @@ export async function registrarCorreo(
   }
 }
 
+/** Sin vacías, sin repetidas y sin la que ya va como destinatario. */
+function copiasLimpias(to: string, cc?: string[]): string[] {
+  const principal = String(to || "").trim().toLowerCase();
+  const vistas = new Set<string>();
+  const salida: string[] = [];
+  for (const c of cc ?? []) {
+    const dir = String(c || "").trim();
+    const clave = dir.toLowerCase();
+    if (!dir || clave === principal || vistas.has(clave)) continue;
+    vistas.add(clave);
+    salida.push(dir);
+  }
+  return salida;
+}
+
 export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
   const problema = adjuntoNoSoportado(args.adjuntos);
   if (problema) {
@@ -211,6 +228,8 @@ export async function enviarCorreo(args: EnviarArgs): Promise<ResultadoEnvio> {
       htmlContent: args.html,
       textContent: args.text,
     };
+    const copias = copiasLimpias(args.to, args.cc);
+    if (copias.length) cuerpo.cc = copias.map((email) => ({ email }));
     if (args.adjuntos?.length) {
       // En base64 dentro de la petición, no como URL: la alternativa sería firmar una URL
       // del cubo, y una URL de Storage no puede salir nunca en un correo.

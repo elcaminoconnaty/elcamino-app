@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
@@ -58,6 +59,8 @@ export function EnviarProveedorDialog({
   const [error, setError] = React.useState<string | null>(null);
   const [cargando, setCargando] = React.useState(false);
   const [nota, setNota] = React.useState("");
+  // Arranca con las copias de la ficha del proveedor y se puede tocar para este envío.
+  const [copias, setCopias] = React.useState("");
   const [enviando, setEnviando] = React.useState<"proveedor" | "prueba" | null>(null);
 
   async function cargar(notaExtra: string) {
@@ -71,6 +74,7 @@ export function EnviarProveedorDialog({
         return;
       }
       setVista(r);
+      setCopias(r.cc.join(", "));
     } catch {
       setError("Se cortó la conexión. Volvé a intentar.");
     } finally {
@@ -85,16 +89,22 @@ export function EnviarProveedorDialog({
 
   async function enviar(copiaAMi: boolean) {
     if (!vista) return;
-    if (!copiaAMi && !window.confirm(`${t.confirmar} a ${vista.to}${vista.hilo ? " dentro del hilo" : " como correo nuevo"}?`)) return;
+    const cc = copias.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+    const aQuien = cc.length > 0 ? `${vista.to} (con copia a ${cc.join(", ")})` : vista.to;
+    if (!copiaAMi && !window.confirm(`${t.confirmar} a ${aQuien}${vista.hilo ? " dentro del hilo" : " como correo nuevo"}?`)) return;
     setEnviando(copiaAMi ? "prueba" : "proveedor");
     try {
-      const opts = { copiaAMi, notaExtra: nota || null };
+      const opts = { copiaAMi, notaExtra: nota || null, cc };
       const r = tipo === "rooming" ? await enviarRoomingListAlHotel(reservationId, opts) : await enviarMenuAlRestaurante(reservationId, opts);
       if (!r.ok) {
         toast({ title: "No se pudo enviar", description: r.error, variant: "destructive" });
         return;
       }
-      toast({ title: copiaAMi ? "Copia de prueba enviada" : t.ok, description: `A ${r.to} por ${r.via === "gmail" ? "Gmail" : "Brevo"}`, variant: "success" });
+      toast({
+        title: copiaAMi ? "Copia de prueba enviada" : t.ok,
+        description: `A ${r.to}${r.cc.length ? ` y en copia a ${r.cc.join(", ")}` : ""} por ${r.via === "gmail" ? "Gmail" : "Brevo"}`,
+        variant: "success",
+      });
       if (!copiaAMi) {
         setOpen(false);
         router.refresh();
@@ -126,6 +136,20 @@ export function EnviarProveedorDialog({
         {vista && (
           <div className="text-xs text-muted-foreground space-y-0.5">
             <div><strong className="text-foreground">Para:</strong> {vista.to ?? "—"}</div>
+            <div className="flex items-baseline gap-2">
+              <strong className="text-foreground shrink-0">Copia a:</strong>
+              <Input
+                value={copias}
+                onChange={(e) => setCopias(e.target.value)}
+                placeholder="nadie más"
+                className="h-7 text-xs"
+              />
+            </div>
+            {copias.trim() && (
+              <p className="text-[11px] text-muted-foreground">
+                La copia de prueba a nuestro buzón no copia a nadie más.
+              </p>
+            )}
             <div><strong className="text-foreground">Asunto:</strong> {vista.subject}</div>
             <div>
               <strong className="text-foreground">Adjunto:</strong> {vista.filename}

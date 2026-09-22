@@ -82,11 +82,12 @@ export async function deleteProviderPayment(id: string) {
 }
 
 /**
- * Las direcciones alternas llegan del formulario como una sola línea separada por comas
- * o saltos. Solo sirven para encontrar el hilo de Gmail; el envío sigue saliendo a `email`.
+ * Las listas de correos llegan del formulario como una línea separada por comas o saltos.
+ * `alt_emails` solo sirve para encontrar el hilo de Gmail y no recibe nada; `cc_emails`
+ * sí va en copia de cada envío.
  */
-function direccionesAlternas(formData: FormData): string[] {
-  const crudo = formData.get("alt_emails")?.toString() ?? "";
+function listaDeCorreos(formData: FormData, campo: string): string[] {
+  const crudo = formData.get(campo)?.toString() ?? "";
   const vistas = new Set<string>();
   const salida: string[] = [];
   for (const parte of crudo.split(/[,;\n]/)) {
@@ -107,7 +108,8 @@ export async function createProvider(formData: FormData) {
     type: formData.get("type")?.toString() || "otro",
     contact_name: formData.get("contact_name")?.toString() || null,
     email: formData.get("email")?.toString() || null,
-    alt_emails: direccionesAlternas(formData),
+    alt_emails: listaDeCorreos(formData, "alt_emails"),
+    cc_emails: listaDeCorreos(formData, "cc_emails"),
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     city: formData.get("city")?.toString() || null,
@@ -126,7 +128,8 @@ export async function updateProvider(id: string, formData: FormData) {
     type: formData.get("type")?.toString(),
     contact_name: formData.get("contact_name")?.toString() || null,
     email: formData.get("email")?.toString() || null,
-    alt_emails: direccionesAlternas(formData),
+    alt_emails: listaDeCorreos(formData, "alt_emails"),
+    cc_emails: listaDeCorreos(formData, "cc_emails"),
     phone: formData.get("phone")?.toString() || null,
     country: formData.get("country")?.toString() || null,
     city: formData.get("city")?.toString() || null,

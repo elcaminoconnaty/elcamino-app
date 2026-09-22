@@ -34,6 +34,19 @@ export function EditProviderForm({ provider }: { provider: any }) {
       {/* El proveedor cambia de dirección con los años (el Parador pasó de comercial.santiago2@
           a comercial.santiago@) y a veces la cena se habla en el hilo de otro alojamiento.
           Estas solo sirven para encontrar el hilo de Gmail; el correo sigue saliendo a Email. */}
+      {/* Estas SI reciben: van en copia de cada correo al proveedor (el Pazo Santa María
+          pide copia a reservas@fontedopicho.com). */}
+      <div className="grid gap-2">
+        <Label>Copias (CC)</Label>
+        <Input
+          name="cc_emails"
+          defaultValue={(provider.cc_emails ?? []).join(", ")}
+          placeholder="reservas@otrosistio.com"
+        />
+        <p className="text-xs text-muted-foreground">
+          Reciben copia de cada rooming list y cada menú. Separadas por coma.
+        </p>
+      </div>
       <div className="grid gap-2">
         <Label>Otras direcciones</Label>
         <Input
