@@ -38,7 +38,7 @@ const PASSPORT_TOOL = {
       birth_date: { type: ["string", "null"], description: "YYYY-MM-DD" },
       passport_issue_date: { type: ["string", "null"], description: "YYYY-MM-DD" },
       passport_expiry_date: { type: ["string", "null"], description: "YYYY-MM-DD" },
-      mrz: { type: ["string", "null"] },
+      mrz: { type: ["string", "null"], description: "Las 2 líneas de la MRZ copiadas carácter por carácter, cada una de exactamente 44 caracteres, separadas por un salto de línea. Los < se copian todos. Si no se lee completa, null." },
       country: { type: ["string", "null"] },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
     },
@@ -110,5 +110,16 @@ export function camposDesdePasaporte(data: PassportData, storagePath: string): R
   if (data.passport_expiry_date) updates.passport_expiry_date = data.passport_expiry_date;
   if (data.mrz) updates.passport_mrz = data.mrz;
   if (data.country) updates.country = data.country;
+  // La lectura tal cual, aparte: lo que la persona escriba después pisa las columnas de
+  // arriba, y sin esto no habría contra qué comparar (ver lib/passport/verificar.ts).
+  updates.passport_ocr = {
+    passport_number: data.passport_number,
+    birth_date: data.birth_date,
+    passport_expiry_date: data.passport_expiry_date,
+    full_name: data.full_name,
+    mrz: data.mrz,
+    confidence: data.confidence,
+    leido_el: new Date().toISOString(),
+  };
   return updates;
 }

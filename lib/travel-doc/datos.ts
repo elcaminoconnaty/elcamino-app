@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROOM_TYPE_LABELS, type RoomType } from "@/lib/data/rooms";
+import { fechaDeDia, tieneDiaCero } from "@/lib/rutas-fechas";
 
 /**
  * De la base al documento de viaje.
@@ -255,11 +256,12 @@ export async function armarDocumentoDeViaje(
   } else if (!etapas?.length) {
     pendientes.push("La ruta no tiene etapas cargadas: sin ellas no puedo armar el itinerario");
   } else {
+    const hayCero = tieneDiaCero(etapas as any[]);
     for (const e of etapas as any[]) {
-      // Convención de la plataforma: day_offset = 1 es el primer día y no existe el 0.
-      const f = new Date(`${inicio}T12:00:00Z`);
-      f.setUTCDate(f.getUTCDate() + (e.day_offset - 1));
-      const iso = f.toISOString().slice(0, 10);
+      // Convención de la plataforma: day_offset = 1 es el primer día y no existe el 0, así que
+      // −1 es la víspera. Antes se restaba `day_offset − 1` también a los días previos y el
+      // encuentro salía un día antes que en la carta de bienvenida (ver lib/rutas-fechas.ts).
+      const iso = fechaDeDia(inicio, e.day_offset, hayCero);
       const cama = alojamientos.find((a) => iso >= a.desde && iso < a.hasta);
       dias.push({
         fecha: iso,

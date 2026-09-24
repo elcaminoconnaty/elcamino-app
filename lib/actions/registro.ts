@@ -24,6 +24,63 @@ export async function obtenerEnlaceRegistro(departureId: string): Promise<Result
   return { ok: true, url: `${baseUrl()}/registro/${token}` };
 }
 
+/**
+ * El enlace PERSONAL del peregrino: abre directo su formulario y su carta de bienvenida,
+ * sin lista de nombres. Se genera la primera vez; después siempre es el mismo.
+ */
+export async function obtenerEnlacesPersonales(registrationId: string): Promise<Resultado<{ formulario: string; carta: string }>> {
+  const supabase = createClient();
+  const { data: r, error } = await supabase.from("registrations").select("id, departure_id, pilgrim_id, form_token").eq("id", registrationId).maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!r) return { ok: false, error: "No encontré la inscripción." };
+  let token = r.form_token as string | null;
+  if (!token) {
+    // Solo si sigue vacío: si dos pestañas lo piden a la vez, la segunda no pisa el enlace
+    // que la primera ya pudo haber mandado por WhatsApp. Después se relee el que quedó.
+    const { error: e2 } = await supabase
+      .from("registrations")
+      .update({ form_token: crypto.randomBytes(32).toString("hex"), form_token_created_at: new Date().toISOString() })
+      .eq("id", registrationId)
+      .is("form_token", null);
+    if (e2) return { ok: false, error: e2.message };
+    const { data: r2 } = await supabase.from("registrations").select("form_token").eq("id", registrationId).maybeSingle();
+    token = (r2?.form_token as string | null) ?? null;
+    if (!token) return { ok: false, error: "No se pudo generar el enlace." };
+  }
+  return { ok: true, formulario: `${baseUrl()}/registro/${token}`, carta: `${baseUrl()}/api/pdf/bienvenida/publico/${token}` };
+}
+
+/** Marca (o desmarca) que ya se le mandó la carta o el formulario. */
+export async function marcarPasoEnviado(registrationId: string, paso: "bienvenida" | "formulario", enviado: boolean): Promise<Resultado> {
+  const supabase = createClient();
+  const campo = paso === "bienvenida" ? "welcome_sent_at" : "form_sent_at";
+  const { data: r, error } = await supabase
+    .from("registrations")
+    .update({ [campo]: enviado ? new Date().toISOString() : null })
+    .eq("id", registrationId)
+    .select("pilgrim_id, departure_id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (r) {
+    revalidatePath(`/peregrinos/${r.pilgrim_id}`);
+    revalidatePath(`/caminos/${r.departure_id}`);
+  }
+  return { ok: true };
+}
+
+/** Lo que la carta de bienvenida no puede sacar de la ruta: el punto exacto y la hora del encuentro. */
+export async function guardarAjustesCarta(departureId: string, ajustes: { encuentro_lugar: string; encuentro_hora: string }): Promise<Resultado> {
+  const supabase = createClient();
+  const limpio = {
+    encuentro_lugar: ajustes.encuentro_lugar.trim().slice(0, 120) || null,
+    encuentro_hora: ajustes.encuentro_hora.trim().slice(0, 120) || null,
+  };
+  const { error } = await supabase.from("departures").update({ welcome_letter: limpio }).eq("id", departureId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/caminos/${departureId}`);
+  return { ok: true };
+}
+
 /** Cambia el enlace: el anterior deja de servir. */
 export async function rotarEnlaceRegistro(departureId: string): Promise<Resultado<{ url: string }>> {
   const supabase = createClient();

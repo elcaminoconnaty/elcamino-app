@@ -6,13 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatEUR, formatCOP } from "@/lib/utils";
 import { AddPilgrimToDeparture } from "@/components/departures/add-pilgrim-to-departure";
-import { CopiarEnlaceRegistro, SolicitudesRegistro } from "@/components/departures/registro-controles";
+import { SolicitudesRegistro } from "@/components/departures/registro-controles";
+import { BienvenidaRegistroCamino } from "@/components/departures/bienvenida-registro-camino";
+import { registroDelCamino } from "@/lib/registro/datos-equipo";
+import { armarCarta } from "@/lib/bienvenida/datos";
+import { AlertTriangle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { compararNombres } from "@/lib/passport/nombres";
 
 export async function PeregrinosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: rows }, { data: allPilgrims }, { data: formularios }, { data: solicitudes }] = await Promise.all([
+  const [{ data: rows }, { data: allPilgrims }, { data: formularios }, { data: solicitudes }, registro, carta, { data: dep }] = await Promise.all([
     supabase
       .from("v_pilgrim_balance")
       .select("*")
@@ -21,7 +25,13 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
     supabase.from("pilgrims").select("id, full_name, email, phone").is("deleted_at", null).order("full_name"),
     supabase.from("registrations").select("id, registration_form_submitted_at").eq("departure_id", departureId),
     supabase.from("registration_requests").select("id, full_name, email, phone, payload, created_at").eq("departure_id", departureId).eq("status", "pendiente").order("created_at"),
+    registroDelCamino(departureId),
+    armarCarta(departureId).catch((e: any) => ({ pendientes: [String(e?.message ?? e)] })),
+    supabase.from("departures").select("welcome_letter").eq("id", departureId).maybeSingle(),
   ]);
+  const filasRegistro = registro?.filas ?? [];
+  const pasaporteMal = new Set(filasRegistro.filter((x) => x.avisos.some((a) => a.nivel === "error")).map((x) => x.registrationId));
+  const ajustesCarta = ((dep as any)?.welcome_letter ?? {}) as { encuentro_lugar?: string | null; encuentro_hora?: string | null };
   const formularioDe = new Map<string, string | null>((formularios ?? []).map((f: any) => [f.id, f.registration_form_submitted_at ?? null]));
 
   // Alfabético en español, igual que la lista general y el menú lateral.
@@ -34,9 +44,18 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
-        <CopiarEnlaceRegistro departureId={departureId} />
         <AddPilgrimToDeparture departureId={departureId} pilgrims={allPilgrims ?? []} />
       </div>
+      <BienvenidaRegistroCamino
+        departureId={departureId}
+        total={filasRegistro.length}
+        cartas={filasRegistro.filter((x) => x.bienvenidaEnviada).length}
+        formulariosEnviados={filasRegistro.filter((x) => x.formularioEnviado || x.formularioLleno).length}
+        formulariosLlenos={filasRegistro.filter((x) => x.formularioLleno).length}
+        conProblemas={pasaporteMal.size}
+        ajustes={{ encuentro_lugar: ajustesCarta.encuentro_lugar ?? "", encuentro_hora: ajustesCarta.encuentro_hora ?? "" }}
+        pendientesCarta={carta.pendientes}
+      />
       <SolicitudesRegistro solicitudes={(solicitudes ?? []) as any} />
       <Card>
         <CardContent className="p-0">
@@ -72,6 +91,11 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                           <Badge variant="success" title="Llenó el formulario de inscripción">{formatDate(String(formularioDe.get(r.registration_id)).slice(0, 10))}</Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">pendiente</span>
+                        )}
+                        {pasaporteMal.has(r.registration_id) && (
+                          <span title="El pasaporte tiene algo que corregir: mira su tarjeta" className="inline-flex align-middle ml-1.5 text-error-700">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>

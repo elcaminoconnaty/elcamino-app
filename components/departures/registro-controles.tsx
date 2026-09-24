@@ -8,7 +8,7 @@ import { obtenerEnlaceRegistro, rotarEnlaceRegistro, aceptarSolicitud, rechazarS
 import { ClipboardList, RefreshCw, UserPlus, X } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-/** "Copiar link del formulario" de inscripción (un solo enlace por camino) y rotarlo. */
+/** "Copiar link del grupo": el formulario para todo el camino (cada uno escribe su nombre) y rotarlo. */
 export function CopiarEnlaceRegistro({ departureId }: { departureId: string }) {
   async function copiar(rotar = false) {
     if (rotar && !window.confirm("¿Cambiar el enlace del formulario? El que ya mandaste deja de funcionar.")) return;
@@ -19,15 +19,15 @@ export function CopiarEnlaceRegistro({ departureId }: { departureId: string }) {
         return;
       }
       await navigator.clipboard.writeText(r.url);
-      toast({ title: rotar ? "Enlace nuevo copiado" : "Enlace del formulario copiado", description: "Un solo enlace para el grupo: cada uno elige su nombre y llena sus datos.", variant: "success" });
+      toast({ title: rotar ? "Enlace nuevo copiado" : "Enlace del formulario copiado", description: "Un solo enlace para el grupo: cada uno escribe su nombre y llena sus datos (no ve a los demás). Para cada peregrino es mejor su enlace personal, desde su tarjeta.", variant: "success" });
     } catch {
       toast({ title: "No se pudo copiar", variant: "destructive" });
     }
   }
   return (
     <div className="flex items-center gap-1">
-      <Button type="button" variant="outline" size="sm" onClick={() => copiar(false)} title="El formulario de inscripción del camino (reemplaza el Google Form)">
-        <ClipboardList className="h-3.5 w-3.5" /> Copiar link del formulario
+      <Button type="button" variant="outline" size="sm" onClick={() => copiar(false)} title="Un solo enlace para el grupo de WhatsApp: cada uno escribe su nombre. El enlace personal de cada peregrino está en su tarjeta.">
+        <ClipboardList className="h-3.5 w-3.5" /> Link del grupo
       </Button>
       <Button type="button" variant="ghost" size="sm" onClick={() => copiar(true)} title="Genera un enlace nuevo; el anterior deja de servir">
         <RefreshCw className="h-3.5 w-3.5" />

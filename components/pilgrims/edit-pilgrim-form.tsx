@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { TALLAS_CAMISETA, TALLAS_SANDALIA } from "@/lib/registro/textos";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -107,14 +108,14 @@ export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
               <Label>Talla camiseta</Label>
               <select name="shirt_size" defaultValue={pilgrim.shirt_size ?? ""} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">Sin dato</option>
-                {["XS", "S", "M", "L", "XL"].map((t) => <option key={t} value={t}>{t}</option>)}
+                {TALLAS_CAMISETA.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div className="grid gap-2">
               <Label>Talla sandalias</Label>
               <select name="sandal_size" defaultValue={pilgrim.sandal_size ?? ""} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">Sin dato</option>
-                {[35, 36, 37, 38, 39, 40, 41, 42].map((t) => <option key={t} value={t}>{t}</option>)}
+                {TALLAS_SANDALIA.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>

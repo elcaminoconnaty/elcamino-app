@@ -18,6 +18,8 @@ import { PaymentSummary } from "@/components/pilgrims/payment-summary";
 import { SettlementCard } from "@/components/pilgrims/settlement-card";
 import { UpcomingPaymentsCard } from "@/components/pilgrims/upcoming-payments-card";
 import { ContractCard, type EstadoContrato } from "@/components/pilgrims/contract-card";
+import { PasosBienvenida } from "@/components/pilgrims/pasos-bienvenida";
+import { verificarPasaporte } from "@/lib/passport/verificar";
 import { revisarContrato } from "@/lib/actions/contracts";
 import type { RevisionContrato } from "@/lib/contracts/datos";
 import { EurCop } from "@/components/ui/eur-cop";
@@ -77,14 +79,18 @@ export default async function PilgrimDetailPage({
   const [{ data: departures }, { data: regNotes }] = await Promise.all([
     supabase
       .from("departures")
-      .select("id, name, start_date, status")
+      .select("id, name, start_date, end_date, status")
       .neq("status", "cancelled")
       .order("start_date", { ascending: false }),
     regIds.length
-      ? supabase.from("registrations").select("id, notes").in("id", regIds)
-      : Promise.resolve({ data: [] as { id: string; notes: string | null }[] }),
+      ? supabase.from("registrations").select("id, notes, welcome_sent_at, form_sent_at, registration_form_submitted_at").in("id", regIds)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
   const notesByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r.notes]));
+  const pasosByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r]));
+  const finDe = new Map((departures ?? []).map((d: any) => [d.id, d.end_date ?? d.start_date ?? null]));
+  // El sexo decide "Bienvenida" o "Bienvenido" en la carta y en el mensaje; el apodo, cómo se le saluda.
+  const saludo = ((pilgrim.nickname ?? "").trim() || String(pilgrim.full_name).trim().split(/\s+/)[0]) as string;
 
   // Contratos: el vigente por inscripción, y qué falta para poder emitirlo.
   const { data: contratos } = regIds.length
@@ -190,12 +196,26 @@ export default async function PilgrimDetailPage({
             <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><span>{pilgrim.phone ?? "—"}</span></div>
             <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /><span>{pilgrim.country ?? "—"}</span></div>
             {pilgrim.birth_date && <div className="text-xs text-muted-foreground">Nacimiento: {formatDate(pilgrim.birth_date)}</div>}
+            {/* Lo que llena en el formulario de registro, para tenerlo a la vista. */}
+            {(pilgrim.nickname || pilgrim.instagram) && (
+              <div className="text-xs text-muted-foreground">
+                {pilgrim.nickname && <>Le dicen <strong className="text-foreground">{pilgrim.nickname}</strong></>}
+                {pilgrim.nickname && pilgrim.instagram && " · "}
+                {pilgrim.instagram && <>@{pilgrim.instagram}</>}
+              </div>
+            )}
+            {pilgrim.address && <div className="text-xs text-muted-foreground">{pilgrim.address}</div>}
+            {(pilgrim.shirt_size || pilgrim.sandal_size) && (
+              <div className="text-xs text-muted-foreground">
+                Camiseta <strong className="text-foreground">{pilgrim.shirt_size ?? "—"}</strong> · Sandalias <strong className="text-foreground">{pilgrim.sandal_size ?? "—"}</strong>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Emergencia</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-muted-foreground" /><span>{pilgrim.emergency_contact_name ?? "—"}</span></div>
+            <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-muted-foreground" /><span>{pilgrim.emergency_contact_name ?? "—"}{pilgrim.emergency_contact_relation ? ` (${pilgrim.emergency_contact_relation})` : ""}</span></div>
             <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><span>{pilgrim.emergency_contact_phone ?? "—"}</span></div>
             {pilgrim.dietary_notes && (
               <div className="flex items-start gap-2 pt-2 border-t mt-2">
@@ -269,6 +289,25 @@ export default async function PilgrimDetailPage({
                   contrato={contratoByReg.get(r.registration_id) ?? null}
                   pendientes={revisiones.get(r.registration_id)?.pendientes ?? []}
                   avisos={revisiones.get(r.registration_id)?.avisos ?? []}
+                />
+                <PasosBienvenida
+                  datos={{
+                    registrationId: r.registration_id,
+                    camino: r.departure_name,
+                    nombre: saludo,
+                    sexo: pilgrim.sex ?? null,
+                    telefono: pilgrim.phone ?? null,
+                    contratoEnviado: ["enviado", "visto", "firmado"].includes(contratoByReg.get(r.registration_id)?.status ?? ""),
+                    bienvenidaEnviada: pasosByReg.get(r.registration_id)?.welcome_sent_at ?? null,
+                    formularioEnviado: pasosByReg.get(r.registration_id)?.form_sent_at ?? null,
+                    formularioLleno: pasosByReg.get(r.registration_id)?.registration_form_submitted_at ?? null,
+                    avisos: verificarPasaporte({
+                      escrito: pilgrim,
+                      lectura: pilgrim.passport_ocr ?? { mrz: pilgrim.passport_mrz },
+                      tieneArchivo: !!pilgrim.passport_image_path,
+                      regreso: finDe.get(r.departure_id) ?? r.start_date ?? null,
+                    }),
+                  }}
                 />
                 <div className="flex gap-2 mt-3 flex-wrap">
                   <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
