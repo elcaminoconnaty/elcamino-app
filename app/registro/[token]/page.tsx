@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COLOR, CONTACTO, OVERLAY_FOTO } from "@/lib/brand";
@@ -14,6 +15,31 @@ import { FormularioRegistro } from "./form-registro";
  * públicas del middleware y `next.config.mjs` le pone no-referrer y noindex.
  */
 export const dynamic = "force-dynamic";
+
+/**
+ * Título de la pestaña y vista previa de WhatsApp: el sello ECN con el nombre del camino.
+ * Solo el camino, nunca el nombre de la persona: la vista previa la ve quien reciba el enlace.
+ */
+export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
+  const enlace = await resolverEnlace(params.token);
+  const camino = enlace ? (enlace.tipo === "personal" ? enlace.ficha.camino : enlace.camino) : null;
+  const titulo = camino ? `Registro de peregrinos · ${camino}` : CONTACTO.marca;
+  const descripcion = "Tus datos para las reservas, el seguro y tu kit de peregrino. Toma unos minutos.";
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  return {
+    title: titulo,
+    description: descripcion,
+    ...(base ? { metadataBase: new URL(base) } : {}),
+    openGraph: {
+      title: titulo,
+      description: descripcion,
+      siteName: CONTACTO.marca,
+      type: "website",
+      images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "El Camino con Naty" }],
+    },
+    robots: { index: false, follow: false },
+  };
+}
 
 function Marco({ camino, children }: { camino: string; children: React.ReactNode }) {
   return (
