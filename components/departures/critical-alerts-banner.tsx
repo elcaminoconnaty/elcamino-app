@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 type Alert = { kind: string; title: string; detail?: string; sortDate?: string };
@@ -264,32 +264,47 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
   return (
     <Card className="border-aviso-300 border-2 bg-aviso-50">
       <CardContent className="py-3 px-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-aviso-700 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-aviso-900 mb-2">
-              {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} — revisá antes de avanzar
+        {/* Se abre y se cierra con un clic; arranca cerrada para no tapar la ficha. */}
+        <details className="group">
+          <summary className="flex items-start gap-3 cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
+            <AlertTriangle className="h-5 w-5 text-aviso-700 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-aviso-900">
+                {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} — revisá antes de avanzar
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1 group-open:hidden">
+                {orderedKinds.map((kind) => (
+                  <span key={kind} className="text-xs rounded-full bg-aviso-100 text-aviso-900 px-2 py-0.5">
+                    {KIND_LABEL[kind] ?? kind} ({grouped.get(kind)!.length})
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              {orderedKinds.map((kind) => {
-                const items = grouped.get(kind)!;
-                return (
-                  <div key={kind}>
-                    <div className="text-xs font-semibold text-aviso-900 uppercase tracking-wider">{KIND_LABEL[kind] ?? kind} ({items.length})</div>
-                    <ul className="text-sm text-aviso-900 space-y-0.5 mt-0.5">
-                      {items.map((a, i) => (
-                        <li key={i}>
-                          ⚠ {a.title}
-                          {a.detail && <span className="text-aviso-800 text-xs ml-1">— {a.detail}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="flex items-center gap-1 text-xs text-aviso-800 shrink-0 mt-0.5">
+              <span className="group-open:hidden">Ver</span>
+              <span className="hidden group-open:inline">Ocultar</span>
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </span>
+          </summary>
+          <div className="space-y-2 mt-2 pl-8">
+            {orderedKinds.map((kind) => {
+              const items = grouped.get(kind)!;
+              return (
+                <div key={kind}>
+                  <div className="text-xs font-semibold text-aviso-900 uppercase tracking-wider">{KIND_LABEL[kind] ?? kind} ({items.length})</div>
+                  <ul className="text-sm text-aviso-900 space-y-0.5 mt-0.5">
+                    {items.map((a, i) => (
+                      <li key={i}>
+                        ⚠ {a.title}
+                        {a.detail && <span className="text-aviso-800 text-xs ml-1">— {a.detail}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </details>
       </CardContent>
     </Card>
   );
