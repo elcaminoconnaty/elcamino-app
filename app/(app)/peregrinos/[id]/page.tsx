@@ -19,6 +19,7 @@ import { SettlementCard } from "@/components/pilgrims/settlement-card";
 import { UpcomingPaymentsCard } from "@/components/pilgrims/upcoming-payments-card";
 import { ContractCard, type EstadoContrato } from "@/components/pilgrims/contract-card";
 import { PasosBienvenida } from "@/components/pilgrims/pasos-bienvenida";
+import { Paso, PasoAPaso, type EstadoPaso } from "@/components/pilgrims/paso";
 import { verificarPasaporte } from "@/lib/passport/verificar";
 import { revisarContrato } from "@/lib/actions/contracts";
 import type { RevisionContrato } from "@/lib/contracts/datos";
@@ -29,6 +30,21 @@ import { FileText, Download, Mail, Phone, MapPin, Heart, AlertCircle } from "luc
 import { rutaCamino, rutaPeregrinosDeCamino } from "@/lib/rutas";
 
 export const dynamic = "force-dynamic";
+
+const fechaCorta = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "";
+
+/** Cómo va el contrato, dicho en una línea para el paso 1. */
+function resumenDelContrato(c: EstadoContrato | null, faltanDatos: boolean): { estado: EstadoPaso; resumen: string } {
+  if (!c) return faltanDatos ? { estado: "pendiente", resumen: "Faltan datos para generarlo" } : { estado: "en_curso", resumen: "Listo para generar" };
+  switch (c.status) {
+    case "firmado": return { estado: "hecho", resumen: `Firmado · ${fechaCorta(c.signedAt)}` };
+    case "visto": return { estado: "en_curso", resumen: `Lo abrió el ${fechaCorta(c.viewedAt)}, sin firmar` };
+    case "enviado": return { estado: "en_curso", resumen: `Enviado · ${fechaCorta(c.sentAt)}, sin abrir` };
+    case "borrador": return { estado: "en_curso", resumen: "Generado, sin enviar" };
+    default: return { estado: "pendiente", resumen: "Anulado" };
+  }
+}
 
 export default async function PilgrimDetailPage({
   params,
@@ -237,111 +253,136 @@ export default async function PilgrimDetailPage({
 
       <section>
         <h2 className="font-display text-xl text-noche mb-3">Inscripciones</h2>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {(registrations ?? []).map((r: any) => (
-            <Card key={r.registration_id}>
-              <CardHeader>
-                <div className="flex justify-between gap-2">
-                  <CardTitle className="text-base">
-                    <Link href={rutaCamino(r.departure_id)} className="hover:underline">{r.departure_name}</Link>
-                  </CardTitle>
-                  <Badge variant="muted">{r.status}</Badge>
-                </div>
-                <CardDescription>{formatDate(r.start_date)}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Abonado (menos penalidades)</span><span><EurCop value={r.paid_eur} /></span></div>
-                {Number(r.penalidad_eur) > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {r.penalidad_concepto ?? "Penalidad"}
-                      <span className="block text-[11px] leading-tight">ya descontada de lo abonado</span>
-                    </span>
-                    <span className="text-aviso-800 text-right">
-                      − {formatEUR(r.penalidad_eur)}
-                      {r.penalidad_cop != null && (
-                        <span className="block text-[11px] text-muted-foreground">{formatCOP(r.penalidad_cop)}</span>
-                      )}
-                    </span>
+        <div className="space-y-4">
+          {(registrations ?? []).map((r: any) => {
+            const contrato = contratoByReg.get(r.registration_id) ?? null;
+            const pasoContrato = resumenDelContrato(contrato, (revisiones.get(r.registration_id)?.pendientes ?? []).length > 0);
+            return (
+              <Card key={r.registration_id}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between gap-2 flex-wrap">
+                    <div>
+                      <CardTitle className="text-base">
+                        <Link href={rutaCamino(r.departure_id)} className="hover:underline">{r.departure_name}</Link>
+                      </CardTitle>
+                      <CardDescription>Sale el {formatDate(r.start_date)}</CardDescription>
+                    </div>
+                    <Badge variant="muted" className="self-start">{r.status}</Badge>
                   </div>
-                )}
-                {r.settlement_trm ? (
-                  <>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Acreditado a la tasa de cierre</span><span><EurCop value={r.paid_eur_cierre} /></span></div>
-                    <div className="flex justify-between font-medium">
-                      <span>{Number(r.saldo_final_eur) < -0.5 ? "A favor del peregrino" : "Pendiente"}</span>
-                      <span><EurCop value={Math.abs(Number(r.saldo_final_eur))} /></span>
+                </CardHeader>
+                <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] text-sm">
+                  {/* ── Paso a paso: contrato → carta → formulario ── */}
+                  <section>
+                    <h3 className="text-[11px] uppercase tracking-widest text-ocre-profundo mb-3">Paso a paso</h3>
+                    <PasoAPaso>
+                      <Paso numero={1} titulo="Contrato" estado={pasoContrato.estado} resumen={pasoContrato.resumen}>
+                        <ContractCard
+                          enPaso
+                          registrationId={r.registration_id}
+                          pilgrimId={params.id}
+                          contrato={contrato}
+                          pendientes={revisiones.get(r.registration_id)?.pendientes ?? []}
+                          avisos={revisiones.get(r.registration_id)?.avisos ?? []}
+                        />
+                      </Paso>
+                      <PasosBienvenida
+                        datos={{
+                          registrationId: r.registration_id,
+                          pilgrimId: params.id,
+                          camino: r.departure_name,
+                          nombre: saludo,
+                          sexo: pilgrim.sex ?? null,
+                          telefono: pilgrim.phone ?? null,
+                          contratoEnviado: ["enviado", "visto", "firmado"].includes(contrato?.status ?? ""),
+                          bienvenidaEnviada: pasosByReg.get(r.registration_id)?.welcome_sent_at ?? null,
+                          formularioEnviado: pasosByReg.get(r.registration_id)?.form_sent_at ?? null,
+                          formularioLleno: pasosByReg.get(r.registration_id)?.registration_form_submitted_at ?? null,
+                          avisos: verificarPasaporte({
+                            escrito: pilgrim,
+                            lectura: pilgrim.passport_ocr ?? { mrz: pilgrim.passport_mrz },
+                            tieneArchivo: !!pilgrim.passport_image_path,
+                            regreso: finDe.get(r.departure_id) ?? r.start_date ?? null,
+                          }),
+                        }}
+                      />
+                    </PasoAPaso>
+                  </section>
+
+                  {/* ── Pagos ── */}
+                  <section className="lg:border-l lg:pl-6 border-t pt-4 lg:border-t-0 lg:pt-0">
+                    <h3 className="text-[11px] uppercase tracking-widest text-ocre-profundo mb-3">Pagos</h3>
+                    <div className="space-y-1">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Total acordado</span><span><EurCop value={r.net_total_eur} /></span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Abonado (menos penalidades)</span><span><EurCop value={r.paid_eur} /></span></div>
+                      {Number(r.penalidad_eur) > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {r.penalidad_concepto ?? "Penalidad"}
+                            <span className="block text-[11px] leading-tight">ya descontada de lo abonado</span>
+                          </span>
+                          <span className="text-aviso-800 text-right">
+                            − {formatEUR(r.penalidad_eur)}
+                            {r.penalidad_cop != null && (
+                              <span className="block text-[11px] text-muted-foreground">{formatCOP(r.penalidad_cop)}</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      {r.settlement_trm ? (
+                        <>
+                          <div className="flex justify-between"><span className="text-muted-foreground">Acreditado a la tasa de cierre</span><span><EurCop value={r.paid_eur_cierre} /></span></div>
+                          <div className="flex justify-between font-medium border-t pt-1 mt-1">
+                            <span>{Number(r.saldo_final_eur) < -0.5 ? "A favor del peregrino" : "Pendiente"}</span>
+                            <span><EurCop value={Math.abs(Number(r.saldo_final_eur))} /></span>
+                          </div>
+                          <div className="text-xs text-ok-700 mt-1">
+                            Tasa de cierre: {Number(r.settlement_trm).toLocaleString("es-CO")} COP/EUR ({formatDate(r.settlement_date)})
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between font-medium border-t pt-1 mt-1"><span>Pendiente</span><span><EurCop value={r.pending_eur} /></span></div>
+                      )}
                     </div>
-                    <div className="text-xs text-ok-700 mt-1">
-                      Tasa de cierre: {Number(r.settlement_trm).toLocaleString("es-CO")} COP/EUR ({formatDate(r.settlement_date)})
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
+                      <NewPenaltyDialog registrationId={r.registration_id} />
+                      <Button asChild variant="outline" size="sm">
+                        <a href={`/api/pdf/reporte/${r.registration_id}`} target="_blank">
+                          <FileText className="h-4 w-4" /> Reporte
+                        </a>
+                      </Button>
+                      {r.settlement_trm && (
+                        <Button asChild variant="outline" size="sm">
+                          <a href={`/api/pdf/liquidacion/${r.registration_id}`} target="_blank">
+                            <FileText className="h-4 w-4" /> Recibo final
+                          </a>
+                        </Button>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between font-medium"><span>Pendiente</span><span><EurCop value={r.pending_eur} /></span></div>
-                )}
-                <div className="mt-3">
-                  <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} />
-                </div>
-                <ContractCard
-                  registrationId={r.registration_id}
-                  pilgrimId={params.id}
-                  contrato={contratoByReg.get(r.registration_id) ?? null}
-                  pendientes={revisiones.get(r.registration_id)?.pendientes ?? []}
-                  avisos={revisiones.get(r.registration_id)?.avisos ?? []}
-                />
-                <PasosBienvenida
-                  datos={{
-                    registrationId: r.registration_id,
-                    camino: r.departure_name,
-                    nombre: saludo,
-                    sexo: pilgrim.sex ?? null,
-                    telefono: pilgrim.phone ?? null,
-                    contratoEnviado: ["enviado", "visto", "firmado"].includes(contratoByReg.get(r.registration_id)?.status ?? ""),
-                    bienvenidaEnviada: pasosByReg.get(r.registration_id)?.welcome_sent_at ?? null,
-                    formularioEnviado: pasosByReg.get(r.registration_id)?.form_sent_at ?? null,
-                    formularioLleno: pasosByReg.get(r.registration_id)?.registration_form_submitted_at ?? null,
-                    avisos: verificarPasaporte({
-                      escrito: pilgrim,
-                      lectura: pilgrim.passport_ocr ?? { mrz: pilgrim.passport_mrz },
-                      tieneArchivo: !!pilgrim.passport_image_path,
-                      regreso: finDe.get(r.departure_id) ?? r.start_date ?? null,
-                    }),
-                  }}
-                />
-                <div className="flex gap-2 mt-3 flex-wrap">
-                  <NewPaymentDialog registrationId={r.registration_id} departureId={r.departure_id} pilgrimPaysInCop={r.paid_in_cop_originally} settlementTrm={r.settlement_trm} />
-                  <NewPenaltyDialog registrationId={r.registration_id} />
-                  <EditRegistrationDialog
-                    registration={{
-                      registration_id: r.registration_id,
-                      departure_id: r.departure_id,
-                      total_eur: Number(r.total_eur ?? r.net_total_eur ?? 0),
-                      discount_eur: Number(r.discount_eur ?? 0),
-                      status: r.status,
-                      paid_in_cop_originally: r.paid_in_cop_originally,
-                      notes: notesByReg.get(r.registration_id) ?? null,
-                    }}
-                    departures={departures ?? []}
-                  />
-                  <Button asChild variant="outline" size="sm">
-                    <a href={`/api/pdf/reporte/${r.registration_id}`} target="_blank">
-                      <FileText className="h-4 w-4" /> Reporte
-                    </a>
-                  </Button>
-                  {r.settlement_trm && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={`/api/pdf/liquidacion/${r.registration_id}`} target="_blank">
-                        <FileText className="h-4 w-4" /> Recibo final
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="mt-3">
+                      <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} />
+                    </div>
+                    <div className="mt-3 border-t pt-3">
+                      <EditRegistrationDialog
+                        registration={{
+                          registration_id: r.registration_id,
+                          departure_id: r.departure_id,
+                          total_eur: Number(r.total_eur ?? r.net_total_eur ?? 0),
+                          discount_eur: Number(r.discount_eur ?? 0),
+                          status: r.status,
+                          paid_in_cop_originally: r.paid_in_cop_originally,
+                          notes: notesByReg.get(r.registration_id) ?? null,
+                        }}
+                        departures={departures ?? []}
+                      />
+                    </div>
+                  </section>
+                </CardContent>
+              </Card>
+            );
+          })}
           {(!registrations || registrations.length === 0) && (
-            <Card className="md:col-span-2"><CardContent className="py-8 text-center text-muted-foreground text-sm">Aún no está inscrito en ningún camino. Andá a un camino y agregalo allí.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">Aún no está inscrito en ningún camino. Andá a un camino y agregalo allí.</CardContent></Card>
           )}
         </div>
       </section>
@@ -358,8 +399,9 @@ export default async function PilgrimDetailPage({
         </section>
       )}
 
+      {/* min-w-0: sin él, la tabla de pagos ensancha la grilla y en el celular toda la página se sale de lado. */}
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <h2 className="font-display text-xl text-noche mb-3">Pagos</h2>
           <Card>
             <CardContent className="p-0">

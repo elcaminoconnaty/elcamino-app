@@ -149,7 +149,7 @@ function armarFicha(a: Acceso): FichaParaFormulario {
         }
       : null,
     lecturaPasaporte: a.personal ? ocr?.passport_number ?? null : null,
-    cartaUrl: a.personal ? `/api/pdf/bienvenida/publico/${a.reg.form_token}` : null,
+    cartaUrl: a.personal ? `/carta/${a.reg.form_token}` : null,
     bloqueado: bloqueadoPorGrupo(a),
   };
 }

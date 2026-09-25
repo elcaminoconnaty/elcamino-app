@@ -51,12 +51,15 @@ export function ContractCard({
   contrato,
   pendientes,
   avisos,
+  enPaso = false,
 }: {
   registrationId: string;
   pilgrimId: string;
   contrato: EstadoContrato | null;
   pendientes: Pendiente[];
   avisos: string[];
+  /** Dentro del paso a paso de la inscripción: sin marco ni título (los pone el paso). */
+  enPaso?: boolean;
 }) {
   const [pendiente, empezar] = useTransition();
   const [integridad, setIntegridad] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export function ContractCard({
   // contrato no cambia de estado. Para ver cómo le llega al peregrino antes de mandárselo.
   const [modoPrueba, setModoPrueba] = useState(false);
   const [emailPrueba, setEmailPrueba] = useState("");
+  // Dentro del paso a paso, la caja de prueba queda escondida hasta que se pida.
+  const [verPrueba, setVerPrueba] = useState(false);
 
   const correr = (fn: () => Promise<unknown>, exito: string) =>
     empezar(async () => {
@@ -78,8 +83,8 @@ export function ContractCard({
   const bloqueado = pendientes.length > 0;
 
   return (
-    <div className="mt-3 rounded-md border p-3">
-      <div className="flex items-center justify-between gap-2 mb-2">
+    <div className={enPaso ? "" : "mt-3 rounded-md border p-3"}>
+      <div className={enPaso ? "hidden" : "flex items-center justify-between gap-2 mb-2"}>
         <div className="flex items-center gap-2 text-sm font-medium">
           <FileSignature className="h-4 w-4 text-muted-foreground" />
           Contrato
@@ -125,7 +130,7 @@ export function ContractCard({
 
       {contrato && (
         <>
-          <ol className="text-xs text-muted-foreground space-y-0.5 mb-3">
+          <ol className={enPaso ? "hidden" : "text-xs text-muted-foreground space-y-0.5 mb-3"}>
             <li>Enviado · {fecha(contrato.sentAt)}</li>
             <li>Lo abrió · {fecha(contrato.viewedAt)}</li>
             <li>Firmado · {fecha(contrato.signedAt)}</li>
@@ -202,7 +207,12 @@ export function ContractCard({
             )}
           </div>
 
-          {contrato.status !== "firmado" && contrato.status !== "anulado" && (
+          {enPaso && !verPrueba && contrato.status !== "firmado" && contrato.status !== "anulado" && (
+            <button type="button" onClick={() => setVerPrueba(true)} className="mt-1.5 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">
+              mandarme una prueba primero
+            </button>
+          )}
+          {(!enPaso || verPrueba) && contrato.status !== "firmado" && contrato.status !== "anulado" && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs rounded-md border bg-muted/40 px-2.5 py-2">
               <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={modoPrueba} onChange={(e) => setModoPrueba(e.target.checked)} />

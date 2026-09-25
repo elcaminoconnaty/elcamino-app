@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, ClipboardList, FileText, Download, MessageCircle, Check, Copy, AlertTriangle, ShieldCheck } from "lucide-react";
+import { FileText, Download, MessageCircle, Copy, AlertTriangle, ShieldCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toaster";
 import { obtenerEnlacesPersonales, marcarPasoEnviado } from "@/lib/actions/registro";
 import type { Aviso } from "@/lib/passport/verificar";
+import { Paso, type EstadoPaso } from "@/components/pilgrims/paso";
 
 /**
- * Lo que sigue al contrato, en la tarjeta de cada inscripción:
+ * Los pasos 2 y 3 del paso a paso de cada inscripción (el 1 es el contrato):
  *   2 · la carta de bienvenida (con su nombre), y
  *   3 · el formulario de registro, por su enlace personal.
  *
@@ -23,6 +23,7 @@ const fecha = (iso: string | null) =>
 
 export type DatosPasos = {
   registrationId: string;
+  pilgrimId: string;
   camino: string;
   nombre: string;
   sexo: string | null;
@@ -134,66 +135,59 @@ export function PasosBienvenida({ datos }: { datos: DatosPasos }) {
   const problemas = datos.avisos.filter((a) => a.nivel !== "ok");
   const verificado = datos.avisos.find((a) => a.nivel === "ok");
 
-  return (
-    <div className="mt-3 rounded-md border p-3 space-y-3">
-      {!datos.contratoEnviado && (
-        <p className="text-xs text-muted-foreground">Lo normal es mandar esto después del contrato, pero no hace falta esperar.</p>
-      )}
+  // El estado de cada paso: hecho, en curso (le toca ahora) o pendiente.
+  const estadoCarta: EstadoPaso = datos.bienvenidaEnviada ? "hecho" : datos.contratoEnviado ? "en_curso" : "pendiente";
+  const resumenCarta = datos.bienvenidaEnviada ? `Enviada · ${fecha(datos.bienvenidaEnviada)}` : datos.contratoEnviado ? "Toca mandarla" : "Por enviar";
+  const estadoForm: EstadoPaso = datos.formularioLleno
+    ? problemas.some((a) => a.nivel === "error") ? "en_curso" : "hecho"
+    : datos.formularioEnviado || datos.bienvenidaEnviada ? "en_curso" : "pendiente";
+  const resumenForm = datos.formularioLleno
+    ? `Lleno · ${fecha(datos.formularioLleno)}${problemas.some((a) => a.nivel === "error") ? " · revisar pasaporte" : ""}`
+    : datos.formularioEnviado
+      ? `Enviado · ${fecha(datos.formularioEnviado)}, sin llenar`
+      : datos.bienvenidaEnviada ? "Toca mandarlo" : "Por enviar";
 
-      {/* ── Paso 2: carta ── */}
-      <div>
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Mail className="h-4 w-4 text-muted-foreground" />
-            Carta de bienvenida
-          </div>
-          {datos.bienvenidaEnviada ? <Badge variant="success">Enviada · {fecha(datos.bienvenidaEnviada)}</Badge> : <Badge variant="muted">Por enviar</Badge>}
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/pdf/bienvenida/${datos.registrationId}`} target="_blank"><FileText className="h-4 w-4" /> Ver</a>
+  return (
+    <>
+      <Paso numero={2} titulo="Carta de bienvenida" estado={estadoCarta} resumen={resumenCarta}>
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <Button size="sm" variant={estadoCarta === "en_curso" ? "accent" : "outline"} disabled={ocupado} onClick={() => whatsapp("bienvenida")} title="Abre su chat con el mensaje y el enlace a su carta">
+            <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
           </Button>
           <Button asChild variant="outline" size="sm">
-            <a href={`/api/pdf/bienvenida/${datos.registrationId}?descargar`}><Download className="h-4 w-4" /> Descargar</a>
+            <a href={`/peregrinos/${datos.pilgrimId}/carta/${datos.registrationId}`} title="Ver la carta con su nombre"><FileText className="h-4 w-4" /> Ver</a>
           </Button>
-          <Button size="sm" variant="accent" disabled={ocupado} onClick={() => whatsapp("bienvenida")} title="Abre el chat con el mensaje y el enlace a su carta">
-            <MessageCircle className="h-4 w-4" /> WhatsApp
+          <Button asChild variant="ghost" size="sm">
+            <a href={`/api/pdf/bienvenida/${datos.registrationId}?descargar`} title="Descargar el PDF"><Download className="h-4 w-4" /></a>
           </Button>
-          <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => copiar("bienvenida")} title="Copia el mensaje con el enlace a su carta">
+          <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => copiar("bienvenida")} title="Copiar el mensaje con el enlace a su carta">
             <Copy className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => marcar("bienvenida", !datos.bienvenidaEnviada)}>
-            <Check className="h-4 w-4" /> {datos.bienvenidaEnviada ? "Desmarcar" : "Marcar enviada"}
-          </Button>
+          <button type="button" disabled={ocupado} onClick={() => marcar("bienvenida", !datos.bienvenidaEnviada)} className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground ml-1">
+            {datos.bienvenidaEnviada ? "desmarcar" : "ya la mandé"}
+          </button>
         </div>
-      </div>
+      </Paso>
 
-      {/* ── Paso 3: formulario ── */}
-      <div className="border-t pt-3">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            Formulario de registro
-          </div>
+      <Paso numero={3} titulo="Formulario de registro" estado={estadoForm} resumen={resumenForm} ultimo>
+        <div className="flex gap-1.5 flex-wrap items-center">
           {datos.formularioLleno ? (
-            <Badge variant="success">Lleno · {fecha(datos.formularioLleno)}</Badge>
-          ) : datos.formularioEnviado ? (
-            <Badge variant="warning">Enviado · {fecha(datos.formularioEnviado)}</Badge>
+            <Button asChild size="sm" variant="accent">
+              <a href={`/api/pdf/registro/${datos.registrationId}`} target="_blank"><FileText className="h-4 w-4" /> Ver sus datos</a>
+            </Button>
           ) : (
-            <Badge variant="muted">Por enviar</Badge>
+            <Button size="sm" variant={estadoForm === "en_curso" && !datos.formularioEnviado ? "accent" : "outline"} disabled={ocupado} onClick={() => whatsapp("formulario")} title="Abre su chat con el mensaje y su enlace personal">
+              <MessageCircle className="h-4 w-4" /> {datos.formularioEnviado ? "Recordarle por WhatsApp" : "Enviar por WhatsApp"}
+            </Button>
           )}
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button size="sm" variant="accent" disabled={ocupado} onClick={() => whatsapp("formulario")} title="Abre el chat con el mensaje y su enlace personal">
-            <MessageCircle className="h-4 w-4" /> WhatsApp
-          </Button>
-          <Button size="sm" variant="outline" disabled={ocupado} onClick={() => copiar("formulario")}>
-            <Copy className="h-4 w-4" /> Copiar mensaje
+          <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => copiar("formulario")} title="Copiar el mensaje con su enlace personal">
+            <Copy className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
             disabled={ocupado}
+            title="Abrir el formulario tal como lo ve el peregrino"
             onClick={() => {
               const ventana = window.open("about:blank", "_blank");
               empezar(async () => {
@@ -206,19 +200,18 @@ export function PasosBienvenida({ datos }: { datos: DatosPasos }) {
                 }
               });
             }}
-            title="Abre el formulario tal como lo ve el peregrino"
           >
-            Ver como peregrino
+            <ExternalLink className="h-4 w-4" />
           </Button>
-          {datos.formularioLleno && (
-            <Button asChild variant="outline" size="sm">
-              <a href={`/api/pdf/registro/${datos.registrationId}`} target="_blank"><Download className="h-4 w-4" /> Ficha PDF</a>
-            </Button>
+          {!datos.formularioLleno && (
+            <button type="button" disabled={ocupado} onClick={() => marcar("formulario", !datos.formularioEnviado)} className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground ml-1">
+              {datos.formularioEnviado ? "desmarcar" : "ya lo mandé"}
+            </button>
           )}
         </div>
 
         {(problemas.length > 0 || verificado) && (
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 space-y-1 rounded-md bg-muted/40 px-2.5 py-2">
             {verificado && problemas.length === 0 && (
               <p className="text-xs flex gap-2 items-start text-ok-700">
                 <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -233,7 +226,7 @@ export function PasosBienvenida({ datos }: { datos: DatosPasos }) {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Paso>
+    </>
   );
 }

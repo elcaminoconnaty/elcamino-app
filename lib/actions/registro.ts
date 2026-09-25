@@ -47,7 +47,7 @@ export async function obtenerEnlacesPersonales(registrationId: string): Promise<
     token = (r2?.form_token as string | null) ?? null;
     if (!token) return { ok: false, error: "No se pudo generar el enlace." };
   }
-  return { ok: true, formulario: `${baseUrl()}/registro/${token}`, carta: `${baseUrl()}/api/pdf/bienvenida/publico/${token}` };
+  return { ok: true, formulario: `${baseUrl()}/registro/${token}`, carta: `${baseUrl()}/carta/${token}` };
 }
 
 /** Marca (o desmarca) que ya se le mandó la carta o el formulario. */
