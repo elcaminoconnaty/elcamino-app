@@ -143,9 +143,10 @@ function Punto({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Sin albergues (pedido de Nico, 2026-09-24): pensión y hotel van cada uno por su lado. */
 const ALOJAMIENTOS = [
-  { titulo: "Albergue privado", texto: "Para conectar con el espíritu peregrino tradicional del Camino.", foto: "albergue.jpg" },
-  { titulo: "Pensión / Hotel", texto: "Habitación doble con baño privado para mayor descanso.", foto: "pension.jpg" },
+  { titulo: "Pensión", texto: "Alojamiento sencillo y de trato familiar, con habitación doble y baño privado.", foto: "pension.jpg" },
+  { titulo: "Hotel", texto: "Habitación doble con baño privado para mayor descanso.", foto: "hotel-habitacion.jpg" },
   { titulo: "Pazo / Casa rural", texto: "Casas de piedra gallegas con encanto y tradición.", foto: "pazo.jpg" },
   { titulo: "Hotel superior", texto: "Nuestro alojamiento de celebración en Santiago de Compostela.", foto: "hotel.jpg" },
 ];

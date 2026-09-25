@@ -62,32 +62,38 @@ function GuiaDeTallas() {
       <summary style={{ cursor: "pointer", padding: "10px 12px", fontSize: 14, color: COLOR.ocreProfundo, textDecoration: "underline" }}>Ver la guía de tallas</summary>
       <div className="px-3 pb-3">
         {REGISTRO.guiaSandaliasImagen ? (
-          <img src={REGISTRO.guiaSandaliasImagen} alt="Guía de tallas de las sandalias" style={{ width: "100%", borderRadius: 4 }} />
+          <>
+            {/* La guía de la marca ya trae cómo medir el pie; acá solo va el consejo que le falta. */}
+            <a href={REGISTRO.guiaSandaliasImagen} target="_blank" rel="noreferrer" title="Ábrela en grande">
+              <img src={REGISTRO.guiaSandaliasImagen} alt="Guía de tallas de calzado Evacol: largo del pie en centímetros y talla equivalente" style={{ width: "100%", borderRadius: 4 }} />
+            </a>
+            <p style={{ ...AYUDA, marginTop: 8 }}>Tócala para verla en grande. {COMO_MEDIR_PIE[COMO_MEDIR_PIE.length - 1]}</p>
+          </>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: COLOR.atlantico }}>
-            <thead>
-              <tr style={{ background: COLOR.atlantico, color: COLOR.alba }}>
-                {["Talla EU", "Tu pie (cm)", "US mujer", "US hombre"].map((h) => (
-                  <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 500, fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {GUIA_SANDALIAS.map((g, i) => (
-                <tr key={g.eu} style={{ background: i % 2 ? COLOR.alba : "#fff" }}>
-                  <td style={{ padding: "5px 8px", fontWeight: 700 }}>{g.eu}</td>
-                  <td style={{ padding: "5px 8px" }}>{g.cm}</td>
-                  <td style={{ padding: "5px 8px" }}>{g.usMujer}</td>
-                  <td style={{ padding: "5px 8px" }}>{g.usHombre}</td>
+          <>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: COLOR.atlantico }}>
+              <thead>
+                <tr style={{ background: COLOR.atlantico, color: COLOR.alba }}>
+                  {["Talla", "Largo de tu pie (cm)"].map((h) => (
+                    <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 500, fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {GUIA_SANDALIAS.map((g, i) => (
+                  <tr key={g.eu} style={{ background: i % 2 ? COLOR.alba : "#fff" }}>
+                    <td style={{ padding: "5px 8px", fontWeight: 700 }}>{g.eu}</td>
+                    <td style={{ padding: "5px 8px" }}>{g.cm}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ ...LABEL, marginTop: 12 }}>Cómo medir tu pie</p>
+            <ol style={{ margin: 0, paddingLeft: 18, color: COLOR.castano, fontSize: 13, lineHeight: 1.6 }}>
+              {COMO_MEDIR_PIE.map((t) => <li key={t}>{t}</li>)}
+            </ol>
+          </>
         )}
-        <p style={{ ...LABEL, marginTop: 12 }}>Cómo medir tu pie</p>
-        <ol style={{ margin: 0, paddingLeft: 18, color: COLOR.castano, fontSize: 13, lineHeight: 1.6 }}>
-          {COMO_MEDIR_PIE.map((t) => <li key={t}>{t}</li>)}
-        </ol>
       </div>
     </details>
   );
