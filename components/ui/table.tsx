@@ -1,12 +1,50 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-x-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-xs sm:text-sm", className)} {...props} />
-    </div>
-  )
+/**
+ * Le pone a cada celda el nombre de su columna (`data-label`) para que en el celular la
+ * fila se lea como tarjeta (ver `.tabla-apilable` en globals.css). Se hace en el navegador
+ * y no a mano en cada tabla: son más de quince y los encabezados cambian. Respeta colspan
+ * y vuelve a etiquetar si las filas cambian (filtros, guardados).
+ */
+function etiquetar(tabla: HTMLTableElement) {
+  const encabezados: string[] = [];
+  tabla.querySelectorAll("thead tr:last-child th").forEach((th) => {
+    const texto = (th as HTMLElement).innerText.trim();
+    const span = Number((th as HTMLTableCellElement).colSpan) || 1;
+    for (let i = 0; i < span; i++) encabezados.push(texto);
+  });
+  tabla.querySelectorAll("tbody tr, tfoot tr").forEach((tr) => {
+    let col = 0;
+    Array.from((tr as HTMLTableRowElement).cells).forEach((td) => {
+      const texto = encabezados[col];
+      if (td.tagName === "TD" && texto) td.setAttribute("data-label", texto);
+      else td.removeAttribute("data-label");
+      col += td.colSpan || 1;
+    });
+  });
+}
+
+const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement> & { apilar?: boolean }>(
+  ({ className, apilar = true, ...props }, ref) => {
+    const propio = React.useRef<HTMLTableElement>(null);
+    React.useImperativeHandle(ref, () => propio.current as HTMLTableElement);
+    React.useEffect(() => {
+      const t = propio.current;
+      if (!t || !apilar) return;
+      etiquetar(t);
+      const obs = new MutationObserver(() => etiquetar(t));
+      obs.observe(t, { childList: true, subtree: true });
+      return () => obs.disconnect();
+    }, [apilar]);
+    return (
+      <div className="relative w-full overflow-x-auto">
+        <table ref={propio} className={cn("w-full caption-bottom text-xs sm:text-sm", apilar && "tabla-apilable", className)} {...props} />
+      </div>
+    );
+  }
 );
 Table.displayName = "Table";
 

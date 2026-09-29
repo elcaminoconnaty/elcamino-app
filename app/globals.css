@@ -75,3 +75,54 @@
     font-size: max(11px, 0.8rem);
   }
 }
+
+/*
+ * Tablas en el celular: cada fila se vuelve una tarjeta y cada celda una línea
+ * "Etiqueta · valor". La etiqueta sale del encabezado de su columna (`data-label`, que pone
+ * <Table>). Deslizar una tabla de lado en un iPhone era la queja; esto la vuelve una lista.
+ * Una tabla que no deba apilarse (editable, con celdas combinadas) usa <Table apilar={false}>.
+ */
+@media (max-width: 639px) {
+  .tabla-apilable thead { display: none; }
+  .tabla-apilable, .tabla-apilable tbody, .tabla-apilable tfoot { display: block; width: 100%; }
+  .tabla-apilable tr {
+    display: block;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    background: hsl(var(--background));
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.625rem;
+  }
+  .tabla-apilable tbody tr:last-child { border: 1px solid hsl(var(--border)); }
+  .tabla-apilable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.3rem 0 !important;
+    text-align: right !important;
+    white-space: normal !important;
+    font-size: 0.875rem;
+    min-height: 0;
+  }
+  .tabla-apilable td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+  }
+  /* La primera celda es el título de la tarjeta: sin etiqueta, grande y a la izquierda. */
+  .tabla-apilable td:first-child {
+    display: block;
+    text-align: left !important;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding-bottom: 0.4rem !important;
+  }
+  .tabla-apilable td:first-child::before { content: none; }
+  /* Celdas sin encabezado (botones, acciones) van a lo ancho, a la izquierda. */
+  .tabla-apilable td:not([data-label]):not(:first-child) { justify-content: flex-start; text-align: left !important; }
+  .tabla-apilable td:empty { display: none; }
+  .tabla-apilable tfoot tr { background: hsl(var(--muted)); }
+}

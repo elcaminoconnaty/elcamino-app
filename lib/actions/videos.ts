@@ -17,3 +17,14 @@ export async function marcarVideoEnviado(videoId: string, enviado: boolean): Pro
   if (dep) revalidatePath(`/caminos/${dep}`);
   return { ok: true };
 }
+
+/** El celular del peregrino, cargado desde la pestaña Videos para poder mandarle el enlace. */
+export async function guardarCelular(pilgrimId: string, telefono: string): Promise<Resultado> {
+  const limpio = telefono.trim();
+  if (limpio.replace(/\D/g, "").length < 8) return { ok: false, error: "Ese número está muy corto." };
+  const supabase = createClient();
+  const { error } = await supabase.from("pilgrims").update({ phone: limpio }).eq("id", pilgrimId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/peregrinos/${pilgrimId}`);
+  return { ok: true };
+}

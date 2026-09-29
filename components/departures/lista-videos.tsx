@@ -1,13 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Copy, ExternalLink, Eye, Film } from "lucide-react";
+import { MessageCircle, Copy, ExternalLink, Eye, Film, Send, Check, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { numeroWhatsApp } from "@/components/pilgrims/pasos-bienvenida";
-import { marcarVideoEnviado } from "@/lib/actions/videos";
+import { marcarVideoEnviado, guardarCelular } from "@/lib/actions/videos";
 
 export type FilaVideo = {
   registrationId: string;
@@ -31,6 +31,34 @@ const fecha = (iso: string | null) =>
 
 function mensaje(nombre: string, url: string) {
   return `Hola ${nombre} 💛\n\nHay personas que caminan contigo aunque no estén aquí, y te dejaron un mensaje. Es solo para ti:\n${url}\n\nBúscate un momento tranquilo, sube el volumen y ábrelo con calma.\n\nNati & Nico`;
+}
+
+/** Para quien no tiene celular en su ficha: se escribe ahí mismo y entra a la serie. */
+function CampoCelular({ pilgrimId, nombre }: { pilgrimId: string; nombre: string }) {
+  const router = useRouter();
+  const [valor, setValor] = useState("");
+  const [ocupado, empezar] = useTransition();
+  function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    empezar(async () => {
+      const r = await guardarCelular(pilgrimId, valor);
+      if (!r.ok) toast({ title: "No se pudo guardar", description: r.error, variant: "destructive" });
+      else { toast({ title: `Celular de ${nombre} guardado`, variant: "success" }); router.refresh(); }
+    });
+  }
+  return (
+    <form onSubmit={guardar} className="flex w-full gap-1.5">
+      <input
+        type="tel"
+        inputMode="tel"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        placeholder={`Celular de ${nombre} (con +52, +1… si no es de Colombia)`}
+        className="min-w-0 flex-1 h-9 rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+      />
+      <Button type="submit" size="sm" variant="outline" disabled={ocupado || !valor.trim()} className="h-9">Guardar</Button>
+    </form>
+  );
 }
 
 export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
@@ -63,7 +91,77 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
     }
   }
 
+  // «Enviar a todos»: WhatsApp no deja mandar solo desde un número personal, así que va en
+  // serie. Cada toque abre el chat con el mensaje listo; al volver, la tarjeta ya muestra al
+  // siguiente. Quien no tiene celular en su ficha no entra en la serie (no hay a quién abrirle).
+  const cola = filas.filter((f) => f.video && !f.video.enviado && numeroWhatsApp(f.telefono));
+  const sinCelular = filas.filter((f) => f.video && !f.video.enviado && !numeroWhatsApp(f.telefono));
+  const [serie, setSerie] = useState<FilaVideo[] | null>(null);
+  const [paso, setPaso] = useState(0);
+  const actual = serie?.[paso] ?? null;
+
+  function enviarActual() {
+    if (!actual?.video) return;
+    const numero = numeroWhatsApp(actual.telefono);
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje(actual.nombre, actual.video.url))}`, "_blank");
+    marcarVideoEnviado(actual.video.id, true).then((r) => {
+      if (!r.ok) toast({ title: `No se pudo marcar a ${actual.nombre}`, description: r.error, variant: "destructive" });
+    });
+    setPaso((p) => p + 1);
+  }
+
+  function cerrarSerie() {
+    setSerie(null);
+    setPaso(0);
+    router.refresh();
+  }
+
   return (
+    <>
+    {serie ? (
+      <div className="mb-4 rounded-xl border-2 border-ocre bg-ocre/10 p-4 sm:p-5">
+        {actual ? (
+          <>
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{paso + 1} de {serie.length}</span>
+              <button type="button" onClick={cerrarSerie} className="inline-flex items-center gap-1 hover:text-foreground"><X className="h-3.5 w-3.5" /> Terminar</button>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-background overflow-hidden">
+              <div className="h-full bg-ocre transition-all" style={{ width: `${(paso / serie.length) * 100}%` }} />
+            </div>
+            {paso > 0 && <p className="mt-3 text-sm text-ok-700 flex items-center gap-1.5"><Check className="h-4 w-4" /> Listo {serie[paso - 1].nombre}. Sigue:</p>}
+            <p className="font-display text-2xl text-noche mt-2">{actual.nombreCompleto}</p>
+            <Button variant="accent" className="mt-3 w-full h-12 text-base" onClick={enviarActual}>
+              <MessageCircle className="h-5 w-5" /> Abrir WhatsApp de {actual.nombre}
+            </Button>
+            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Toca enviar en WhatsApp y vuelve aquí.</span>
+              <button type="button" onClick={() => setPaso((p) => p + 1)} className="inline-flex items-center gap-1 hover:text-foreground"><SkipForward className="h-3.5 w-3.5" /> Saltar</button>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-2">
+            <p className="font-display text-2xl text-noche">¡Listo! 💛</p>
+            <p className="text-sm text-muted-foreground mt-1">Se abrieron los {serie.length} chats.</p>
+            <Button variant="outline" className="mt-3" onClick={cerrarSerie}>Cerrar</Button>
+          </div>
+        )}
+      </div>
+    ) : (cola.length > 0 || sinCelular.length > 0) && (
+      <div className="mb-4 rounded-xl border bg-background p-4 flex flex-wrap items-center gap-3 justify-between">
+        <div className="text-sm">
+          <p className="font-medium text-noche">{cola.length ? `${cola.length} por enviar` : "Nadie más con celular por enviar"}</p>
+          {sinCelular.length > 0 && (
+            <p className="text-xs text-aviso-800 mt-0.5">Sin celular en su ficha: {sinCelular.map((f) => f.nombre).join(", ")}</p>
+          )}
+        </div>
+        {cola.length > 0 && (
+          <Button variant="accent" className="h-11 w-full sm:w-auto" onClick={() => { setSerie(cola); setPaso(0); }}>
+            <Send className="h-4 w-4" /> Enviar a todos
+          </Button>
+        )}
+      </div>
+    )}
     <ul className="divide-y">
       {filas.map((f) => {
         const v = f.video;
@@ -84,6 +182,7 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
                 {v && <span className="text-muted-foreground">· {v.minutos} min</span>}
               </div>
             </div>
+            {v && !f.telefono && <CampoCelular pilgrimId={f.pilgrimId} nombre={f.nombre} />}
             {v && (
               <div className="flex gap-1.5 flex-wrap items-center">
                 <Button size="sm" variant={v.enviado ? "outline" : "accent"} disabled={ocupado} onClick={() => whatsapp(f)} title="Abre su chat con el mensaje y su enlace privado">
@@ -104,5 +203,6 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
         );
       })}
     </ul>
+    </>
   );
 }

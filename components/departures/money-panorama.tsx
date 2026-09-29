@@ -90,7 +90,8 @@ export function MoneyPanorama({
             <div className="flex items-center gap-1.5 text-xs font-medium text-ok-900">
               <TrendingUp className="h-4 w-4" /> Lo que entra — peregrinos
             </div>
-            <div className={`mt-3 grid gap-2 ${hayCierre ? "grid-cols-4" : "grid-cols-3"}`}>
+            {/* En el celular van de a dos: en cuatro columnas las cifras se cortaban ("EUR 31.8…"). */}
+            <div className={`mt-3 grid gap-x-2 gap-y-3 grid-cols-2 ${hayCierre ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
               <MoneyCell label="Esperado" value={<EurCop value={esperado} />} />
               <MoneyCell label="Cobrado" value={<EurCop value={cobrado} />} strong="text-ok-700" />
               <MoneyCell
@@ -123,7 +124,7 @@ export function MoneyPanorama({
             <div className="flex items-center gap-1.5 text-xs font-medium text-aviso-900">
               <TrendingDown className="h-4 w-4" /> Lo que sale — proveedores + equipo
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid gap-x-2 gap-y-3 grid-cols-2 sm:grid-cols-3">
               <MoneyCell label="Costo total" value={<EurCop value={costo} />} />
               <MoneyCell label="Pagado" value={<EurCop value={pagado} />} strong="text-ok-700" />
               <MoneyCell label="Falta por pagar" value={<EurCop value={faltaPagar} />} strong="text-aviso-700" />
@@ -143,7 +144,7 @@ function MoneyCell({ label, value, strong }: { label: string; value: React.React
   return (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-tight">{label}</div>
-      <div className={`text-base sm:text-lg font-display font-semibold mt-0.5 truncate ${strong ?? ""}`}>{value}</div>
+      <div className={`text-base sm:text-lg font-display font-semibold mt-0.5 break-words sm:truncate ${strong ?? ""}`}>{value}</div>
     </div>
   );
 }
