@@ -1,4 +1,5 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { normalizarIban, validarIban, validarSwift } from "@/lib/banco";
@@ -95,26 +96,30 @@ export async function listProviderAccounts(providerId: string) {
 }
 
 export async function createProviderAccount(providerId: string, fd: FormData, departureId?: string | null) {
-  const supabase = createClient();
-  const cuenta = armarCuenta(fd);
-  if (cuenta.is_default) await bajarPredeterminada(supabase, providerId);
-  const { data, error } = await supabase
-    .from("provider_payment_accounts")
-    .insert({ ...cuenta, provider_id: providerId })
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-  revalidar(providerId, departureId);
-  return data;
+  return intentar(async () => {
+    const supabase = createClient();
+    const cuenta = armarCuenta(fd);
+    if (cuenta.is_default) await bajarPredeterminada(supabase, providerId);
+    const { data, error } = await supabase
+      .from("provider_payment_accounts")
+      .insert({ ...cuenta, provider_id: providerId })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidar(providerId, departureId);
+    return data;
+  });
 }
 
 export async function updateProviderAccount(id: string, providerId: string, fd: FormData, departureId?: string | null) {
-  const supabase = createClient();
-  const cuenta = armarCuenta(fd);
-  if (cuenta.is_default) await bajarPredeterminada(supabase, providerId, id);
-  const { error } = await supabase.from("provider_payment_accounts").update(cuenta).eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidar(providerId, departureId);
+  return intentar(async () => {
+    const supabase = createClient();
+    const cuenta = armarCuenta(fd);
+    if (cuenta.is_default) await bajarPredeterminada(supabase, providerId, id);
+    const { error } = await supabase.from("provider_payment_accounts").update(cuenta).eq("id", id);
+    if (error) throw new Error(error.message);
+    revalidar(providerId, departureId);
+  });
 }
 
 /**
@@ -122,11 +127,13 @@ export async function updateProviderAccount(id: string, providerId: string, fd: 
  * se pagaron, y el informe de un camino pasado tiene que poder reconstruirse.
  */
 export async function archiveProviderAccount(id: string, providerId: string) {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("provider_payment_accounts")
-    .update({ active: false, is_default: false })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidar(providerId);
+  return intentar(async () => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("provider_payment_accounts")
+      .update({ active: false, is_default: false })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    revalidar(providerId);
+  });
 }

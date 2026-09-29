@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setTrm } from "@/lib/actions/trm";
 import { toast } from "@/components/ui/toaster";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
 
 export function NewTrmForm({ latestRate }: { latestRate: number | null }) {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(hoyBogota());
   const [rate, setRate] = useState(latestRate ? String(latestRate) : "");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -20,7 +22,7 @@ export function NewTrmForm({ latestRate }: { latestRate: number | null }) {
     try {
       const n = Number(rate);
       if (!n || n <= 0) throw new Error("Tasa inválida");
-      await setTrm(date, n, notes);
+      exigir(await setTrm(date, n, notes));
       toast({ title: "TRM guardada", variant: "success" });
       router.refresh();
       setNotes("");

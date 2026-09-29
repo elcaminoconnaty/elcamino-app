@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { DatosContrato } from "./minuta";
+import { hoyBogota } from "@/lib/utils";
 
 /**
  * De la base de datos a los trece campos del contrato.
@@ -206,7 +207,7 @@ export async function armarDatosContrato(
     }
   }
 
-  const hoy = opciones?.fechaFirma ?? new Date().toISOString().slice(0, 10);
+  const hoy = opciones?.fechaFirma ?? hoyBogota();
 
   const datos: Partial<DatosContrato> = {
     viajero_nombre: p?.full_name ? String(p.full_name).toUpperCase() : undefined,

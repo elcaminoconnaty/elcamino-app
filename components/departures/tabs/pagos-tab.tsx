@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contratadoPorCamino } from "@/lib/data/costos-contratados";
 import { rutaPeregrino } from "@/lib/rutas";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,6 @@ export async function PagosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
   const [
     { data: finance },
-    { data: payable },
     { data: pilgrims },
     { data: reservations },
     { data: resPayments },
@@ -24,7 +24,6 @@ export async function PagosTab({ departureId }: { departureId: string }) {
     { data: providers },
   ] = await Promise.all([
     supabase.from("v_departure_finance").select("expected_revenue_eur, collected_revenue_eur, pending_revenue_eur, pending_settled_eur, por_devolver_eur, fx_difference_eur, liquidados_count, trm_frozen_value, settlement_mode").eq("departure_id", departureId).maybeSingle(),
-    supabase.from("v_departure_payable").select("*").eq("departure_id", departureId).maybeSingle(),
     supabase.from("v_pilgrim_balance").select("*").eq("departure_id", departureId).order("pilgrim_name"),
     supabase.from("reservations").select("id, provider_id, departure_id, type, location, estimated_cost_eur, confirmed_cost_eur, status, providers(name)").eq("departure_id", departureId).neq("status", "cancelado").order("check_in", { ascending: true, nullsFirst: false }),
     supabase.from("v_reservation_payments").select("reservation_id, paid_eur, paid_pct, saldo_eur").eq("departure_id", departureId),
@@ -36,20 +35,21 @@ export async function PagosTab({ departureId }: { departureId: string }) {
   const activos = (pilgrims ?? []).filter((r: any) => r.status !== "cancelado");
   const esperado = Number((finance as any)?.expected_revenue_eur ?? 0);
   const cobrado = Number((finance as any)?.collected_revenue_eur ?? 0);
-  // Con tasa de cierre fijada, lo que falta cobrar sale de la liquidación: los
-  // abonos en pesos ya re-valorados. Sin ella, del pendiente histórico.
+  // Lo que falta cobrar es siempre pending_settled_eur: con tasa de cierre es la liquidación
+  // (abonos en pesos re-valorados) y sin ella la vista ya lo iguala al histórico.
   const hayCierre =
     ((finance as any)?.settlement_mode ?? "recalculo") === "recalculo" &&
     Number((finance as any)?.trm_frozen_value ?? 0) > 0;
-  const faltaCobrar = hayCierre
-    ? Number((finance as any)?.pending_settled_eur ?? 0)
-    : Number((finance as any)?.pending_revenue_eur ?? 0);
+  const faltaCobrar = Number((finance as any)?.pending_settled_eur ?? 0);
   const porDevolver = Number((finance as any)?.por_devolver_eur ?? 0);
   const difCambio = Number((finance as any)?.fx_difference_eur ?? 0);
 
-  const costo = Number((payable as any)?.total_modelo_eur ?? 0);
-  const pagado = Number((payable as any)?.pagado_real_eur ?? 0);
-  const faltaPagar = Number((payable as any)?.falta_por_pagar_eur ?? 0);
+  // Lo que se le debe a proveedores sale de lo contratado: así estas tarjetas suman lo mismo que
+  // las filas de abajo y que el informe de giros (antes la tarjeta usaba el modelo por persona).
+  const contratado = (await contratadoPorCamino(supabase, departureId)).get(departureId);
+  const costo = Number(contratado?.comprometido ?? 0);
+  const pagado = Number(contratado?.pagado ?? 0);
+  const faltaPagar = Number(contratado?.falta ?? 0);
 
   const resPayByid = new Map<string, { paid_eur: number; paid_pct: number; saldo_eur: number }>();
   (resPayments ?? []).forEach((p: any) => resPayByid.set(p.reservation_id, {
@@ -72,7 +72,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
           <TrendingUp className="h-5 w-5 text-ok-700" />
           <h2 className="font-display text-lg text-noche">Lo que entra — abonos de peregrinos</h2>
         </div>
-        <div className={`grid gap-3 ${hayCierre ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"}`}>
+        <div className={`grid gap-3 grid-cols-2 ${hayCierre ? "lg:grid-cols-4" : "sm:grid-cols-3"}`}>
           <SummaryCard label="Esperado" value={<EurCop value={esperado} />} />
           <SummaryCard label="Cobrado" value={<EurCop value={cobrado} />} tone="green" />
           <SummaryCard
@@ -104,9 +104,9 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                   <TableRow>
                     <TableHead>Peregrino</TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Pagado</TableHead>
+                    <TableHead className="text-right">{activos.some((r: any) => r.settlement_trm != null) ? "Acreditado" : "Pagado"}</TableHead>
                     <TableHead className="text-right">Falta</TableHead>
-                    <TableHead className="text-right">Registrar</TableHead>
+                    <TableHead className="text-right" data-acciones>Registrar</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -121,7 +121,9 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                           <Link href={rutaPeregrino(r.pilgrim_id, departureId)} className="hover:underline font-medium">{r.pilgrim_name}</Link>
                         </TableCell>
                         <TableCell className="text-right">{formatEUR(r.net_total_eur)}</TableCell>
-                        <TableCell className="text-right text-ok-700">{formatEUR(r.paid_eur)}</TableCell>
+                        {/* Con tasa de cierre, Total − Acreditado = Falta: la fila cierra. Mostrar el pagado
+                            histórico al lado del saldo liquidado dejaba una fila que no sumaba. */}
+                        <TableCell className="text-right text-ok-700">{formatEUR(conCierre ? r.paid_eur_cierre : r.paid_eur)}</TableCell>
                         <TableCell className="text-right">
                           {saldado ? (
                             <Badge variant="success">al día</Badge>
@@ -167,6 +169,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
             <a
               href={`/api/export/caminos/${departureId}/pagos-pendientes`}
               download
+              target="_blank"
+              rel="noopener"
               className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
               title="El mismo informe en Excel"
             >
@@ -174,8 +178,8 @@ export async function PagosTab({ departureId }: { departureId: string }) {
             </a>
           </div>
         </div>
-        <div className="grid gap-3 grid-cols-3">
-          <SummaryCard label="Costo total" value={<EurCop value={costo} />} />
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+          <SummaryCard label="Comprometido hoy" value={<EurCop value={costo} />} />
           <SummaryCard label="Pagado" value={<EurCop value={pagado} />} tone="green" />
           <SummaryCard label="Falta por pagar" value={<EurCop value={faltaPagar} />} tone="amber" />
         </div>
@@ -194,7 +198,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                     <TableHead className="text-right">Pagado</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Registrar</TableHead>
+                    <TableHead className="text-right" data-acciones>Registrar</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -243,7 +247,7 @@ export async function PagosTab({ departureId }: { departureId: string }) {
                     <TableHead className="text-right">Costo</TableHead>
                     <TableHead className="text-right">Pagado</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead className="text-right">Registrar</TableHead>
+                    <TableHead className="text-right" data-acciones>Registrar</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -277,10 +281,10 @@ function SummaryCard({ label, value, tone }: { label: string; value: React.React
   const cls = tone === "green" ? "border-ok-200" : tone === "amber" ? "border-aviso-200" : "";
   const txt = tone === "green" ? "text-ok-700" : tone === "amber" ? "text-aviso-800" : "";
   return (
-    <Card className={cls}>
+    <Card className={`min-w-0 ${cls}`}>
       <CardContent className="p-3">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className={`text-base sm:text-xl font-display font-semibold mt-1 ${txt}`}>{value}</div>
+        <div className={`text-base sm:text-xl font-display font-semibold mt-1 break-words ${txt}`}>{value}</div>
       </CardContent>
     </Card>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { deletePassportsForDeparture } from "@/lib/actions/passport";
 import { toast } from "@/components/ui/toaster";
 import { Trash2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function DeletePassportsButton({ departureId }: { departureId: string }) {
   const [working, setWorking] = useState(false);
@@ -14,7 +15,7 @@ export function DeletePassportsButton({ departureId }: { departureId: string }) 
     if (!confirm("¿Borrar las fotos de pasaporte de todos los peregrinos de este camino? Esta acción no se puede deshacer (los datos extraídos quedan).")) return;
     setWorking(true);
     try {
-      const result = await deletePassportsForDeparture(departureId);
+      const result = exigir(await deletePassportsForDeparture(departureId));
       toast({ title: `${result.deleted} pasaportes borrados`, variant: "success" });
       router.refresh();
     } catch (e: any) {

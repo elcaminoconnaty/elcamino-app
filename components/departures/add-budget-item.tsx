@@ -11,6 +11,8 @@ import { BUDGET_CATEGORIES } from "@/lib/constants";
 import { SCALING_LABELS } from "@/lib/finance";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function AddBudgetItem({
   departureId,
@@ -43,7 +45,7 @@ export function AddBudgetItem({
             try {
               fd.set("departure_id", departureId);
               fd.set("scaling", scaling);
-              await createBudgetItem(fd);
+              exigir(await createBudgetItem(fd));
               toast({ title: "Item agregado", variant: "success" });
               setOpen(false);
               router.refresh();
@@ -108,7 +110,7 @@ export function AddBudgetItem({
           )}
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Agregar</Button>
+            <SubmitButton variant="accent" pendingText="Agregando…">Agregar</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

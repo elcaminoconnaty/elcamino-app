@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -15,9 +15,12 @@ import { RESERVATION_STATUSES, PROVIDER_TYPES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
 import { formatEUR } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function AddReservation({ departureId, providers, defaultType }: { departureId: string; providers: any[]; defaultType?: string }) {
   const [open, setOpen] = useState(false);
+  const enviando = useRef(false);
   const [type, setType] = useState<string>(defaultType ?? "alojamiento");
   const [rooms, setRooms] = useState<RoomInput[]>([]);
   const [roomTotals, setRoomTotals] = useState({ beds: 0, cost: 0 });
@@ -81,6 +84,9 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
         <DialogHeader><DialogTitle>Nueva reserva</DialogTitle></DialogHeader>
         <form
           action={async (fd) => {
+            // Un solo envío a la vez: un doble toque creaba dos reservas.
+            if (enviando.current) return;
+            enviando.current = true;
             try {
               fd.set("type", type);
               if (isMeal) {
@@ -140,30 +146,40 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
               for (const [campo, valor] of Object.entries(pago)) {
                 if (valor) fd.set(campo, String(valor));
               }
-              const created = await createReservation(fd);
-              if (isLodging && rooms.length > 0 && (created as any)?.id) {
-                await setReservationRooms((created as any).id, rooms, departureId);
+              const created = exigir(await createReservation(fd));
+              if (isLodging && rooms.length > 0 && created?.id) {
+                // La reserva ya existe: si fallan las habitaciones se avisa y se cierra, para
+                // que un reintento no cree otra reserva igual.
+                const r = await setReservationRooms(created.id, rooms, departureId);
+                if (!r.ok) {
+                  toast({ title: "La reserva se creó, pero sin habitaciones", description: `${r.error} Edítala para cargarlas.`, variant: "destructive" });
+                } else {
+                  toast({ title: "Reserva creada", variant: "success" });
+                }
+              } else {
+                toast({ title: "Reserva creada", variant: "success" });
               }
-              toast({ title: "Reserva creada", variant: "success" });
               setOpen(false);
               resetAll();
               router.refresh();
             } catch (e: any) {
               toast({ title: "Error", description: e.message, variant: "destructive" });
+            } finally {
+              enviando.current = false;
             }
           }}
-          className="space-y-3 max-h-[75vh] overflow-y-auto pr-1"
+          className="space-y-3 sm:max-h-[75vh] sm:overflow-y-auto pr-1"
         >
           <div className="grid gap-2">
             <Label>Proveedor *</Label>
-            <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               <option value="">— Seleccionar —</option>
               {providers.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
             </select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Tipo</Label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={type} onChange={(e) => setType(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {PROVIDER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -262,7 +278,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Estado</Label>
-              <select name="status" defaultValue="presupuestado" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="status" defaultValue="presupuestado" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {RESERVATION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
@@ -284,7 +300,7 @@ export function AddReservation({ departureId, providers, defaultType }: { depart
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Crear</Button>
+            <SubmitButton variant="accent" pendingText="Creando…">Crear</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

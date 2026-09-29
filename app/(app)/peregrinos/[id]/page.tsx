@@ -28,6 +28,8 @@ import type { UpcomingInstallment } from "@/types/db";
 import { PAYMENT_KIND, motivoSinRecalculo, type PilgrimSettlement, type PaymentSettlement } from "@/lib/settlement";
 import { FileText, Download, Mail, Phone, MapPin, Heart, AlertCircle } from "lucide-react";
 import { rutaCamino, rutaPeregrinosDeCamino } from "@/lib/rutas";
+import { baseUrl } from "@/lib/url";
+import { nombreDePila } from "@/lib/passport/nombres";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +94,22 @@ export default async function PilgrimDetailPage({
     .order("due_date", { ascending: true });
   const upcomingInstallments = (upcoming as UpcomingInstallment[]) ?? [];
 
+  // Las cuotas del plan se leen acá y bajan como prop: leídas en el navegador con un
+  // useEffect, la tarjeta no se enteraba del router.refresh() tras guardar el plan o un abono.
+  const { data: cuotasRows } = regIds.length
+    ? await supabase
+        .from("v_installment_status")
+        .select("*")
+        .in("registration_id", regIds)
+        .order("position", { ascending: true })
+    : { data: [] as any[] };
+  const cuotasByReg = new Map<string, any[]>();
+  for (const c of cuotasRows ?? []) {
+    const lista = cuotasByReg.get(c.registration_id) ?? [];
+    lista.push(c);
+    cuotasByReg.set(c.registration_id, lista);
+  }
+
   const [{ data: departures }, { data: regNotes }] = await Promise.all([
     supabase
       .from("departures")
@@ -106,7 +124,7 @@ export default async function PilgrimDetailPage({
   const pasosByReg = new Map((regNotes ?? []).map((r: any) => [r.id, r]));
   const finDe = new Map((departures ?? []).map((d: any) => [d.id, d.end_date ?? d.start_date ?? null]));
   // El sexo decide "Bienvenida" o "Bienvenido" en la carta y en el mensaje; el apodo, cómo se le saluda.
-  const saludo = ((pilgrim.nickname ?? "").trim() || String(pilgrim.full_name).trim().split(/\s+/)[0]) as string;
+  const saludo = nombreDePila(pilgrim);
 
   // Contratos: el vigente por inscripción, y qué falta para poder emitirlo.
   const { data: contratos } = regIds.length
@@ -130,7 +148,7 @@ export default async function PilgrimDetailPage({
         signedAt: c.signed_at,
         huella: c.pdf_signed_sha256,
         urlVerificacion: c.pdf_signed_sha256
-          ? `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/${c.pdf_signed_sha256}`
+          ? `${baseUrl()}/verificar/${c.pdf_signed_sha256}`
           : null,
       },
     ])
@@ -166,7 +184,9 @@ export default async function PilgrimDetailPage({
   const volverHref = caminoOrigen ? rutaPeregrinosDeCamino(caminoOrigen.id) : "/peregrinos";
 
   return (
-    <div className="space-y-6">
+    // flex y no space-y: en el celular Contacto/Emergencia/Pasaporte bajan al final (order) para que
+    // lo que más se usa —inscripción, plan y pagos— quede arriba. Desde sm, el orden de siempre.
+    <div className="flex flex-col gap-6">
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <Link href={volverHref} className="hover:underline">
@@ -204,7 +224,7 @@ export default async function PilgrimDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 max-sm:order-last">
         <Card>
           <CardHeader><CardTitle className="text-base">Contacto</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -360,7 +380,7 @@ export default async function PilgrimDetailPage({
                       )}
                     </div>
                     <div className="mt-3">
-                      <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} />
+                      <PaymentPlanCard registrationId={r.registration_id} totalEur={r.net_total_eur} departureStartDate={r.start_date} cuotas={cuotasByReg.get(r.registration_id) ?? []} />
                     </div>
                     <div className="mt-3 border-t pt-3">
                       <EditRegistrationDialog
@@ -472,7 +492,7 @@ export default async function PilgrimDetailPage({
                           <TableCell>
                             <div className="flex items-center justify-end gap-1">
                               <EditPaymentDialog payment={p} />
-                              <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-ocre-profundo hover:underline text-xs flex items-center gap-1 px-2">
+                              <a href={`/api/pdf/recibo/${p.id}`} target="_blank" className="text-ocre-profundo hover:underline text-xs flex items-center gap-1 py-2 sm:py-0 px-2">
                                 <Download className="h-3 w-3" /> PDF
                               </a>
                             </div>
@@ -487,9 +507,8 @@ export default async function PilgrimDetailPage({
           </Card>
         </div>
         <PaymentSummary
-          payments={pagos}
-          totalEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.net_total_eur || 0), 0)}
-          penaltyEur={(registrations ?? []).reduce((s: number, r: any) => s + Number(r.penalidad_eur || 0), 0)}
+          payments={pagos.filter((p: any) => settlementByReg.get(p.registration_id)?.status !== "cancelado")}
+          liquidacion={((settlementRows as PilgrimSettlement[]) ?? []).filter((r) => r.status !== "cancelado")}
         />
       </section>
     </div>

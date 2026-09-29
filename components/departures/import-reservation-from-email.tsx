@@ -11,6 +11,7 @@ import { createReservation, createProvider } from "@/lib/actions/reservations";
 import { PROVIDER_TYPES, RESERVATION_STATUSES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { Sparkles, Mail, CheckCircle2, PlusCircle } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 type Provider = { id: string; name: string; type: string };
 type ProviderMode = "new" | "existing";
@@ -34,7 +35,7 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
     }
     setParsing(true);
     try {
-      const r = await parseReservationEmail(emailText, departureId);
+      const r = exigir(await parseReservationEmail(emailText, departureId));
       setParsed(r);
       if (r.provider_id) {
         setProviderMode("existing");
@@ -62,13 +63,13 @@ export function ImportReservationFromEmail({ departureId, providers }: { departu
         newProv.set("type", (fd.get("type")?.toString() || parsed?.type || "otro"));
         if (newProviderEmail.trim()) newProv.set("email", newProviderEmail.trim());
         if (parsed?.location) newProv.set("city", parsed.location);
-        const created = await createProvider(newProv);
+        const created = exigir(await createProvider(newProv));
         pid = (created as any).id;
       }
       if (!pid) throw new Error("Seleccioná o creá un proveedor");
       fd.set("departure_id", departureId);
       fd.set("provider_id", pid);
-      await createReservation(fd);
+      exigir(await createReservation(fd));
       toast({ title: "Reserva creada", variant: "success" });
       setOpen(false);
       setEmailText("");

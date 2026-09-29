@@ -10,6 +10,7 @@ import { createProviderAccount, updateProviderAccount, archiveProviderAccount } 
 import { RESERVATION_PAYMENT_METHODS } from "@/lib/constants";
 import { formatearIban } from "@/lib/banco";
 import { Plus, Pencil, Archive, Star } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 const LABEL = new Map(RESERVATION_PAYMENT_METHODS.map((m) => [m.value, m.label]));
 
@@ -59,8 +60,8 @@ function FormularioCuenta({
           action={async (fd) => {
             setGuardando(true);
             try {
-              if (cuenta) await updateProviderAccount(cuenta.id, providerId, fd);
-              else await createProviderAccount(providerId, fd);
+              if (cuenta) exigir(await updateProviderAccount(cuenta.id, providerId, fd));
+              else exigir(await createProviderAccount(providerId, fd));
               toast({ title: "Guardado", variant: "success" });
               setOpen(false);
               router.refresh();
@@ -70,7 +71,7 @@ function FormularioCuenta({
               setGuardando(false);
             }
           }}
-          className="space-y-3 max-h-[70vh] overflow-y-auto pr-1"
+          className="space-y-3 sm:max-h-[70vh] sm:overflow-y-auto pr-1"
         >
           <CamposCuenta cuenta={cuenta} />
           <DialogFooter>
@@ -91,7 +92,7 @@ export function PaymentAccountsCard({ providerId, cuentas }: { providerId: strin
 
   async function archivar(id: string) {
     try {
-      await archiveProviderAccount(id, providerId);
+      exigir(await archiveProviderAccount(id, providerId));
       toast({ title: "Cuenta archivada", description: "Las reservas que ya la usaban la conservan.", variant: "success" });
       router.refresh();
     } catch (e: any) {

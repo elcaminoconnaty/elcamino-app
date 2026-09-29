@@ -1,4 +1,5 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -31,41 +32,50 @@ export type EtapaInput = {
  * evita el baile de altas, bajas y reordenamientos.
  */
 export async function guardarEtapas(routeId: string, etapas: EtapaInput[]) {
-  const supabase = createClient();
+  return intentar(async () => {
+    const supabase = createClient();
 
-  const offsets = etapas.map((e) => e.day_offset);
-  if (new Set(offsets).size !== offsets.length) {
-    throw new Error("Hay dos etapas con el mismo número de día.");
-  }
-  if (offsets.some((o) => o === 0)) {
-    throw new Error("El día 1 es el primero: no existe el día 0. Los negativos son pre-camino.");
-  }
+    const offsets = etapas.map((e) => e.day_offset);
+    if (new Set(offsets).size !== offsets.length) {
+      throw new Error("Hay dos etapas con el mismo número de día.");
+    }
+    if (offsets.some((o) => o === 0)) {
+      throw new Error("El día 1 es el primero: no existe el día 0. Los negativos son pre-camino.");
+    }
 
-  const { error: errBorrado } = await supabase.from("route_stages").delete().eq("route_id", routeId);
-  if (errBorrado) throw new Error(errBorrado.message);
+    // Las de antes, por si el insert falla después del borrado: la ruta no puede quedar sin etapas.
+    const { data: anteriores, error: errLeer } = await supabase.from("route_stages").select("*").eq("route_id", routeId);
+    if (errLeer) throw new Error(errLeer.message);
 
-  if (etapas.length) {
-    const { error } = await supabase.from("route_stages").insert(
-      etapas
-        .slice()
-        .sort((a, b) => a.day_offset - b.day_offset)
-        .map((e, i) => ({
-          route_id: routeId,
-          day_offset: e.day_offset,
-          day_kind: e.day_kind,
-          from_place: e.from_place || null,
-          to_place: e.to_place || null,
-          km: e.km ?? null,
-          hours_approx: e.hours_approx || null,
-          description: e.description || null,
-          position: i,
-        }))
-    );
-    if (error) throw new Error(error.message);
-  }
+    const { error: errBorrado } = await supabase.from("route_stages").delete().eq("route_id", routeId);
+    if (errBorrado) throw new Error(errBorrado.message);
 
-  revalidatePath("/configuracion");
-  revalidatePath("/caminos");
+    if (etapas.length) {
+      const { error } = await supabase.from("route_stages").insert(
+        etapas
+          .slice()
+          .sort((a, b) => a.day_offset - b.day_offset)
+          .map((e, i) => ({
+            route_id: routeId,
+            day_offset: e.day_offset,
+            day_kind: e.day_kind,
+            from_place: e.from_place || null,
+            to_place: e.to_place || null,
+            km: e.km ?? null,
+            hours_approx: e.hours_approx || null,
+            description: e.description || null,
+            position: i,
+          }))
+      );
+      if (error) {
+        if (anteriores?.length) await supabase.from("route_stages").insert(anteriores);
+        throw new Error(`No se pudieron guardar las etapas (quedaron las anteriores): ${error.message}`);
+      }
+    }
+
+    revalidatePath("/configuracion");
+    revalidatePath("/caminos");
+  });
 }
 
 export async function leerEtapas(routeId: string) {

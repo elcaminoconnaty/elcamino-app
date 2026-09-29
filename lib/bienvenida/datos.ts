@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { tituloDeNombre } from "@/lib/passport/nombres";
+import { nombreDePila } from "@/lib/passport/nombres";
 import { fechaDeDia, tieneDiaCero } from "@/lib/rutas-fechas";
 
 /**
@@ -88,7 +88,7 @@ function nombreDeRuta(r: string | null | undefined): string {
 }
 
 export function destinatarioDe(p: { full_name: string; nickname?: string | null; sex?: string | null }): Destinatario {
-  const nombre = tituloDeNombre((p.nickname ?? "").trim() || String(p.full_name).trim().split(/\s+/)[0]);
+  const nombre = nombreDePila(p);
   if (p.sex === "F") return { nombre, saludo: `Querida ${nombre}`, bienvenida: `Bienvenida, ${nombre}` };
   if (p.sex === "M") return { nombre, saludo: `Querido ${nombre}`, bienvenida: `Bienvenido, ${nombre}` };
   return { nombre, saludo: `Hola, ${nombre}`, bienvenida: `Bienvenid@, ${nombre}` };

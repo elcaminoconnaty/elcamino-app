@@ -79,7 +79,7 @@ export default async function PilgrimsListPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button asChild variant="outline">
-            <a href="/api/export/peregrinos" download>
+            <a href="/api/export/peregrinos" download target="_blank" rel="noopener">
               <Download className="h-4 w-4" /> Excel
             </a>
           </Button>

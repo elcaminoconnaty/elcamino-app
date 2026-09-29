@@ -1,6 +1,8 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { RESERVATION_STATUSES, type ReservationStatus } from "@/lib/constants";
 
 export type ParsedReservation = {
   provider_id: string | null;
@@ -15,7 +17,7 @@ export type ParsedReservation = {
   accommodation_type: string | null;
   confirmed_cost_eur: number | null;
   estimated_cost_eur: number | null;
-  status: string;
+  status: ReservationStatus;
   confirmation_ref: string | null;
   notes: string;
   confidence: "high" | "medium" | "low";
@@ -39,7 +41,8 @@ const RESERVATION_TOOL = {
       accommodation_type: { type: ["string", "null"], description: "Tipo de acomodación (dorm, compartido, privado, etc.)" },
       confirmed_cost_eur: { type: ["number", "null"], description: "Costo total confirmado en EUR si está en el correo" },
       estimated_cost_eur: { type: ["number", "null"], description: "Costo estimado en EUR si no hay confirmado" },
-      status: { type: "string", enum: ["presupuestado", "contactado", "reservado", "confirmado", "pagado"], description: "Estado de la reserva según el correo" },
+      // Solo los estados que acepta el CHECK de la base: "contactado"/"confirmado" hacían fallar el insert.
+      status: { type: "string", enum: RESERVATION_STATUSES.map((e) => e.value).filter((v) => v !== "cancelado"), description: "Estado de la reserva según el correo" },
       confirmation_ref: { type: ["string", "null"], description: "Número o código de reserva/confirmación si aparece" },
       notes: { type: "string", description: "Notas relevantes extraídas del correo (condiciones de cancelación, dirección, horarios, etc.)" },
       confidence: { type: "string", enum: ["high", "medium", "low"], description: "Qué tan claro fue extraer los datos del correo" },
@@ -48,36 +51,37 @@ const RESERVATION_TOOL = {
   },
 };
 
-export async function parseReservationEmail(emailText: string, departureId: string): Promise<ParsedReservation> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("Falta ANTHROPIC_API_KEY en el entorno. Agregala a .env.local y reiniciá.");
-  }
+export async function parseReservationEmail(emailText: string, departureId: string) {
+  return intentar(async () => {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error("Falta ANTHROPIC_API_KEY en el entorno. Agregala a .env.local y reiniciá.");
+    }
 
-  const supabase = createClient();
-  const [{ data: providers }, { data: departure }] = await Promise.all([
-    supabase.from("providers").select("id, name, email, type, city").eq("active", true),
-    supabase.from("departures").select("name, start_date, end_date").eq("id", departureId).maybeSingle(),
-  ]);
+    const supabase = createClient();
+    const [{ data: providers }, { data: departure }] = await Promise.all([
+      supabase.from("providers").select("id, name, email, type, city").eq("active", true),
+      supabase.from("departures").select("name, start_date, end_date").eq("id", departureId).maybeSingle(),
+    ]);
 
-  const providersList = (providers ?? [])
-    .map((p: any) => `- ${p.name} (id: ${p.id}, email: ${p.email ?? "—"}, tipo: ${p.type}, ciudad: ${p.city ?? "—"})`)
-    .join("\n");
+    const providersList = (providers ?? [])
+      .map((p: any) => `- ${p.name} (id: ${p.id}, email: ${p.email ?? "—"}, tipo: ${p.type}, ciudad: ${p.city ?? "—"})`)
+      .join("\n");
 
-  const departureContext = departure
-    ? `Camino: ${(departure as any).name}\nFechas del viaje: ${(departure as any).start_date} a ${(departure as any).end_date}`
-    : "";
+    const departureContext = departure
+      ? `Camino: ${(departure as any).name}\nFechas del viaje: ${(departure as any).start_date} a ${(departure as any).end_date}`
+      : "";
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const message = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
-    tools: [RESERVATION_TOOL],
-    tool_choice: { type: "tool", name: "registrar_reserva" },
-    messages: [
-      {
-        role: "user",
-        content: `Extraé los datos de la siguiente reserva enviada por un proveedor del Camino de Santiago.
+    const message = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
+      tools: [RESERVATION_TOOL],
+      tool_choice: { type: "tool", name: "registrar_reserva" },
+      messages: [
+        {
+          role: "user",
+          content: `Extraé los datos de la siguiente reserva enviada por un proveedor del Camino de Santiago.
 
 ${departureContext}
 
@@ -92,18 +96,23 @@ ${emailText}
 Reglas:
 - Si el correo es de un proveedor que YA está en la lista, devolvé provider_id (UUID) y dejá provider_name_suggested en null.
 - Si NO está en la lista, dejá provider_id en null y rellená provider_name_suggested + provider_email_suggested para que el usuario lo cree.
-- Si el correo confirma cantidad y precio, status = "confirmado" y poné confirmed_cost_eur.
-- Si solo apartó sin confirmar precio final, status = "reservado" o "contactado" según corresponda y usá estimated_cost_eur.
+- Si el correo confirma cantidad y precio, status = "reservado" y poné confirmed_cost_eur.
+- Si solo cotizó o estamos esperando respuesta, status = "enviado" (o "presupuestado" si es solo precio) y usá estimated_cost_eur.
+- Si el correo confirma que ya se pagó, status = "pagado".
 - day_number se infiere si el correo menciona "día X" o si la fecha de check-in coincide con un día del camino.
 - En notes resumí condiciones de pago, cancelación, horarios o cualquier detalle útil. Mantenelo breve.
 - Si algo no se puede inferir con certeza, devolvé null y bajá confidence.`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const toolUse = message.content.find((c: any) => c.type === "tool_use") as any;
-  if (!toolUse) {
-    throw new Error("Claude no devolvió datos estructurados");
-  }
-  return toolUse.input as ParsedReservation;
+    const toolUse = message.content.find((c: any) => c.type === "tool_use") as any;
+    if (!toolUse) {
+      throw new Error("Claude no devolvió datos estructurados");
+    }
+    const parsed = toolUse.input as ParsedReservation;
+    // Si el modelo se sale del enum, el insert rebotaría contra el CHECK: se cae al estado inicial.
+    if (!RESERVATION_STATUSES.some((e) => e.value === parsed.status)) parsed.status = "presupuestado";
+    return parsed;
+  });
 }

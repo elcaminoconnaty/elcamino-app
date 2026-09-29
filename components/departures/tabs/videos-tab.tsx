@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { baseUrl } from "@/lib/url";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { destinatarioDe } from "@/lib/bienvenida/datos";
 import { ListaVideos, type FilaVideo } from "@/components/departures/lista-videos";
@@ -26,7 +27,7 @@ export async function VideosTab({ departureId }: { departureId: string }) {
         .in("registration_id", inscritos.map((r: any) => r.id))
     : { data: [] as any[] };
   const porReg = new Map((videos ?? []).map((v: any) => [v.registration_id, v]));
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const base = baseUrl();
 
   const filas: FilaVideo[] = inscritos
     .map((r: any) => {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatEUR, formatDate, daysUntil } from "@/lib/utils";
 import type { DepartureSummary } from "@/types/db";
+import { conteoPorCamino, textoCupo } from "@/lib/data/inscritos";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +16,12 @@ export default async function NicoDashboard() {
     .order("start_date", { ascending: true });
 
   const departures = (dps as DepartureSummary[]) ?? [];
+  const conteo = await conteoPorCamino(supabase);
 
   const { data: pendingReservations } = await supabase
     .from("reservations")
     .select("id, departure_id, type, location, day_number, status, estimated_cost_eur, provider_id, providers(name)")
-    .in("status", ["presupuestado", "contactado", "reservado"])
+    .in("status", ["presupuestado", "enviado", "reservado"])
     .order("day_number", { ascending: true })
     .limit(15);
 
@@ -62,7 +64,7 @@ export default async function NicoDashboard() {
                   <CardContent className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Peregrinos</span>
-                      <span>{d.pilgrims_count}{d.capacity ? ` / ${d.capacity}` : ""}</span>
+                      <span>{textoCupo(conteo.get(d.departure_id), d.capacity)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Ingresos esperados</span>

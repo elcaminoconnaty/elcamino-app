@@ -30,8 +30,10 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Fullscreen en móvil; modal centrado en sm+
-        "fixed inset-0 z-50 grid gap-4 border-0 bg-background p-4 shadow-lg overflow-y-auto w-full max-w-lg",
+        // Fullscreen en móvil; modal centrado en sm+. La columna es minmax(0,1fr): si no, un select
+        // con una opción larga estiraba todo el diálogo fuera de la pantalla; content-start evita que
+        // el alto sobrante se reparta como huecos entre las filas.
+        "fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] content-start gap-4 border-0 bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg overflow-y-auto w-full max-w-lg",
         "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
         "sm:max-h-[90vh] sm:rounded-lg sm:border sm:p-6",
         className

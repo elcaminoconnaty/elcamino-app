@@ -7,6 +7,7 @@ import { setDepartureSettlementMode } from "@/lib/actions/settlement";
 import { SETTLEMENT_MODE, type SettlementMode } from "@/lib/settlement";
 import { toast } from "@/components/ui/toaster";
 import { Settings2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Modo de liquidación del camino. Cambiarlo no toca ningún pago: solo cambia si
@@ -30,7 +31,7 @@ export function SettlementModeDialog({
   async function guardar() {
     setSaving(true);
     try {
-      await setDepartureSettlementMode(departureId, mode);
+      exigir(await setDepartureSettlementMode(departureId, mode));
       toast({ title: "Modo de liquidación actualizado", variant: "success" });
       setOpen(false);
       router.refresh();

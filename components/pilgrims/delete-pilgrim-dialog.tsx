@@ -7,6 +7,7 @@ import { deletePilgrim, type DeletePilgrimMode } from "@/lib/actions/pilgrims";
 import { toast } from "@/components/ui/toaster";
 import { formatEUR } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function DeletePilgrimDialog({
   pilgrimId,
@@ -36,7 +37,7 @@ export function DeletePilgrimDialog({
     }
     setDeleting(true);
     try {
-      await deletePilgrim(pilgrimId, tieneAbonos ? (mode as DeletePilgrimMode) : undefined);
+      exigir(await deletePilgrim(pilgrimId, tieneAbonos ? (mode as DeletePilgrimMode) : undefined));
       toast({ title: "Peregrino eliminado", variant: "success" });
       setOpen(false);
       router.push(volverHref);

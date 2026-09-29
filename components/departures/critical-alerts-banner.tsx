@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, ChevronDown } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { cuotasPendientes } from "@/lib/pagos-pendientes/cuotas";
 
 type Alert = { kind: string; title: string; detail?: string; sortDate?: string };
 
@@ -35,6 +36,7 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
     { data: mealCoverage },
     { data: scheduleRows },
     { data: optOutRows },
+    { data: pagosReserva },
   ] = await Promise.all([
     supabase
       .from("reservations")
@@ -54,7 +56,6 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
       .from("v_reservation_schedule")
       .select("*, providers:provider_id(name)")
       .eq("departure_id", departureId)
-      .eq("paid", false)
       .order("due_date", { ascending: true }),
     // Quienes no duermen una noche concreta: esa noche se esperan menos camas.
     supabase
@@ -62,6 +63,7 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
       .select("reservation_id, reservations!inner(departure_id)")
       .eq("reservations.departure_id", departureId)
       .eq("kind", "hospedaje"),
+    supabase.from("v_reservation_payments").select("reservation_id, paid_eur, saldo_eur").eq("departure_id", departureId),
   ]);
 
   const inscritos = Number((finance as any)?.inscritos_total ?? inscritosTotal ?? 0);
@@ -185,11 +187,14 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
   });
 
   // 5b. Cuotas del plan de pagos vencidas o próximas
-  (scheduleRows ?? []).forEach((s: any) => {
+  // Solo lo que de verdad falta: lo pagado a la reserva cubre sus cuotas por orden de vencimiento.
+  const pagadoDe = new Map<string, number>((pagosReserva ?? []).map((p: any) => [p.reservation_id, Number(p.paid_eur ?? 0)]));
+  const saldoDe = new Map<string, number>((pagosReserva ?? []).map((p: any) => [p.reservation_id, Number(p.saldo_eur ?? 0)]));
+  cuotasPendientes((scheduleRows ?? []).filter((s: any) => s.reservation_status !== "cancelado") as any[], pagadoDe, saldoDe).forEach((s: any) => {
     if (!s.due_date) return;
     const days = Number(s.days_until_due);
     const providerName = s.providers?.name ?? "Proveedor";
-    const detail = `${formatDate(s.due_date)} · ${s.label ? s.label + " · " : ""}${new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(Number(s.amount_eur))}`;
+    const detail = `${formatDate(s.due_date)} · ${s.label ? s.label + " · " : ""}${new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", minimumFractionDigits: 0 }).format(Number(s.restante_eur))}`;
     if (days < 0) {
       alerts.push({
         kind: "payment_overdue",
@@ -272,7 +277,8 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
               <div className="font-medium text-aviso-900">
                 {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} — revisá antes de avanzar
               </div>
-              <div className="flex flex-wrap gap-1 mt-1 group-open:hidden">
+              {/* En el celular, cerrada es una sola línea: los chips empujaban las pestañas fuera de la pantalla. */}
+              <div className="hidden sm:flex flex-wrap gap-1 mt-1 group-open:hidden">
                 {orderedKinds.map((kind) => (
                   <span key={kind} className="text-xs rounded-full bg-aviso-100 text-aviso-900 px-2 py-0.5">
                     {KIND_LABEL[kind] ?? kind} ({grouped.get(kind)!.length})
@@ -286,7 +292,7 @@ export async function CriticalAlertsBanner({ departureId, inscritosTotal }: { de
               <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
             </span>
           </summary>
-          <div className="space-y-2 mt-2 pl-8">
+          <div className="space-y-2 mt-2 pl-0 sm:pl-8">
             {orderedKinds.map((kind) => {
               const items = grouped.get(kind)!;
               return (

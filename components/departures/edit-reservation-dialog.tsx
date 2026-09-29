@@ -16,8 +16,9 @@ import { ReservationPaymentScheduleEditor, type ScheduleItem } from "@/component
 import { BloquePagoReserva, type ValoresPago } from "@/components/departures/bloque-pago-reserva";
 import { RESERVATION_STATUSES, PROVIDER_TYPES, PAYMENT_METHODS, ACCOUNTS } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
-import { formatEUR } from "@/lib/utils";
+import { formatEUR, hoyBogota } from "@/lib/utils";
 import { Pencil, Trash2, AlertTriangle, CreditCard, UtensilsCrossed } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function EditReservationDialog({ reservation, providers, departureId, triggerLabel }: { reservation: any; providers: any[]; departureId: string; triggerLabel?: string }) {
   const [open, setOpen] = useState(false);
@@ -63,7 +64,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
   const [status, setStatus] = useState<string>(reservation.status);
   const [paidTotal, setPaidTotal] = useState<number | null>(null);
   const [registrarPago, setRegistrarPago] = useState(true);
-  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(hoyBogota());
   const [payAmount, setPayAmount] = useState("");
   const [payCurrency, setPayCurrency] = useState<"EUR" | "COP" | "USD">("EUR");
   const [payTrm, setPayTrm] = useState("");
@@ -146,7 +147,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
     if (!confirm("¿Eliminar esta reserva?")) return;
     setDeleting(true);
     try {
-      await deleteReservation(reservation.id, departureId);
+      exigir(await deleteReservation(reservation.id, departureId));
       toast({ title: "Reserva eliminada", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -162,7 +163,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
         {triggerLabel ? (
           <Button variant="outline" size="sm"><Pencil className="h-3.5 w-3.5" /> {triggerLabel}</Button>
         ) : (
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 sm:h-7 sm:w-7"><Pencil className="h-3.5 w-3.5" /></Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
@@ -240,11 +241,11 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 payload.tourist_tax_per_person_eur = taxRate;
               }
 
-              await updateReservation(reservation.id, payload, departureId);
+              exigir(await updateReservation(reservation.id, payload, departureId));
               if (isLodging) {
-                await setReservationRooms(reservation.id, rooms, departureId);
+                exigir(await setReservationRooms(reservation.id, rooms, departureId));
               }
-              await setReservationSchedule(reservation.id, schedule.map((s, i) => ({
+              exigir(await setReservationSchedule(reservation.id, schedule.map((s, i) => ({
                 id: s.id,
                 due_date: s.due_date,
                 amount_eur: s.amount_eur,
@@ -254,7 +255,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 paid_at: s.paid_at,
                 provider_payment_id: s.provider_payment_id,
                 position: i,
-              })), departureId);
+              })), departureId));
               if (registraElPago) {
                 const pfd = new FormData();
                 pfd.set("provider_id", fd.get("provider_id")?.toString() || reservation.provider_id);
@@ -268,7 +269,7 @@ export function EditReservationDialog({ reservation, providers, departureId, tri
                 pfd.set("method", payMethod);
                 pfd.set("account", payAccount);
                 pfd.set("notes", "Registrado al marcar la reserva como pagada");
-                await createProviderPayment(pfd);
+                { const pago = exigir(await createProviderPayment(pfd)); if (pago.aviso) toast({ title: "Pago guardado, con un aviso", description: pago.aviso, variant: "destructive" }); }
                 toast({ title: "Guardado y pago registrado en gastos", variant: "success" });
               } else {
                 toast({ title: "Guardado", variant: "success" });

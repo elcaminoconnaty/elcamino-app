@@ -167,7 +167,7 @@ export function GmailThreadDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {compacto ? (
-          <Button type="button" variant="ghost" size="icon" className={cn("h-8 w-8", hilo && "text-ok-700")} title={hilo ? `Hilo de Gmail: ${hilo.subject ?? ""}` : "Enlazar el hilo de Gmail de esta reserva"}>
+          <Button type="button" variant="ghost" size="icon" className={cn("h-10 w-10 sm:h-8 sm:w-8", hilo && "text-ok-700")} title={hilo ? `Hilo de Gmail: ${hilo.subject ?? ""}` : "Enlazar el hilo de Gmail de esta reserva"}>
             {hilo ? <MailCheck className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
           </Button>
         ) : (
@@ -176,7 +176,7 @@ export function GmailThreadDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl sm:max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Hilo de Gmail · {providerName}</DialogTitle>
           <DialogDescription>

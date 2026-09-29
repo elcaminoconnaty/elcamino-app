@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProviderPayment, deleteProviderPayment } from "@/lib/actions/reservations";
 import { getReservationPayments } from "@/lib/actions/provider-payments";
-import { getReservationSchedule, markScheduleItemPaid } from "@/lib/actions/reservation-schedule";
+import { getReservationSchedule } from "@/lib/actions/reservation-schedule";
+import { SubmitButton, useAccionUnica } from "@/components/ui/submit-button";
 import { getTrmForDate } from "@/lib/actions/payments";
 import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
 import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
-import { formatEUR, formatDate } from "@/lib/utils";
+import { formatEUR, formatDate, hoyBogota } from "@/lib/utils";
 import { CreditCard, Trash2, Calendar } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 type Reservation = {
   id: string;
@@ -30,7 +32,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
   const [payments, setPayments] = useState<any[] | null>(null);
   const [schedule, setSchedule] = useState<any[] | null>(null);
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">("EUR");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(hoyBogota());
   const [trm, setTrm] = useState("");
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
   const [amount, setAmount] = useState("");
@@ -76,11 +78,38 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
     }
   }, [currency, date, open]);
 
+  // Una sola acción del servidor registra el pago y, si se eligió una cuota, la marca pagada
+  // con el id de ESTE pago. Antes se adivinaba "el último pago" y con un pago atrasado se
+  // enlazaba otro.
+  const registrar = useAccionUnica(async (fd: FormData) => {
+    try {
+      fd.set("provider_id", reservation.provider_id);
+      fd.set("reservation_id", reservation.id);
+      fd.set("departure_id", reservation.departure_id);
+      if (selectedScheduleId) fd.set("schedule_item_id", selectedScheduleId);
+      { const pago = exigir(await createProviderPayment(fd)); if (pago.aviso) toast({ title: "Pago guardado, con un aviso", description: pago.aviso, variant: "destructive" }); }
+      if (selectedScheduleId) {
+        const updatedSched = await getReservationSchedule(reservation.id);
+        setSchedule(updatedSched ?? []);
+        setSelectedScheduleId("");
+      }
+      toast({ title: "Pago registrado", variant: "success" });
+      const updated = await getReservationPayments(reservation.id);
+      setPayments(updated ?? []);
+      router.refresh();
+      (document.getElementById("res-pay-form") as HTMLFormElement)?.reset();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  });
+
   async function onDelete(id: string) {
     if (!confirm("¿Eliminar este pago?")) return;
     try {
-      await deleteProviderPayment(id);
+      exigir(await deleteProviderPayment(id));
       setPayments((prev) => (prev ?? []).filter((p) => p.id !== id));
+      // La cuota que saldaba este pago vuelve a pendiente en el servidor: se vuelve a pedir.
+      setSchedule(await getReservationSchedule(reservation.id));
       toast({ title: "Pago eliminado", variant: "success" });
       router.refresh();
     } catch (e: any) {
@@ -174,38 +203,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
         )}
 
         <form
-          action={async (fd) => {
-            try {
-              fd.set("provider_id", reservation.provider_id);
-              fd.set("reservation_id", reservation.id);
-              fd.set("departure_id", reservation.departure_id);
-              await createProviderPayment(fd);
-              // Si se seleccionó una cuota, marcarla pagada
-              if (selectedScheduleId) {
-                // Buscar el último pago insertado para asociar
-                const latest = await getReservationPayments(reservation.id);
-                const lastPayment = latest && latest.length > 0 ? latest[latest.length - 1] : null;
-                if (lastPayment) {
-                  await markScheduleItemPaid(
-                    selectedScheduleId,
-                    lastPayment.id,
-                    fd.get("paid_at")?.toString() || new Date().toISOString().slice(0,10),
-                    reservation.departure_id
-                  );
-                }
-                const updatedSched = await getReservationSchedule(reservation.id);
-                setSchedule(updatedSched ?? []);
-                setSelectedScheduleId("");
-              }
-              toast({ title: "Pago registrado", variant: "success" });
-              const updated = await getReservationPayments(reservation.id);
-              setPayments(updated ?? []);
-              router.refresh();
-              (document.getElementById("res-pay-form") as HTMLFormElement)?.reset();
-            } catch (e: any) {
-              toast({ title: "Error", description: e.message, variant: "destructive" });
-            }
-          }}
+          action={registrar}
           id="res-pay-form"
           className="space-y-3 border-t pt-3"
         >
@@ -251,7 +249,7 @@ export function RegisterReservationPayment({ reservation }: { reservation: Reser
           <div className="grid gap-1.5"><Label className="text-xs">Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cerrar</Button>
-            <Button type="submit" variant="accent">Registrar pago</Button>
+            <SubmitButton variant="accent" pendingText="Registrando…">Registrar pago</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

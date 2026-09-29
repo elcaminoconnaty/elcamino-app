@@ -1,4 +1,5 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { RoomInput } from "@/lib/data/rooms";
@@ -31,52 +32,59 @@ function toRow(reservationId: string, r: RoomInput, position: number) {
  * cambió el tipo de habitación, o se redujo la cantidad y sobran habitaciones.
  */
 export async function setReservationRooms(reservationId: string, rooms: RoomInput[], departureId?: string) {
-  const supabase = createClient();
-  const { data: existing } = await supabase
-    .from("reservation_rooms")
-    .select("id, position, room_type, rooms_count")
-    .eq("reservation_id", reservationId)
-    .order("position", { ascending: true, nullsFirst: false });
+  return intentar(async () => {
+    const supabase = createClient();
+    const { data: existing, error: errLeer } = await supabase
+      .from("reservation_rooms")
+      .select("id, position, room_type, rooms_count")
+      .eq("reservation_id", reservationId)
+      .order("position", { ascending: true, nullsFirst: false });
+    // Sin saber qué había, se insertaría todo de nuevo y quedarían habitaciones duplicadas.
+    if (errLeer) throw new Error(errLeer.message);
 
-  const prev = existing ?? [];
+    const prev = existing ?? [];
 
-  for (let i = 0; i < rooms.length; i++) {
-    const row = toRow(reservationId, rooms[i], i);
-    const old = prev[i];
-    if (!old) {
-      const { error } = await supabase.from("reservation_rooms").insert(row);
+    for (let i = 0; i < rooms.length; i++) {
+      const row = toRow(reservationId, rooms[i], i);
+      const old = prev[i];
+      if (!old) {
+        const { error } = await supabase.from("reservation_rooms").insert(row);
+        if (error) throw new Error(error.message);
+        continue;
+      }
+      const { error } = await supabase.from("reservation_rooms").update(row).eq("id", old.id);
       if (error) throw new Error(error.message);
-      continue;
+
+      if (old.room_type !== row.room_type) {
+        // La habitación pasó a ser otra cosa: quien estuviera adentro ya no aplica.
+        const { error: errAsig } = await supabase.from("room_assignments").delete().eq("reservation_room_id", old.id);
+        if (errAsig) throw new Error(errAsig.message);
+      } else if (row.rooms_count < (old.rooms_count ?? 0)) {
+        // Se recortaron habitaciones: las que quedaron por encima del tope se vacían.
+        const { error: errAsig } = await supabase
+          .from("room_assignments")
+          .delete()
+          .eq("reservation_room_id", old.id)
+          .gt("room_index", row.rooms_count);
+        if (errAsig) throw new Error(errAsig.message);
+      }
     }
-    const { error } = await supabase.from("reservation_rooms").update(row).eq("id", old.id);
-    if (error) throw new Error(error.message);
 
-    if (old.room_type !== row.room_type) {
-      // La habitación pasó a ser otra cosa: quien estuviera adentro ya no aplica.
-      await supabase.from("room_assignments").delete().eq("reservation_room_id", old.id);
-    } else if (row.rooms_count < (old.rooms_count ?? 0)) {
-      // Se recortaron habitaciones: las que quedaron por encima del tope se vacían.
-      await supabase
-        .from("room_assignments")
-        .delete()
-        .eq("reservation_room_id", old.id)
-        .gt("room_index", row.rooms_count);
+    const sobrantes = prev.slice(rooms.length).map((r) => r.id);
+    if (sobrantes.length > 0) {
+      const { error } = await supabase.from("reservation_rooms").delete().in("id", sobrantes);
+      if (error) throw new Error(error.message);
     }
-  }
 
-  const sobrantes = prev.slice(rooms.length).map((r) => r.id);
-  if (sobrantes.length > 0) {
-    const { error } = await supabase.from("reservation_rooms").delete().in("id", sobrantes);
-    if (error) throw new Error(error.message);
-  }
+    // Una habitación con cena incluida prende "pedir menú" (nunca lo apaga sola: eso lo
+    // decide el equipo en la reserva, porque hay hoteles con cena fija sin nada que elegir).
+    if (rooms.some((r) => r.includes_dinner)) {
+      const { error: errMenu } = await supabase.from("reservations").update({ menu_required: true }).eq("id", reservationId).eq("menu_required", false);
+      if (errMenu) throw new Error(errMenu.message);
+    }
 
-  // Una habitación con cena incluida prende "pedir menú" (nunca lo apaga sola: eso lo
-  // decide el equipo en la reserva, porque hay hoteles con cena fija sin nada que elegir).
-  if (rooms.some((r) => r.includes_dinner)) {
-    await supabase.from("reservations").update({ menu_required: true }).eq("id", reservationId).eq("menu_required", false);
-  }
-
-  if (departureId) revalidatePath(`/caminos/${departureId}`);
+    if (departureId) revalidatePath(`/caminos/${departureId}`);
+  });
 }
 
 export async function getReservationRooms(reservationId: string) {

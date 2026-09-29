@@ -28,12 +28,13 @@ export function UpcomingPaymentsCard({ installments }: { installments: UpcomingI
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{i.label ?? "Cuota"}</div>
                     <div className="text-xs text-muted-foreground truncate">{i.departure_name}</div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-medium">{formatEUR(i.amount_eur)}</div>
+                    {/* La fecha va abajo y no junto al monto: en el celular le robaba el ancho al nombre. */}
                     <div className={`text-xs ${isOverdue ? "text-error-700 font-medium" : isSoon ? "text-aviso-700" : "text-muted-foreground"}`}>
                       {formatDate(i.due_date)}{isOverdue ? ` · ${-days}d vencida` : days === 0 ? " · hoy" : ` · en ${days}d`}
                     </div>
+                  </div>
+                  <div className="text-right shrink-0 pl-3">
+                    <div className="text-sm font-medium">{formatEUR(i.amount_eur)}</div>
                   </div>
                 </div>
               );

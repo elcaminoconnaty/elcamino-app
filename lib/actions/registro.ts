@@ -2,12 +2,10 @@
 import crypto from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { baseUrl } from "@/lib/url";
+import { normalizarCelular } from "@/lib/telefono";
 
 export type Resultado<T = object> = ({ ok: true } & T) | { ok: false; error: string };
-
-function baseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-}
 
 /** El enlace único del formulario de inscripción del camino; se genera la primera vez. */
 export async function obtenerEnlaceRegistro(departureId: string): Promise<Resultado<{ url: string }>> {
@@ -99,12 +97,29 @@ export async function aceptarSolicitud(requestId: string): Promise<Resultado<{ p
   if (!s) return { ok: false, error: "No encontré la solicitud." };
   if (s.status !== "pendiente") return { ok: false, error: "Esa solicitud ya se resolvió." };
 
+  // Candado: se marca aceptada ANTES de crear nada y solo si seguía pendiente. Dos clics (o
+  // dos personas) a la vez ya no crean dos peregrinos: el segundo no encuentra la fila.
+  const { data: tomada, error: eLock } = await supabase
+    .from("registration_requests")
+    .update({ status: "aceptada", resolved_at: new Date().toISOString() })
+    .eq("id", requestId)
+    .eq("status", "pendiente")
+    .select("id")
+    .maybeSingle();
+  if (eLock) return { ok: false, error: eLock.message };
+  if (!tomada) return { ok: false, error: "Esa solicitud ya se resolvió." };
+  const soltar = () =>
+    supabase.from("registration_requests").update({ status: "pendiente", resolved_at: null }).eq("id", requestId);
+
   const { data: p, error: e1 } = await supabase
     .from("pilgrims")
-    .insert({ full_name: s.full_name, email: s.email, phone: s.phone, country: "Colombia", notes: s.payload?.mensaje ? `Solicitud desde el formulario: ${s.payload.mensaje}` : null })
+    .insert({ full_name: s.full_name, email: s.email, phone: normalizarCelular(s.phone), country: "Colombia", notes: s.payload?.mensaje ? `Solicitud desde el formulario: ${s.payload.mensaje}` : null })
     .select("id")
     .single();
-  if (e1) return { ok: false, error: e1.message };
+  if (e1) {
+    await soltar();
+    return { ok: false, error: e1.message };
+  }
   const { error: e2 } = await supabase.from("registrations").insert({
     pilgrim_id: p.id,
     departure_id: s.departure_id,
@@ -113,8 +128,14 @@ export async function aceptarSolicitud(requestId: string): Promise<Resultado<{ p
     status: "pre_inscrito",
     notes: "Entró por el formulario de inscripción (solicitud).",
   });
-  if (e2) return { ok: false, error: e2.message };
-  await supabase.from("registration_requests").update({ status: "aceptada", pilgrim_id: p.id, resolved_at: new Date().toISOString() }).eq("id", requestId);
+  if (e2) {
+    // Sin inscripción el peregrino recién creado sobra: se borra y la solicitud vuelve a pendiente.
+    await supabase.from("pilgrims").delete().eq("id", p.id);
+    await soltar();
+    return { ok: false, error: e2.message };
+  }
+  const { error: e3 } = await supabase.from("registration_requests").update({ pilgrim_id: p.id }).eq("id", requestId);
+  if (e3) return { ok: false, error: `El peregrino quedó creado e inscrito, pero la solicitud no quedó enlazada: ${e3.message}` };
   revalidatePath(`/caminos/${s.departure_id}`);
   revalidatePath("/peregrinos");
   return { ok: true, pilgrimId: p.id };

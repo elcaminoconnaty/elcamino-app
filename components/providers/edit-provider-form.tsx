@@ -1,12 +1,13 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProvider } from "@/lib/actions/reservations";
 import { PROVIDER_TYPES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function EditProviderForm({ provider }: { provider: any }) {
   const router = useRouter();
@@ -14,7 +15,7 @@ export function EditProviderForm({ provider }: { provider: any }) {
     <form
       action={async (fd) => {
         try {
-          await updateProvider(provider.id, fd);
+          exigir(await updateProvider(provider.id, fd));
           toast({ title: "Guardado", variant: "success" });
           router.refresh();
         } catch (e: any) {
@@ -25,7 +26,7 @@ export function EditProviderForm({ provider }: { provider: any }) {
     >
       <div className="grid gap-2"><Label>Nombre</Label><Input name="name" defaultValue={provider.name} required /></div>
       <div className="grid gap-2"><Label>Tipo</Label>
-        <select name="type" defaultValue={provider.type} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+        <select name="type" defaultValue={provider.type} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
           {PROVIDER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
@@ -97,7 +98,7 @@ export function EditProviderForm({ provider }: { provider: any }) {
         <input type="checkbox" name="active" defaultChecked={provider.active} />
         Activo
       </label>
-      <Button type="submit" variant="accent" className="w-full">Guardar</Button>
+      <SubmitButton variant="accent" className="w-full">Guardar</SubmitButton>
     </form>
   );
 }

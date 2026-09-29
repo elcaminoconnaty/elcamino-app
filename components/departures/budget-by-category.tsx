@@ -21,17 +21,20 @@ export function BudgetByCategory({
   departureId,
   pagantes,
   team,
+  contingenciaPct = 0,
 }: {
   items: Item[];
   providers: Provider[];
   departureId: string;
   pagantes: number;
   team: number;
+  /** % de contingencia del camino (v_departure_finance.variable_buffer_pct). */
+  contingenciaPct?: number;
 }) {
   const [active, setActive] = React.useState("Todo");
 
   function effectiveTotal(b: Item): number {
-    return effectiveLineTotal(b, pagantes, team);
+    return effectiveLineTotal(b, pagantes, team, contingenciaPct);
   }
 
   // Categorías presentes

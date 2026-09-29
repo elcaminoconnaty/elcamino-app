@@ -50,7 +50,7 @@ export default async function PaginaMenuCamino({
       <Marco subtitulo="ELIGE TU MENÚ">
         <p style={{ fontSize: 13, color: COLOR.castano, margin: "0 0 14px" }}>
           Estás eligiendo como <strong style={{ color: COLOR.atlantico }}>{datos.nombre}</strong>.{" "}
-          <Link href={`/menu/c/${params.token}`} style={{ color: COLOR.ocreProfundo, textDecoration: "underline" }}>
+          <Link href={`/menu/c/${params.token}`} style={{ color: COLOR.ocreProfundo, textDecoration: "underline", whiteSpace: "nowrap", display: "inline-block", padding: "6px 0", margin: "-6px 0" }}>
             No soy yo
           </Link>
         </p>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { effectiveLineTotal } from "@/lib/finance";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EurCop } from "@/components/ui/eur-cop";
@@ -23,7 +24,7 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
     supabase
       .from("v_departure_finance")
-      .select("team_count, inscritos_total")
+      .select("team_count, inscritos_total, pagantes_count, variable_buffer_pct")
       .eq("departure_id", departureId)
       .maybeSingle(),
   ]);
@@ -32,15 +33,18 @@ export async function StepPorPeregrino({ departureId }: { departureId: string })
     (i: any) => !CATEGORIAS_CON_PASO_PROPIO.includes(i.category)
   );
 
-  // Los ítems por-peregrino los consume TODO el que va, equipo incluido
-  // (misma regla que effectiveLineTotal en lib/finance.ts).
+  // La regla de effectiveLineTotal (lib/finance.ts) = v_departure_finance: lo "por inscrito" lo
+  // consume todo el que va (equipo incluido), lo "por pagante" solo quien paga; los dos con la
+  // contingencia del camino. Así este total cuadra con el Presupuesto y con el KPI.
   const inscritos = Number((finance as any)?.inscritos_total ?? 0);
   const team = Number((finance as any)?.team_count ?? 0);
+  const pagantes = Number((finance as any)?.pagantes_count ?? 0);
+  const contingencia = Number((finance as any)?.variable_buffer_pct ?? 0);
   const totalPorPersona = (items ?? []).reduce(
     (s: number, i: any) => s + Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0),
     0
   );
-  const totalGrupo = totalPorPersona * inscritos;
+  const totalGrupo = (items ?? []).reduce((s: number, i: any) => s + effectiveLineTotal(i, pagantes, team, contingencia), 0);
 
   return (
     <Card>

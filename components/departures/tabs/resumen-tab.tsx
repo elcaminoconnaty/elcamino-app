@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EurCop } from "@/components/ui/eur-cop";
 import { CostDonut } from "@/components/departures/cost-donut";
-import { ScenariosCard } from "@/components/departures/scenarios-card";
+import { UtilidadPorCupoCard } from "@/components/departures/utilidad-por-cupo-card";
 import { BreakEvenCard } from "@/components/departures/break-even-card";
 import { CostBreakdownCard } from "@/components/departures/cost-breakdown-card";
 import { PerPilgrimCostCard } from "@/components/departures/per-pilgrim-cost-card";
@@ -10,9 +10,10 @@ import { effectiveLineTotal, type DepartureFinance } from "@/lib/finance";
 
 export async function ResumenTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
-  const [{ data: finance }, { data: items }] = await Promise.all([
+  const [{ data: finance }, { data: items }, { data: dep }] = await Promise.all([
     supabase.from("v_departure_finance").select("*").eq("departure_id", departureId).maybeSingle(),
     supabase.from("budget_items").select("category, scaling, estimated_unit_cost_eur, confirmed_unit_cost_eur, quantity").eq("departure_id", departureId).neq("status", "cancelado"),
+    supabase.from("departures").select("base_price_eur").eq("id", departureId).maybeSingle(),
   ]);
 
   if (!finance) return <p className="text-muted-foreground">Sin datos aún.</p>;
@@ -22,7 +23,7 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
   const team = f.team_count;
   const byCategory = new Map<string, number>();
   (items ?? []).forEach((b: any) => {
-    byCategory.set(b.category, (byCategory.get(b.category) ?? 0) + effectiveLineTotal(b, pagantes, team));
+    byCategory.set(b.category, (byCategory.get(b.category) ?? 0) + effectiveLineTotal(b, pagantes, team, Number(f.variable_buffer_pct ?? 0)));
   });
   const donutData = Array.from(byCategory.entries())
     .map(([name, value]) => ({ name, value }))
@@ -42,7 +43,9 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
           positive={Number(f.utilidad_total_eur) >= 0}
         />
         <KPI label="Precio promedio" value={<EurCop value={f.precio_promedio_pagante_eur} />} hint="Por pagante (excluye equipo)" />
-        <KPI label="Pendiente por cobrar" value={<EurCop value={f.pending_revenue_eur} />} />
+        {/* Una sola verdad para "falta por cobrar": pending_settled_eur (a la tasa de cierre, y sin
+            tasa cae al histórico). El histórico después del cierre es diferencia en cambio, no deuda. */}
+        <KPI label="Pendiente por cobrar" value={<EurCop value={f.pending_settled_eur} />} hint={Number(f.por_devolver_eur) > 0.5 ? <>Por devolver <EurCop value={f.por_devolver_eur} /></> : undefined} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -55,7 +58,7 @@ export async function ResumenTab({ departureId }: { departureId: string }) {
         <CostBreakdownCard finance={f} />
         <div className="space-y-4">
           <BreakEvenCard finance={f} />
-          <ScenariosCard finance={f} />
+          <UtilidadPorCupoCard finance={f} precioLista={(dep as any)?.base_price_eur ?? null} />
         </div>
       </div>
 

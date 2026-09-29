@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { registerClosingPayment, registerRefund } from "@/lib/actions/settlement";
 import { getTrmForDate } from "@/lib/actions/payments";
 import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
-import { formatEUR, formatCOP } from "@/lib/utils";
+import { formatEUR, formatCOP, hoyBogota } from "@/lib/utils";
 import { copRedondeado, type PilgrimSettlement } from "@/lib/settlement";
 import { toast } from "@/components/ui/toaster";
 import { CheckCircle2, Undo2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Registra el último movimiento del viaje: el pago de cierre de quien todavía
@@ -40,7 +41,7 @@ export function ClosingPaymentDialog({
   const copSugerido = conRecalculo ? copRedondeado(eurSugerido, trmCierre) : 0;
 
   const [open, setOpen] = useState(false);
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(hoyBogota());
   const [currency, setCurrency] = useState<"EUR" | "COP">(conRecalculo ? "COP" : "EUR");
   const [amount, setAmount] = useState(String(conRecalculo ? copSugerido : eurSugerido.toFixed(2)));
   // TRM del día, solo para el modo sin recálculo.
@@ -105,10 +106,10 @@ export function ClosingPaymentDialog({
         notes: notes || null,
       };
       if (esDevolucion) {
-        await registerRefund(payload);
+        exigir(await registerRefund(payload));
         toast({ title: "Devolución registrada", variant: "success" });
       } else {
-        await registerClosingPayment(payload);
+        exigir(await registerClosingPayment(payload));
         toast({ title: "Pago de cierre registrado", variant: "success" });
       }
       setOpen(false);

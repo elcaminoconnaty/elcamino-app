@@ -6,10 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPilgrim } from "@/lib/actions/pilgrims";
+import { SubmitButton, useAccionUnica } from "@/components/ui/submit-button";
+import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
 
 export function NewPilgrimDialog() {
   const [open, setOpen] = useState(false);
+  // Si sale bien, la acción redirige a la ficha nueva; si no, devuelve el error para mostrarlo.
+  const crear = useAccionUnica(async (fd: FormData) => {
+    const r = await createPilgrim(fd);
+    if (r && !r.ok) toast({ title: "No se pudo crear el peregrino", description: r.error, variant: "destructive" });
+  });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -17,7 +24,7 @@ export function NewPilgrimDialog() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Nuevo peregrino</DialogTitle></DialogHeader>
-        <form action={createPilgrim} className="space-y-3">
+        <form action={crear} className="space-y-3">
           <div className="grid gap-2"><Label>Nombre completo *</Label><Input name="full_name" required /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Email</Label><Input name="email" type="email" /></div>
@@ -35,7 +42,7 @@ export function NewPilgrimDialog() {
           <div className="grid gap-2"><Label>Notas dietarias</Label><Textarea name="dietary_notes" rows={2} /></div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Crear</Button>
+            <SubmitButton variant="accent" pendingText="Creando…">Crear</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -6,6 +6,7 @@ import { MarcoPublico } from "@/components/publico/marco-publico";
 import { resolverEnlace, fichaPorToken } from "@/lib/registro/por-token";
 import { BuscarNombre } from "./buscar-nombre";
 import { FormularioRegistro } from "./form-registro";
+import { baseUrl } from "@/lib/url";
 
 /**
  * El formulario de registro del peregrino. Dos puertas, la misma página:
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: { token: string } }
   const camino = enlace ? (enlace.tipo === "personal" ? enlace.ficha.camino : enlace.camino) : null;
   const titulo = camino ? `Registro de peregrinos · ${camino}` : CONTACTO.marca;
   const descripcion = "Tus datos para las reservas, el seguro y tu kit de peregrino. Toma unos minutos.";
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const base = baseUrl();
   return {
     title: titulo,
     description: descripcion,

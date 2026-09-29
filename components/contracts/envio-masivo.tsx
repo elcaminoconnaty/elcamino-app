@@ -15,6 +15,7 @@ import {
   type ResultadoFila,
 } from "@/lib/actions/contracts-bulk";
 import { AlertTriangle, Check, Loader2, Send, X } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Mandar los contratos de todo el camino de una vez.
@@ -63,7 +64,7 @@ export function EnvioMasivoContratos({ departureId }: { departureId: string }) {
     if (aEnviar.length === 0) return;
     setEnviando(true);
     try {
-      const r = await enviarContratosMasivo(departureId, aEnviar.map((f) => f.registrationId));
+      const r = exigir(await enviarContratosMasivo(departureId, aEnviar.map((f) => f.registrationId)));
       setResultado(r.filas);
       toast({
         title: r.fallidos === 0 ? "Contratos enviados" : "Envío con problemas",
@@ -97,7 +98,7 @@ export function EnvioMasivoContratos({ departureId }: { departureId: string }) {
             <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Revisando a cada peregrino…
           </div>
         ) : resultado ? (
-          <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+          <div className="space-y-1.5 sm:max-h-[55vh] sm:overflow-y-auto">
             {resultado.map((r) => (
               <div key={r.registrationId} className="flex items-start gap-2 rounded-md border p-2.5 text-sm">
                 {r.ok ? (
@@ -126,7 +127,7 @@ export function EnvioMasivoContratos({ departureId }: { departureId: string }) {
               los correos salen de verdad y no se pueden deshacer.
             </p>
 
-            <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
+            <div className="space-y-1.5 sm:max-h-[45vh] sm:overflow-y-auto">
               {enviables.map((f) => (
                 <label
                   key={f.registrationId}

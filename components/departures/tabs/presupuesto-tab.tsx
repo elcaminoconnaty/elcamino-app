@@ -15,16 +15,17 @@ export async function PresupuestoTab({ departureId }: { departureId: string }) {
       .order("item_date", { ascending: true, nullsFirst: false })
       .order("category"),
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
-    supabase.from("v_departure_finance").select("pagantes_count, team_count, costo_total_eur").eq("departure_id", departureId).maybeSingle(),
+    supabase.from("v_departure_finance").select("pagantes_count, team_count, costo_total_eur, variable_buffer_pct").eq("departure_id", departureId).maybeSingle(),
   ]);
 
   const pagantes = Number((finance as any)?.pagantes_count ?? 0);
   const team = Number((finance as any)?.team_count ?? 0);
+  const contingencia = Number((finance as any)?.variable_buffer_pct ?? 0);
 
   // Mismas 4 escalas que el wizard (incluye viáticos). El total = costo del wizard (v_departure_finance).
   const subtotals: Record<string, number> = { fijo_grupo: 0, por_inscrito: 0, por_pagante: 0, viatico_team: 0 };
   (items ?? []).forEach((b: any) => {
-    subtotals[b.scaling] = (subtotals[b.scaling] ?? 0) + effectiveLineTotal(b, pagantes, team);
+    subtotals[b.scaling] = (subtotals[b.scaling] ?? 0) + effectiveLineTotal(b, pagantes, team, contingencia);
   });
   const totalAll = Number((finance as any)?.costo_total_eur ?? Object.values(subtotals).reduce((s, v) => s + v, 0));
 
@@ -51,6 +52,7 @@ export async function PresupuestoTab({ departureId }: { departureId: string }) {
         items={items ?? []}
         providers={providers ?? []}
         departureId={departureId}
+        contingenciaPct={contingencia}
         pagantes={pagantes}
         team={team}
       />

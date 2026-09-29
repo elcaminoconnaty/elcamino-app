@@ -59,7 +59,7 @@ export async function LiquidacionTab({ departureId }: { departureId: string }) {
             <div className="text-sm font-medium">{SETTLEMENT_MODE[modo].label}</div>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">{SETTLEMENT_MODE[modo].description}</p>
           </div>
-          <div className="flex gap-2 flex-wrap shrink-0">
+          <div className="flex w-full gap-2 flex-wrap sm:w-auto sm:shrink-0">
             <SettlementModeDialog departureId={departureId} currentMode={modo} />
             {conRecalculo && (
               <SettlementRateDialog
@@ -135,7 +135,7 @@ export async function LiquidacionTab({ departureId }: { departureId: string }) {
                   {conRecalculo && <TableHead className="text-right">Dif. cambio</TableHead>}
                   <TableHead className="text-right">Saldo final</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Cerrar</TableHead>
+                  <TableHead className="text-right" data-acciones>Cerrar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

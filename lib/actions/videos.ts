@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Resultado } from "@/lib/actions/registro";
+import { normalizarCelular } from "@/lib/telefono";
 
 /** Marca (o desmarca) que ya se le mandó el enlace de su video. */
 export async function marcarVideoEnviado(videoId: string, enviado: boolean): Promise<Resultado> {
@@ -23,7 +24,7 @@ export async function guardarCelular(pilgrimId: string, telefono: string): Promi
   const limpio = telefono.trim();
   if (limpio.replace(/\D/g, "").length < 8) return { ok: false, error: "Ese número está muy corto." };
   const supabase = createClient();
-  const { error } = await supabase.from("pilgrims").update({ phone: limpio }).eq("id", pilgrimId);
+  const { error } = await supabase.from("pilgrims").update({ phone: normalizarCelular(limpio) }).eq("id", pilgrimId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/peregrinos/${pilgrimId}`);
   return { ok: true };

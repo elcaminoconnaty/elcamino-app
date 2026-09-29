@@ -130,7 +130,8 @@ export function ReciboPagoPDF({ data }: { data: ReciboData }) {
         </View>
 
         <View style={base.section}>
-          <Text style={base.sectionTitle}>Estado del viaje</Text>
+          {/* Es el estado de HOY, no el del día del abono: si se reimprime un recibo viejo, que se sepa. */}
+          <Text style={base.sectionTitle}>Estado del viaje al {new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Bogota" })}</Text>
           <View style={base.row}><Text style={base.rowLabel}>Total acordado</Text><Text>{fmt.eur(data.total_eur)}</Text></View>
           {hayCierre ? (
             <>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { baseUrl } from "@/lib/url";
 import { notFound } from "next/navigation";
 import { COLOR, CONTACTO, OVERLAY_FOTO } from "@/lib/brand";
 import { videoPorToken } from "@/lib/videos/por-token";
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: { params: { token: string } }
   const v = await videoPorToken(params.token);
   const titulo = v ? `Un mensaje para ti, ${v.nombre}` : CONTACTO.marca;
   const descripcion = "Hay personas que caminan contigo aunque no estén aquí.";
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const base = baseUrl();
   return {
     title: titulo,
     description: descripcion,

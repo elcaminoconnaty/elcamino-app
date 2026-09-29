@@ -3,19 +3,16 @@ import { EurCop } from "@/components/ui/eur-cop";
 import type { DepartureFinance } from "@/lib/finance";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-type Payable = {
-  total_modelo_eur: number | null;
-  pagado_real_eur: number | null;
-  falta_por_pagar_eur: number | null;
-} | null;
+/** Lo contratado con proveedores (lib/data/costos-contratados.ts). */
+type Contratado = { comprometido: number; pagado: number; falta: number } | null;
 
 export function MoneyPanorama({
   finance: f,
-  payable,
+  contratado,
   capacity,
 }: {
   finance: DepartureFinance;
-  payable: Payable;
+  contratado: Contratado;
   capacity: number | null;
 }) {
   const pagantes = f.pagantes_count;
@@ -29,20 +26,22 @@ export function MoneyPanorama({
   // (abonos en pesos re-valorados); antes de eso, del pendiente histórico. En un
   // camino sin recálculo no hay tasa de cierre y el pendiente ya es el definitivo.
   const hayCierre = (f.settlement_mode ?? "recalculo") === "recalculo" && Number(f.trm_frozen_value ?? 0) > 0;
-  const faltaCobrar = hayCierre ? Number(f.pending_settled_eur ?? 0) : Number(f.pending_revenue_eur ?? 0);
+  const faltaCobrar = Number(f.pending_settled_eur ?? 0);
   const porDevolver = Number(f.por_devolver_eur ?? 0);
   const difCambio = Number(f.fx_difference_eur ?? 0);
   const cobradoPct = esperado > 0 ? Math.min(100, Math.round((cobrado / esperado) * 100)) : 0;
 
-  // El costo del modelo puede tener contingencia; usamos el costo total de finanzas
-  // como referencia y el pagado/falta desde v_departure_payable (misma fuente que el
-  // dashboard de Naty). Si no hay payable, caemos a costo_total sin pagos.
+  // Dos costos con nombre propio (decisión de Nico, 2026-09-29):
+  //  · "Costo con los inscritos": el de la utilidad; sigue a la gente que va, porque las camas
+  //    sobrantes se cancelan a tiempo (para eso están las alertas).
+  //  · "Comprometido hoy": lo contratado, el peor caso si no se inscribe nadie más.
+  // Pagado y falta por pagar salen de lo contratado: es lo que se le debe a cada proveedor, y así
+  // cuadran con las filas de la pestaña Pagos y con el informe de giros.
   const costo = Number(f.costo_total_eur ?? 0);
-  const pagado = Number(payable?.pagado_real_eur ?? 0);
-  const faltaPagar = payable
-    ? Number(payable.falta_por_pagar_eur ?? 0)
-    : Math.max(0, costo - pagado);
-  const pagadoBase = pagado + faltaPagar; // base coherente con lo que la vista considera pagable
+  const comprometido = Number(contratado?.comprometido ?? 0);
+  const pagado = Number(contratado?.pagado ?? 0);
+  const faltaPagar = Number(contratado?.falta ?? 0);
+  const pagadoBase = pagado + faltaPagar;
   const pagadoPct = pagadoBase > 0 ? Math.min(100, Math.round((pagado / pagadoBase) * 100)) : 0;
 
   const utilPositive = Number(f.utilidad_total_eur ?? 0) >= 0;
@@ -124,11 +123,16 @@ export function MoneyPanorama({
             <div className="flex items-center gap-1.5 text-xs font-medium text-aviso-900">
               <TrendingDown className="h-4 w-4" /> Lo que sale — proveedores + equipo
             </div>
-            <div className="mt-3 grid gap-x-2 gap-y-3 grid-cols-2 sm:grid-cols-3">
-              <MoneyCell label="Costo total" value={<EurCop value={costo} />} />
+            <div className="mt-3 grid gap-x-2 gap-y-3 grid-cols-2 sm:grid-cols-4">
+              <MoneyCell label="Costo con los inscritos" value={<EurCop value={costo} />} />
+              <MoneyCell label="Comprometido hoy" value={<EurCop value={comprometido} />} />
               <MoneyCell label="Pagado" value={<EurCop value={pagado} />} strong="text-ok-700" />
               <MoneyCell label="Falta por pagar" value={<EurCop value={faltaPagar} />} strong="text-aviso-700" />
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              «Comprometido hoy» es lo contratado y presupuestado con proveedores (el peor caso si no se inscribe nadie más).
+              Falta por pagar sale de ahí.
+            </p>
             <div className="mt-3 h-2 bg-piedra-suave rounded-full overflow-hidden">
               <div className="h-full bg-aviso-500" style={{ width: `${pagadoPct}%` }} />
             </div>

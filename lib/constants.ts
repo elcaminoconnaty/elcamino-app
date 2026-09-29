@@ -67,7 +67,9 @@ export const RESERVATION_STATUSES = [
   { value: "reservado", label: "Reservado / Confirmado" },
   { value: "pagado", label: "Pagado" },
   { value: "cancelado", label: "Cancelado" },
-];
+] as const;
+/** Estados de una reserva: los mismos del CHECK `reservations_status_check`. */
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number]["value"];
 
 export const BUDGET_STATUSES = [
   { value: "presupuestado", label: "Presupuestado" },
@@ -75,7 +77,9 @@ export const BUDGET_STATUSES = [
   { value: "reservado", label: "Reservado" },
   { value: "pagado", label: "Pagado" },
   { value: "cancelado", label: "Cancelado" },
-];
+] as const;
+/** Estados de un item del presupuesto: los mismos del CHECK `budget_items_status_check`. */
+export type BudgetStatus = (typeof BUDGET_STATUSES)[number]["value"];
 
 export const DEPARTURE_STATUSES = [
   { value: "planning", label: "Planeación" },

@@ -1,4 +1,6 @@
 import "server-only";
+import { cuotasPendientes } from "@/lib/pagos-pendientes/cuotas";
+import { hoyBogota } from "@/lib/utils";
 import { RESERVATION_PAYMENT_METHODS, MEDIOS_QUE_SE_GIRAN } from "@/lib/constants";
 import { formatearIban, validarIban } from "@/lib/banco";
 
@@ -136,7 +138,7 @@ export async function armarInformePagos(
   const { departureId = null, hasta = null } =
     typeof opciones === "string" ? { departureId: opciones, hasta: null } : opciones;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyBogota();
   const filtrar = (q: any) => (departureId ? q.eq("departure_id", departureId) : q);
 
   const [{ data: dep }, { data: reservas }, { data: pagos }, { data: cuotas }, { data: otros }, { data: ultimaTrm }] =
@@ -161,7 +163,6 @@ export async function armarInformePagos(
         supabase
           .from("v_reservation_schedule")
           .select("reservation_id, due_date, amount_eur, label, paid")
-          .eq("paid", false)
       ).order("due_date"),
       filtrar(
         supabase.from("v_budget_payable").select("description, category, line_total_eur, paid_eur, saldo_eur").is("reservation_id", null)
@@ -188,8 +189,12 @@ export async function armarInformePagos(
 
   const pagoDe = new Map<string, any>();
   for (const p of pagos ?? []) pagoDe.set(p.reservation_id, p);
+  // Lo que falta de cada cuota sale de lo pagado a la reserva (cascada), no de la casilla `paid`.
+  const pagadoDe = new Map<string, number>(((pagos ?? []) as any[]).map((p) => [p.reservation_id, Number(p.paid_eur ?? 0)]));
+  const saldoDe = new Map<string, number>(((pagos ?? []) as any[]).map((p) => [p.reservation_id, Number(p.saldo_eur ?? 0)]));
   const cuotasDe = new Map<string, any[]>();
-  for (const c of cuotas ?? []) cuotasDe.set(c.reservation_id, [...(cuotasDe.get(c.reservation_id) ?? []), c]);
+  for (const c of cuotasPendientes((cuotas ?? []) as any[], pagadoDe, saldoDe))
+    cuotasDe.set(c.reservation_id, [...(cuotasDe.get(c.reservation_id) ?? []), c]);
 
   const giros: Giro[] = [];
   const avisos: string[] = [];
@@ -239,7 +244,7 @@ export async function armarInformePagos(
     };
 
     const pendientes = cuotasDe.get(r.id) ?? [];
-    const sumaCuotas = pendientes.reduce((s, c) => s + Number(c.amount_eur ?? 0), 0);
+    const sumaCuotas = pendientes.reduce((s, c) => s + Number(c.restante_eur ?? 0), 0);
 
     const agregar = (concepto: string, vence: string | null, monto: number) => {
       giros.push({
@@ -256,13 +261,18 @@ export async function armarInformePagos(
       agregar("Saldo pendiente", null, saldo);
     } else {
       for (const c of pendientes) {
-        agregar(c.label || "Cuota", String(c.due_date), Number(c.amount_eur ?? 0));
+        agregar(c.label || "Cuota", c.due_date ? String(c.due_date) : null, Number(c.restante_eur ?? 0));
       }
       const resto = saldo - sumaCuotas;
       if (resto > 0.01) agregar("Resto sin plan", null, resto);
-      else if (resto < -0.01) {
+      // Las cuotas a girar ya vienen topadas al saldo; el aviso mira el plan completo contra el
+      // costo, para que un plan mal cargado (1.990 € para una reserva de 1.433,50 €) se corrija.
+      const planCompleto = ((cuotas ?? []) as any[])
+        .filter((c) => c.reservation_id === r.id)
+        .reduce((s, c) => s + Number(c.amount_eur ?? 0), 0);
+      if (planCompleto > total + 0.01) {
         avisos.push(
-          `${base.proveedor} · ${base.servicio}: el plan de cuotas suma ${sumaCuotas.toFixed(2)} € y el saldo es ${saldo.toFixed(2)} €. Revisá el plan.`
+          `${base.proveedor} · ${base.servicio}: el plan de cuotas suma ${planCompleto.toFixed(2)} € y el costo es ${total.toFixed(2)} €. Revisa el plan.`
         );
       }
     }

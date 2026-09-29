@@ -239,7 +239,9 @@ export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: Co
                   if (course.options.length === 0) return null;
                   const hijas = dependentsOf(course, cena.courses);
                   return (
-                    <fieldset key={course.id} disabled={cena.noCena} style={{ border: 0, padding: 0, margin: 0 }}>
+                    // Sin margin-top en línea: el "margin: 0" le ganaba al space-y-4 del contenedor y el título de
+                    // cada sección quedaba pegado a la última opción de la anterior.
+                    <fieldset key={course.id} disabled={cena.noCena} style={{ border: 0, padding: 0, marginInline: 0, marginBottom: 0, minWidth: 0 }}>
                       <legend style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: COLOR.ocreProfundo, marginBottom: 6 }}>
                         {titulo}
                         {!course.required && <span style={{ textTransform: "none", letterSpacing: 0, color: COLOR.castano }}> · opcional</span>}
@@ -282,8 +284,8 @@ export function FormularioMenu({ token, ctx, datos }: { token?: string; ctx?: Co
               </div>
             )}
 
-            <label className="mt-4 flex items-center gap-2 cursor-pointer" style={{ fontSize: 13, color: COLOR.castano }}>
-              <input type="checkbox" checked={cena.noCena} onChange={(e) => noCena(cena, e.target.checked)} />
+            <label className="mt-4 flex items-center gap-2 cursor-pointer py-2" style={{ fontSize: 13, color: COLOR.castano }}>
+              <input type="checkbox" checked={cena.noCena} onChange={(e) => noCena(cena, e.target.checked)} style={{ width: 20, height: 20 }} />
               No voy a cenar esta noche
             </label>
           </section>

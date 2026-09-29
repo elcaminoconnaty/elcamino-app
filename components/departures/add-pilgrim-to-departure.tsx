@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createRegistration, createPilgrim } from "@/lib/actions/pilgrims";
+import { createRegistration } from "@/lib/actions/pilgrims";
+import { exigir } from "@/lib/resultado";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
 
@@ -26,40 +27,59 @@ export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: 
   const [newPhone, setNewPhone] = useState("");
   const [newCountry, setNewCountry] = useState("Colombia");
 
+  // Si el peregrino nuevo ya se creó pero la inscripción falló, el reintento lo reutiliza
+  // en vez de crear otro igual.
+  const creado = useRef<{ nombre: string; id: string } | null>(null);
+
   async function submit() {
+    // Todo lo que se puede validar va antes de crear nada: si no, un total inválido dejaba
+    // al peregrino creado sin inscripción.
+    const t = Number(total);
+    if (!t || t <= 0) {
+      toast({ title: "Error", description: "Total inválido", variant: "destructive" });
+      return;
+    }
+    if (mode === "new" && !newName.trim()) {
+      toast({ title: "Error", description: "Escribe el nombre del peregrino", variant: "destructive" });
+      return;
+    }
+    if (mode !== "new" && !pilgrimId) {
+      toast({ title: "Error", description: "Seleccioná un peregrino", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       let pid = pilgrimId;
       if (mode === "new") {
-        const fd = new FormData();
-        fd.set("full_name", newName);
-        fd.set("email", newEmail);
-        fd.set("phone", newPhone);
-        fd.set("country", newCountry);
-        // createPilgrim redirige; aquí usamos otra ruta — creo manualmente con cliente:
-        const res = await fetch("/api/pilgrims", {
-          method: "POST",
-          body: JSON.stringify({
-            full_name: newName,
-            email: newEmail || null,
-            phone: newPhone || null,
-            country: newCountry || null,
-          }),
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) throw new Error("Error creando peregrino");
-        const json = await res.json();
-        pid = json.id;
+        if (creado.current && creado.current.nombre === newName) {
+          pid = creado.current.id;
+        } else {
+          const res = await fetch("/api/pilgrims", {
+            method: "POST",
+            body: JSON.stringify({
+              full_name: newName,
+              email: newEmail || null,
+              phone: newPhone || null,
+              country: newCountry || null,
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json?.error ?? "Error creando peregrino");
+          pid = json.id;
+          creado.current = { nombre: newName, id: json.id };
+        }
       }
       if (!pid) throw new Error("Seleccioná un peregrino");
-      const t = Number(total);
-      if (!t || t <= 0) throw new Error("Total inválido");
-      await createRegistration({
-        pilgrim_id: pid,
-        departure_id: departureId,
-        total_eur: t,
-        paid_in_cop_originally: cop,
-      });
+      exigir(
+        await createRegistration({
+          pilgrim_id: pid,
+          departure_id: departureId,
+          total_eur: t,
+          paid_in_cop_originally: cop,
+        })
+      );
+      creado.current = null;
       toast({ title: "Peregrino inscrito", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -88,7 +108,7 @@ export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: 
         {mode === "existing" ? (
           <div className="grid gap-2">
             <Label>Peregrino</Label>
-            <select value={pilgrimId} onChange={(e) => setPilgrimId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select value={pilgrimId} onChange={(e) => setPilgrimId(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               <option value="">— Seleccionar —</option>
               {pilgrims.map((p) => (
                 <option key={p.id} value={p.id}>{p.full_name}{p.email ? ` · ${p.email}` : ""}</option>

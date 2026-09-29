@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPenaltyMovement, getTrmForDate } from "@/lib/actions/payments";
 import { toast } from "@/components/ui/toaster";
-import { formatEUR, formatCOP, formatDate } from "@/lib/utils";
+import { formatEUR, formatCOP, formatDate, hoyBogota } from "@/lib/utils";
 import { CONCEPTO_PENALIDAD } from "@/lib/settlement";
 import { MinusCircle } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Registrar una penalidad: un movimiento en negativo dentro de los pagos del
@@ -22,7 +23,7 @@ import { MinusCircle } from "lucide-react";
  */
 export function NewPenaltyDialog({ registrationId }: { registrationId: string }) {
   const [open, setOpen] = useState(false);
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(hoyBogota());
   const [currency, setCurrency] = useState<"EUR" | "COP">("EUR");
   const [monto, setMonto] = useState("");
   const [trm, setTrm] = useState("");
@@ -69,7 +70,7 @@ export function NewPenaltyDialog({ registrationId }: { registrationId: string })
     }
     setSaving(true);
     try {
-      await createPenaltyMovement({
+      exigir(await createPenaltyMovement({
         registration_id: registrationId,
         paid_at: paidAt,
         amount: valor,
@@ -77,7 +78,7 @@ export function NewPenaltyDialog({ registrationId }: { registrationId: string })
         trm_eur_cop: tasa > 0 ? tasa : null,
         concept,
         notes: notes || null,
-      });
+      }));
       toast({ title: "Penalidad registrada", variant: "success" });
       setOpen(false);
       router.refresh();

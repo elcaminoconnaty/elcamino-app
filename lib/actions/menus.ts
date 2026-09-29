@@ -12,6 +12,7 @@ import {
   type ChoiceInput,
 } from "@/lib/data/menus";
 import type { MealChoice } from "@/types/db";
+import { baseUrl } from "@/lib/url";
 
 export type { MenuInput, ChoiceInput };
 
@@ -52,10 +53,6 @@ export type Resultado<T = object> = ({ ok: true } & T) | { ok: false; error: str
 function revalidar(departureId?: string | null) {
   if (!departureId) return;
   revalidatePath(`/caminos/${departureId}`);
-}
-
-function baseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 /** Secciones y platos de un conjunto de reservas, ya anidados. */

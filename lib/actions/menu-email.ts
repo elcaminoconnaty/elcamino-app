@@ -84,7 +84,7 @@ export async function previsualizarMenuRestaurante(reservationId: string, notaEx
 export async function enviarMenuAlRestaurante(
   reservationId: string,
   opts: { copiaAMi?: boolean; notaExtra?: string | null; cc?: string[] | null } = {}
-): Promise<Resultado<{ via: "gmail" | "brevo"; to: string; cc: string[] }>> {
+): Promise<Resultado<{ via: "gmail" | "brevo"; to: string; cc: string[]; aviso?: string }>> {
   const supabase = createClient();
   const a = await armar(supabase, reservationId, opts.notaExtra);
   if (!a.ok) return a;
@@ -121,8 +121,11 @@ export async function enviarMenuAlRestaurante(
         cambios.gmail_thread_linked_at = new Date().toISOString();
       }
       if (res.messageId) cambios.gmail_last_message_id = res.messageId;
-      await supabase.from("reservations").update(cambios).eq("id", reservationId);
+      // El correo ya salió: si no se puede anotar, se avisa (no se devuelve error, para que
+      // nadie lo reenvíe creyendo que no llegó).
+      const { error: errMarca } = await supabase.from("reservations").update(cambios).eq("id", reservationId);
       revalidatePath(`/caminos/${r.departure_id}`);
+      if (errMarca) return { ok: true, via: "gmail", to, cc, aviso: `Se envió, pero no quedó anotado en la reserva (${errMarca.message}).` };
     }
     return { ok: true, via: "gmail", to, cc };
   }
@@ -130,8 +133,9 @@ export async function enviarMenuAlRestaurante(
   const res = await enviarCorreo({ to, cc, subject, html: a.correo.html, text: a.correo.text, tipo: "menu_restaurante", adjuntos: [adjunto], reservationId, templateSlug: slug });
   if (!res.ok) return { ok: false, error: res.error };
   if (!opts.copiaAMi) {
-    await supabase.from("reservations").update({ menu_sent_at: new Date().toISOString() }).eq("id", reservationId);
+    const { error: errMarca } = await supabase.from("reservations").update({ menu_sent_at: new Date().toISOString() }).eq("id", reservationId);
     revalidatePath(`/caminos/${r.departure_id}`);
+    if (errMarca) return { ok: true, via: "brevo", to, cc, aviso: `Se envió, pero no quedó anotado en la reserva (${errMarca.message}).` };
   }
   return { ok: true, via: "brevo", to, cc };
 }

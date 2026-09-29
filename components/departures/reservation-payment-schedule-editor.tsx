@@ -3,7 +3,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatEUR, formatDate } from "@/lib/utils";
+import { formatEUR, formatDate, hoyBogota } from "@/lib/utils";
 import { Plus, Trash2, Calendar, CheckCircle2 } from "lucide-react";
 
 export type ScheduleItem = {
@@ -41,7 +41,7 @@ export function ReservationPaymentScheduleEditor({
     update([
       ...items,
       {
-        due_date: preset?.due_date ?? new Date().toISOString().slice(0, 10),
+        due_date: preset?.due_date ?? hoyBogota(),
         amount_eur: preset?.amount_eur ?? 0,
         label: preset?.label ?? "",
         notes: "",
@@ -61,7 +61,7 @@ export function ReservationPaymentScheduleEditor({
   }
 
   function applyPreset(kind: "30_70" | "50_50" | "100") {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = hoyBogota();
     if (kind === "100") {
       update([{ due_date: today, amount_eur: totalCost, label: "Pago único", notes: "", paid: false, paid_at: null, provider_payment_id: null }]);
     } else if (kind === "30_70") {
@@ -100,19 +100,20 @@ export function ReservationPaymentScheduleEditor({
       ) : (
         <div className="space-y-1.5">
           {items.map((it, i) => (
+            // En el celular fecha y nombre a medias: con la fecha en 5/12 no se leía el año.
             <div key={i} className={`grid grid-cols-12 gap-1.5 items-center rounded-md p-2 ${it.paid ? "bg-ok-50 border border-ok-200" : "bg-white border"}`}>
               <Input
                 type="date"
                 value={it.due_date}
                 onChange={(e) => patch(i, { due_date: e.target.value })}
-                className="col-span-5 sm:col-span-3 h-8 text-xs"
+                className="col-span-6 min-w-0 sm:col-span-3 h-10 text-base sm:h-8 sm:text-xs"
                 disabled={it.paid}
               />
               <Input
                 placeholder="Ej. Anticipo / Saldo"
                 value={it.label}
                 onChange={(e) => patch(i, { label: e.target.value })}
-                className="col-span-7 sm:col-span-5 h-8 text-xs"
+                className="col-span-6 min-w-0 sm:col-span-5 h-10 text-base sm:h-8 sm:text-xs"
                 disabled={it.paid}
               />
               <Input
@@ -120,16 +121,16 @@ export function ReservationPaymentScheduleEditor({
                 step="0.01"
                 value={it.amount_eur || ""}
                 onChange={(e) => patch(i, { amount_eur: Number(e.target.value) || 0 })}
-                className="col-span-10 sm:col-span-3 h-8 text-xs text-right"
+                className="col-span-10 min-w-0 sm:col-span-3 h-10 text-base sm:h-8 sm:text-xs text-right"
                 disabled={it.paid}
               />
               <div className="col-span-2 sm:col-span-1 flex justify-end gap-0.5">
                 {it.paid ? (
-                  <div className="h-7 w-7 flex items-center justify-center text-ok-700" title={`Pagada ${it.paid_at ? formatDate(it.paid_at) : ""}`}>
+                  <div className="h-10 w-10 sm:h-7 sm:w-7 flex items-center justify-center text-ok-700" title={`Pagada ${it.paid_at ? formatDate(it.paid_at) : ""}`}>
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                 ) : (
-                  <button type="button" onClick={() => removeItem(i)} className="h-7 w-7 flex items-center justify-center text-error-700 hover:bg-error-50 rounded" title="Eliminar cuota">
+                  <button type="button" onClick={() => removeItem(i)} className="h-10 w-10 sm:h-7 sm:w-7 flex items-center justify-center text-error-700 hover:bg-error-50 rounded" title="Eliminar cuota">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}

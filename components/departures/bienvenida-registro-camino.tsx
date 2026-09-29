@@ -56,7 +56,7 @@ export function BienvenidaRegistroCamino(props: {
 
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <a href={`/api/export/caminos/${props.departureId}/registro`} download title="Todo lo que llenaron, las tallas para el kit, la alimentación y lo que falta">
+            <a href={`/api/export/caminos/${props.departureId}/registro`} download target="_blank" rel="noopener" title="Todo lo que llenaron, las tallas para el kit, la alimentación y lo que falta">
               <FileSpreadsheet className="h-4 w-4" /> Registro (Excel)
             </a>
           </Button>

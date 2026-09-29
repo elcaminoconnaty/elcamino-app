@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { DAY_KIND_LABELS } from "@/lib/data/wizard-steps";
 import { guardarEtapas, leerEtapas, type EtapaInput } from "@/lib/actions/route-stages";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Las etapas de la ruta: el esqueleto del que salen el itinerario del documento de viaje,
@@ -71,8 +72,67 @@ export function EditorEtapas({ routeId, nombreRuta }: { routeId: string; nombreR
         {cargando ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Leyendo…</p>
         ) : (
-          <div className="max-h-[55vh] overflow-y-auto">
-            <table className="w-full text-sm">
+          <div className="sm:max-h-[55vh] sm:overflow-y-auto">
+            {/* En el celular una tarjeta por etapa: la tabla de 7 columnas dejaba cada campo de 40px
+                y no se veía ni el número. */}
+            <div className="space-y-3 sm:hidden">
+              {etapas.map((e, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Día
+                    <Input type="number" value={e.day_offset} onChange={(ev) => set(i, "day_offset", Number(ev.target.value))} />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Tipo
+                    <select
+                      value={e.day_kind}
+                      onChange={(ev) => set(i, "day_kind", ev.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-2 text-base text-foreground"
+                    >
+                      {Object.entries(DAY_KIND_LABELS).map(([v, l]) => (
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Desde
+                    <Input value={e.from_place ?? ""} onChange={(ev) => set(i, "from_place", ev.target.value)} />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Hasta
+                    <Input value={e.to_place ?? ""} onChange={(ev) => set(i, "to_place", ev.target.value)} />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Km
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={e.km ?? ""}
+                      onChange={(ev) => set(i, "km", ev.target.value === "" ? null : Number(ev.target.value))}
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    Horas aprox.
+                    <Input value={e.hours_approx ?? ""} onChange={(ev) => set(i, "hours_approx", ev.target.value)} placeholder="6 horas aprox." />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="col-span-2 h-10 text-error-700"
+                    onClick={() => setEtapas((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" /> Quitar etapa
+                  </Button>
+                </div>
+              ))}
+              {etapas.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Esta ruta no tiene etapas. Sin ellas el documento de viaje no puede armar el itinerario.
+                </p>
+              )}
+            </div>
+
+            <table className="hidden w-full text-sm sm:table">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-widest text-ocre-profundo">
                   <th className="pb-2 pr-2 w-16">Día</th>
@@ -170,7 +230,7 @@ export function EditorEtapas({ routeId, nombreRuta }: { routeId: string; nombreR
             onClick={() =>
               empezar(async () => {
                 try {
-                  await guardarEtapas(routeId, etapas);
+                  exigir(await guardarEtapas(routeId, etapas));
                   toast({ title: "Etapas guardadas", variant: "success" });
                   setAbierto(false);
                 } catch (e: any) {

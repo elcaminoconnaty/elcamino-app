@@ -10,6 +10,8 @@ import { createProvider } from "@/lib/actions/reservations";
 import { PROVIDER_TYPES } from "@/lib/constants";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function NewProviderDialog() {
   const [open, setOpen] = useState(false);
@@ -24,7 +26,7 @@ export function NewProviderDialog() {
         <form
           action={async (fd) => {
             try {
-              await createProvider(fd);
+              exigir(await createProvider(fd));
               toast({ title: "Proveedor creado", variant: "success" });
               setOpen(false);
               router.refresh();
@@ -36,7 +38,7 @@ export function NewProviderDialog() {
         >
           <div className="grid gap-2"><Label>Nombre *</Label><Input name="name" required /></div>
           <div className="grid gap-2"><Label>Tipo</Label>
-            <select name="type" required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select name="type" required className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               {PROVIDER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
@@ -51,7 +53,7 @@ export function NewProviderDialog() {
           </div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Crear</Button>
+            <SubmitButton variant="accent" pendingText="Creando…">Crear</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

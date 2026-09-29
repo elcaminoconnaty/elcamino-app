@@ -10,6 +10,7 @@ import { updateRegistrationDetails } from "@/lib/actions/pilgrims";
 import { toast } from "@/components/ui/toaster";
 import { formatDate, formatEUR } from "@/lib/utils";
 import { Pencil } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 type DepartureOption = { id: string; name: string; start_date: string | null; status: string };
 
@@ -51,14 +52,14 @@ export function EditRegistrationDialog({
     }
     setSaving(true);
     try {
-      await updateRegistrationDetails(registration.registration_id, {
+      exigir(await updateRegistrationDetails(registration.registration_id, {
         departure_id: departureId,
         total_eur: t,
         discount_eur: Number(discount) || 0,
         status,
         paid_in_cop_originally: cop,
         notes: notes || null,
-      });
+      }));
       toast({ title: "Inscripción actualizada", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -84,7 +85,7 @@ export function EditRegistrationDialog({
           <select
             value={departureId}
             onChange={(e) => setDepartureId(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
             {departures.map((d) => (
               <option key={d.id} value={d.id}>
@@ -122,7 +123,7 @@ export function EditRegistrationDialog({
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
             {ESTADOS.map((s) => (
               <option key={s} value={s}>{s.replace("_", "-")}</option>

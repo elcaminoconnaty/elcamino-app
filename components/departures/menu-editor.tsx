@@ -241,7 +241,7 @@ export function MenuEditor({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Menú de {providerName}</DialogTitle>
           <DialogDescription>
@@ -254,9 +254,10 @@ export function MenuEditor({
           <div className="rounded-md border bg-alba/60 p-3 text-xs space-y-2">
             <div className="font-medium">Arrancar desde un menú que ya existe</div>
             <div className="flex flex-wrap gap-1.5">
+              {/* En el celular el nombre del camino anterior no cabe en una línea: que parta. */}
               {anterior && (
-                <Button type="button" variant="outline" size="sm" onClick={() => cargar(anterior.courses)}>
-                  <Copy className="h-3 w-3" /> Copiar el de la última vez ({anterior.etiqueta})
+                <Button type="button" variant="outline" size="sm" onClick={() => cargar(anterior.courses)} className="h-auto min-h-8 max-w-full whitespace-normal py-1.5 text-left sm:h-8 sm:whitespace-nowrap sm:py-0">
+                  <Copy className="h-3 w-3 shrink-0" /> Copiar el de la última vez ({anterior.etiqueta})
                 </Button>
               )}
               {otrasCenas.length > 0 && (

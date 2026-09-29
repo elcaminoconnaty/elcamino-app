@@ -10,6 +10,8 @@ import { getTrmForDate } from "@/lib/actions/payments";
 import { toast } from "@/components/ui/toaster";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Landmark } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Fija, cambia o quita la tasa de cierre del camino. Se puede usar en cualquier
@@ -31,7 +33,7 @@ export function SettlementRateDialog({
   const yaTiene = currentTrm != null && Number(currentTrm) > 0;
   const [open, setOpen] = useState(false);
   const [trm, setTrm] = useState(yaTiene ? String(currentTrm) : "");
-  const [date, setDate] = useState(currentDate ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(currentDate ?? hoyBogota());
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -50,7 +52,7 @@ export function SettlementRateDialog({
     }
     setSaving(true);
     try {
-      await freezeDepartureSettlementTrm(departureId, n, date);
+      exigir(await freezeDepartureSettlementTrm(departureId, n, date));
       toast({ title: yaTiene ? "Tasa de cierre actualizada" : "Tasa de cierre fijada", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -64,7 +66,7 @@ export function SettlementRateDialog({
     if (!confirm("¿Quitar la tasa de cierre? Los saldos vuelven a mostrarse sin recalcular. Los pagos no se tocan.")) return;
     setSaving(true);
     try {
-      await clearDepartureSettlementTrm(departureId);
+      exigir(await clearDepartureSettlementTrm(departureId));
       toast({ title: "Tasa de cierre quitada", variant: "success" });
       setOpen(false);
       router.refresh();

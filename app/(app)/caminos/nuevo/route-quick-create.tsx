@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createRoute } from "@/lib/actions/departures";
 import { toast } from "@/components/ui/toaster";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function RouteQuickCreate() {
   const [open, setOpen] = useState(false);
@@ -23,7 +25,7 @@ export function RouteQuickCreate() {
         <form
           action={async (fd) => {
             try {
-              await createRoute(fd);
+              exigir(await createRoute(fd));
               toast({ title: "Ruta creada", variant: "success" });
               setOpen(false);
               window.location.reload();
@@ -51,7 +53,7 @@ export function RouteQuickCreate() {
             <Textarea id="r-description" name="description" rows={3} />
           </div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Crear</Button>
+            <SubmitButton variant="accent" pendingText="Creando…">Crear</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

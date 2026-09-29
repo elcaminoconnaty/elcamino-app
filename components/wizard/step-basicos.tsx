@@ -11,6 +11,13 @@ import { toast } from "@/components/ui/toaster";
 import { formatDate } from "@/lib/utils";
 import { Sparkles, Calendar, FileSignature } from "lucide-react";
 import { DAY_KIND_LABELS } from "@/lib/data/wizard-steps";
+import { exigir } from "@/lib/resultado";
+
+/** "2027-04-24" → "24/04": en el celular no cabe la fecha larga al lado del tramo. */
+function fechaCorta(x: unknown) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(x ?? ""));
+  return m ? `${m[3]}/${m[2]}` : formatDate(x as string | null);
+}
 
 export function StepBasicos({
   departure,
@@ -58,7 +65,7 @@ export function StepBasicos({
     fd.set("variable_buffer_pct", bufferPct || "0");
     fd.set("status", departure.status);
     try {
-      await updateDeparture(departure.id, fd);
+      exigir(await updateDeparture(departure.id, fd));
       toast({ title: "Datos guardados", variant: "success" });
       router.refresh();
     } catch (e: any) {
@@ -85,7 +92,7 @@ export function StepBasicos({
     fd.set("contract_plan_name", planNombre);
     fd.set("brochure_url", brochureUrl);
     try {
-      await updateDeparture(departure.id, fd);
+      exigir(await updateDeparture(departure.id, fd));
       toast({ title: "Datos del contrato guardados", variant: "success" });
       router.refresh();
     } catch (e: any) {
@@ -107,8 +114,12 @@ export function StepBasicos({
     setApplying(true);
     try {
       const r = await applyRouteTemplate(departure.id);
-      toast({ title: `${r.created} items creados desde plantilla`, variant: "success" });
-      router.refresh();
+      if (!r.ok) {
+        toast({ title: "No se pudo aplicar la plantilla", description: r.error, variant: "destructive" });
+      } else {
+        toast({ title: `${r.created} items creados desde plantilla`, variant: "success" });
+        router.refresh();
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -130,7 +141,7 @@ export function StepBasicos({
             <select
               value={routeId}
               onChange={(e) => setRouteId(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">— Seleccionar ruta —</option>
               {allRoutes.map((r) => (
@@ -246,16 +257,23 @@ export function StepBasicos({
           ) : (
             <div className="space-y-1">
               {days.map((d) => (
-                <div key={d.day_offset} className="flex items-center justify-between text-sm px-2 py-1.5 hover:bg-alba rounded-md">
-                  <div className="flex items-center gap-3">
+                // En el celular una grilla (día | tramo con km abajo | fecha corta): en fila, la fecha y
+                // los km se partían palabra por palabra. Desde sm vuelve a ser la fila de siempre.
+                <div key={d.day_offset} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline gap-x-2 text-sm px-2 py-1.5 hover:bg-alba rounded-md sm:flex sm:items-center sm:justify-between">
+                  <div className="contents sm:flex sm:items-center sm:gap-3">
                     <span className="font-mono text-[10px] bg-piedra-suave px-1.5 py-0.5 rounded">
                       D{d.day_offset >= 0 ? `+${d.day_offset}` : d.day_offset}
                     </span>
-                    <span className="text-xs text-muted-foreground w-24">{DAY_KIND_LABELS[d.day_kind] ?? d.day_kind}</span>
-                    <span>{d.from_place}{d.to_place ? ` → ${d.to_place}` : ""}</span>
-                    {d.km && <span className="text-xs text-muted-foreground">· {d.km} km</span>}
+                    <span className="hidden text-xs text-muted-foreground w-24 sm:inline">{DAY_KIND_LABELS[d.day_kind] ?? d.day_kind}</span>
+                    <span className="min-w-0 sm:contents">
+                      <span>{d.from_place}{d.to_place ? ` → ${d.to_place}` : ""}</span>
+                      {d.km && <span className="block text-xs text-muted-foreground sm:inline">· {d.km} km</span>}
+                    </span>
                   </div>
-                  <div className="text-xs text-muted-foreground">{formatDate(d.date)}</div>
+                  <div className="whitespace-nowrap text-xs text-muted-foreground">
+                    <span className="sm:hidden">{fechaCorta(d.date)}</span>
+                    <span className="hidden sm:inline">{formatDate(d.date)}</span>
+                  </div>
                 </div>
               ))}
             </div>

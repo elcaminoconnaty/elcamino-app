@@ -9,14 +9,16 @@ import { REGISTRO, TALLAS_CAMISETA, TALLAS_SANDALIA, INDICATIVOS, GUIA_SANDALIAS
 import type { FichaParaFormulario } from "@/lib/registro/por-token";
 import { accionUrlPasaporte, accionLeerPasaporte, accionEnviarFormulario } from "./actions";
 
-const INPUT: React.CSSProperties = { width: "100%", border: `1px solid ${COLOR.piedra}`, background: "#fff", borderRadius: 4, padding: "10px 12px", fontSize: 16, color: COLOR.atlantico };
+// minWidth 0 + block: sin esto, un <input type="date"> de Safari trae un ancho propio grande y
+// empujaba el formulario del peregrino fuera de la pantalla del iPhone.
+const INPUT: React.CSSProperties = { width: "100%", minWidth: 0, display: "block", border: `1px solid ${COLOR.piedra}`, background: "#fff", borderRadius: 4, padding: "10px 12px", fontSize: 16, color: COLOR.atlantico };
 const LABEL: React.CSSProperties = { display: "block", fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: COLOR.ocreProfundo, marginBottom: 6 };
 const AYUDA: React.CSSProperties = { fontSize: 13, color: COLOR.castano, margin: "6px 0 0", lineHeight: 1.5 };
 const MAL: React.CSSProperties = { background: "#F3E3E0", color: ESTADO.error, fontSize: 14, lineHeight: 1.5, borderRadius: 4, padding: "8px 12px" };
 
 function Campo({ label, ayuda, obligatorio = true, children }: { label: string; ayuda?: React.ReactNode; obligatorio?: boolean; children: React.ReactNode }) {
   return (
-    <div>
+    <div style={{ minWidth: 0 }}>
       <label style={LABEL}>
         {label}
         {!obligatorio && <span style={{ textTransform: "none", letterSpacing: 0, color: COLOR.castano }}> · opcional</span>}
@@ -273,7 +275,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         </Campo>
         <Campo label="Celular (WhatsApp)">
           <div className="flex gap-2">
-            <select value={f.telInd} onChange={(e) => set("telInd", e.target.value)} style={{ ...INPUT, width: 150 }}>
+            <select value={f.telInd} onChange={(e) => set("telInd", e.target.value)} style={{ ...INPUT, width: 150, flexShrink: 0 }}>
               {INDICATIVOS.map((i) => <option key={i.code} value={i.code}>{i.label}</option>)}
             </select>
             <input type="tel" value={f.telNum} onChange={(e) => set("telNum", e.target.value)} style={INPUT} autoComplete="tel-national" placeholder="300 123 4567" required />
@@ -281,7 +283,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         </Campo>
       </div>
 
-      <fieldset style={{ border: `1px solid ${COLOR.piedra}`, borderRadius: 4, padding: 16, margin: 0, background: "#fff" }}>
+      <fieldset style={{ border: `1px solid ${COLOR.piedra}`, borderRadius: 4, padding: 16, margin: 0, background: "#fff", minWidth: 0 }}>
         <legend style={{ ...LABEL, marginBottom: 0, padding: "0 6px" }}>Tu pasaporte</legend>
         <p style={{ ...AYUDA, margin: "4px 0 12px" }}>{REGISTRO.pasaporte}</p>
         <div className="rounded p-4" style={{ background: COLOR.alba, border: `1px dashed ${COLOR.ocre}` }}>
@@ -290,7 +292,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
           {(foto.estado === "subiendo" || foto.estado === "leyendo") && (
             <p style={{ color: COLOR.castano, fontSize: 14, margin: "0 0 8px" }}>{foto.estado === "subiendo" ? "Subiendo el archivo…" : "Leyendo tu pasaporte… (unos segundos)"}</p>
           )}
-          <input type="file" accept={ACEPTA_PASAPORTE} onChange={subirFoto} disabled={foto.estado === "subiendo" || foto.estado === "leyendo"} style={{ fontSize: 14, color: COLOR.atlantico }} />
+          <input type="file" accept={ACEPTA_PASAPORTE} onChange={subirFoto} disabled={foto.estado === "subiendo" || foto.estado === "leyendo"} style={{ fontSize: 14, color: COLOR.atlantico, maxWidth: "100%" }} />
           <p style={{ color: COLOR.castano, fontSize: 13, margin: "8px 0 0" }}>Una foto nítida de la página de la foto y los datos (con las dos líneas de abajo), o el PDF del escaneo.</p>
         </div>
         {avisosFoto.map((a) => <p key={a.texto} className="mt-3" style={MAL}>{a.texto}</p>)}
@@ -300,10 +302,10 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
             <input value={f.passport_number} onChange={(e) => set("passport_number", e.target.value.toUpperCase())} style={INPUT} required />
           </Campo>
           <Campo label="Fecha de nacimiento" ayuda={edad != null ? `${edad} años` : undefined}>
-            <input type="date" value={f.birth_date} onChange={(e) => set("birth_date", e.target.value)} style={INPUT} required />
+            <input type="date" value={f.birth_date} onChange={(e) => set("birth_date", e.target.value)} style={INPUT} className="max-sm:appearance-none max-sm:min-h-[44px] max-sm:text-left" required />
           </Campo>
           <Campo label="Vence el">
-            <input type="date" value={f.passport_expiry_date} onChange={(e) => set("passport_expiry_date", e.target.value)} style={INPUT} required />
+            <input type="date" value={f.passport_expiry_date} onChange={(e) => set("passport_expiry_date", e.target.value)} style={INPUT} className="max-sm:appearance-none max-sm:min-h-[44px] max-sm:text-left" required />
           </Campo>
         </div>
         {numeroDistinto && (
@@ -326,7 +328,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         <input value={f.instagram} onChange={(e) => set("instagram", e.target.value)} style={INPUT} placeholder="@" />
       </Campo>
 
-      <fieldset style={{ border: `1px solid ${COLOR.piedra}`, borderRadius: 4, padding: 16, margin: 0 }}>
+      <fieldset style={{ border: `1px solid ${COLOR.piedra}`, borderRadius: 4, padding: 16, margin: 0, minWidth: 0 }}>
         <legend style={{ ...LABEL, marginBottom: 0, padding: "0 6px" }}>Contacto de un familiar cercano</legend>
         <p style={{ ...AYUDA, margin: "8px 0 12px" }}>{REGISTRO.contacto}</p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -340,7 +342,7 @@ export function FormularioRegistro({ token, registrationId, ficha }: { token: st
         <div className="mt-4">
           <Campo label="Celular (WhatsApp), con indicativo">
             <div className="flex gap-2">
-              <select value={f.emInd} onChange={(e) => set("emInd", e.target.value)} style={{ ...INPUT, width: 150 }}>
+              <select value={f.emInd} onChange={(e) => set("emInd", e.target.value)} style={{ ...INPUT, width: 150, flexShrink: 0 }}>
                 {INDICATIVOS.map((i) => <option key={i.code} value={i.code}>{i.label}</option>)}
               </select>
               <input type="tel" value={f.emNum} onChange={(e) => set("emNum", e.target.value)} style={INPUT} placeholder="300 123 4567" required />

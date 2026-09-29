@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { FormAccion } from "@/components/ui/form-accion";
 import { Textarea } from "@/components/ui/textarea";
 import { createDeparture } from "@/lib/actions/departures";
 import { DEPARTURE_STATUSES } from "@/lib/constants";
@@ -28,7 +29,7 @@ export default async function NewDeparturePage() {
           <CardTitle>Datos del camino</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={createDeparture} className="space-y-4">
+          <FormAccion action={createDeparture} tituloError="No se pudo crear el camino" className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Nombre *</Label>
               <Input id="name" name="name" required placeholder="Camino Francés — Septiembre 2026" />
@@ -36,7 +37,7 @@ export default async function NewDeparturePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="route_id">Ruta</Label>
-              <select id="route_id" name="route_id" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select id="route_id" name="route_id" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">(Sin ruta)</option>
                 {routes?.map((r: any) => (
                   <option key={r.id} value={r.id}>{r.name}</option>
@@ -69,7 +70,7 @@ export default async function NewDeparturePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="status">Estado</Label>
-              <select id="status" name="status" defaultValue="planning" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select id="status" name="status" defaultValue="planning" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {DEPARTURE_STATUSES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
               </select>
             </div>
@@ -80,9 +81,9 @@ export default async function NewDeparturePage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="submit" variant="accent">Crear camino</Button>
+              <SubmitButton variant="accent" pendingText="Creando…">Crear camino</SubmitButton>
             </div>
-          </form>
+          </FormAccion>
         </CardContent>
       </Card>
     </div>

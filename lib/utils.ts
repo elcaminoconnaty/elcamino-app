@@ -61,3 +61,17 @@ export function daysUntil(date: string | Date) {
   d.setHours(0, 0, 0, 0);
   return Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * "Hoy" en Colombia como 'YYYY-MM-DD'. `toISOString()` da la fecha UTC y desde
+ * las 7 p. m. en Bogotá (o en el servidor de Railway, que corre en UTC) ya sería
+ * mañana: fechas por defecto, TRM del día y fecha de firma salían corridas.
+ */
+export function hoyBogota(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}

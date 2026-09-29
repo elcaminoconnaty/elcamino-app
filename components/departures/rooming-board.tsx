@@ -98,6 +98,18 @@ export function RoomingBoard({
     )
   );
 
+  // En el celular todas las noches abiertas daban una página de 22 pantallas: ahí arranca abierta
+  // solo la primera noche con habitaciones que falta repartir. En pantallas grandes, como siempre.
+  React.useEffect(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
+    setAbiertas((prev) => {
+      const primera = nights.find((n) => n.slots.length > 0 && prev[n.id]) ?? nights.find((n) => prev[n.id]);
+      return Object.fromEntries(nights.map((n) => [n.id, n.id === primera?.id]));
+    });
+    // Solo al montar: después manda lo que Nico abra o cierre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const nombres = React.useMemo(
     () => new Map(pilgrims.map((p) => [p.id, p.full_name])),
     [pilgrims]
@@ -315,7 +327,7 @@ export function RoomingBoard({
               ))}
             </select>
             <Button asChild variant="outline" size="sm">
-              <a href={`/api/export/caminos/${departureId}/habitaciones`} download>
+              <a href={`/api/export/caminos/${departureId}/habitaciones`} download target="_blank" rel="noopener">
                 <Download className="h-3.5 w-3.5" /> Excel
               </a>
             </Button>
@@ -435,14 +447,14 @@ export function RoomingBoard({
                             {sinHabitacion.map((p) => (
                               <span
                                 key={p.id}
-                                className="inline-flex items-center gap-1 rounded-full bg-background border border-aviso-200 pl-2 pr-1 py-0.5"
+                                className="inline-flex items-center gap-1 rounded-full bg-background border border-aviso-200 pl-2 pr-1 py-1 sm:py-0.5"
                               >
                                 {p.full_name}
                                 <button
                                   type="button"
                                   onClick={() => toggleOptOut(night.id, p.id)}
                                   title="No duerme esta noche en este hotel"
-                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] hover:bg-aviso-100"
+                                  className="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-xs hover:bg-aviso-100 sm:h-auto sm:gap-0.5 sm:px-1.5 sm:py-0.5 sm:text-[10px]"
                                 >
                                   <UserX className="h-3 w-3" /> no duerme acá
                                 </button>
@@ -466,7 +478,7 @@ export function RoomingBoard({
                                   type="button"
                                   onClick={() => toggleOptOut(night.id, p.id)}
                                   title="Deshacer: sí duerme acá"
-                                  className="inline-flex items-center rounded-full p-0.5 hover:bg-accent/10"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-accent/10 sm:h-auto sm:w-auto sm:p-0.5"
                                 >
                                   <Undo2 className="h-3 w-3" />
                                 </button>
@@ -525,8 +537,12 @@ export function RoomingBoard({
                             <a
                               href={`/api/export/caminos/${departureId}/habitaciones?hotel=${night.provider_id}`}
                               download
+                              target="_blank"
+                              rel="noopener"
                             >
-                              <CopyCheck className="h-3 w-3" /> Excel solo de {night.provider_name}
+                              <CopyCheck className="h-3 w-3" />
+                              <span className="sm:hidden">Excel de este hotel</span>
+                              <span className="hidden sm:inline">Excel solo de {night.provider_name}</span>
                             </a>
                           </Button>
                         </div>

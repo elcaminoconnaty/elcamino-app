@@ -14,10 +14,11 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
       .select("*")
       .eq("departure_id", departureId)
       .eq("scaling", "viatico_team")
+      .neq("status", "cancelado")
       .order("item_date", { ascending: true, nullsFirst: false })
       .order("category"),
     supabase.from("providers").select("id, name, type").eq("active", true).order("name"),
-    supabase.from("v_departure_finance").select("pagantes_count").eq("departure_id", departureId).maybeSingle(),
+    supabase.from("v_departure_finance").select("pagantes_count, team_count").eq("departure_id", departureId).maybeSingle(),
     supabase.from("v_budget_payable").select("budget_item_id, paid_eur, saldo_eur").eq("departure_id", departureId),
   ]);
 
@@ -31,7 +32,9 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
   const totalSaldo = (items ?? []).reduce((s: number, i: any) => s + (payById.get(i.id)?.saldo ?? 0), 0);
   const pagantes = Number((finance as any)?.pagantes_count ?? 0);
   const perPagante = pagantes > 0 ? total / pagantes : null;
-  const perTeam = total / 2;
+  // Como v_departure_finance: los cancelados no cuentan y se reparte entre el equipo real.
+  const equipo = Number((finance as any)?.team_count ?? 0) || 2;
+  const perTeam = total / equipo;
 
   // Agrupar por día
   const groups = new Map<string, any[]>();
@@ -74,7 +77,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
         </Card>
         <Card>
           <CardContent className="p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Por persona equipo (÷ 2)</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Por persona equipo (÷ {equipo})</div>
             <div className="font-display text-xl mt-1"><EurCop value={perTeam} /></div>
             <div className="text-[10px] text-muted-foreground">Lo que cuesta cada uno (Naty / Nico)</div>
           </CardContent>
@@ -121,7 +124,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
                     const unitCost = Number(i.confirmed_unit_cost_eur ?? i.estimated_unit_cost_eur ?? 0);
                     const t = unitCost * Number(i.quantity);
                     return (
-                      <div key={i.id} className="flex items-start justify-between gap-2 py-1.5 text-sm hover:bg-alba rounded-md px-2 -mx-2">
+                      <div key={i.id} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2 py-1.5 text-sm hover:bg-alba rounded-md px-2 -mx-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span>{i.description}</span>
@@ -142,7 +145,7 @@ export async function ViaticosTab({ departureId }: { departureId: string }) {
                             );
                           })()}
                         </div>
-                        <div className="text-right shrink-0 flex items-start gap-1">
+                        <div className="flex items-start justify-between gap-1 sm:justify-end sm:text-right sm:shrink-0">
                           <div><EurCop value={t} /></div>
                           <EditBudgetItemDialog item={i} providers={providers ?? []} departureId={departureId} lockScaling />
                         </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contratadoPorCamino } from "@/lib/data/costos-contratados";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -10,6 +11,7 @@ import { ExpensesFilters } from "@/components/expenses/expenses-filters";
 import { AccountBalancesCard } from "@/components/finance/account-balances-card";
 import { TrendingUp, TrendingDown, Wallet, ExternalLink, AlertCircle } from "lucide-react";
 import { EurCop, TrmSelector } from "@/components/ui/eur-cop";
+import { PlegableMovil } from "@/components/ui/plegable-movil";
 import type { AccountBalance, AccountCurrencyBreakdown } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -56,8 +58,6 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
     .order("item_date", { ascending: true, nullsFirst: false });
   if (departure_id) bpq = bpq.eq("departure_id", departure_id);
 
-  let payq = supabase.from("v_departure_payable").select("*");
-  if (departure_id) payq = payq.eq("departure_id", departure_id);
 
   const [
     { data: movements },
@@ -70,7 +70,6 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
     { data: accountsByCurrency },
     { data: pending },
     { data: budgetPending },
-    { data: payable },
   ] = await Promise.all([
     mq,
     supabase.from("departures").select("id, name").order("start_date"),
@@ -82,7 +81,6 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
     supabase.from("v_account_currency_breakdown").select("*"),
     pq,
     bpq,
-    payq,
   ]);
 
   const depByid = new Map<string, string>();
@@ -91,8 +89,9 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
   (providers ?? []).forEach((p: any) => provByid.set(p.id, p.name));
   const activeProviders = (providers ?? []).filter((p: any) => p.active !== false);
 
-  // "Por pagar" total = saldo del modelo completo por ítem (incluye viáticos y tiquetes)
-  const totalPorPagar = (payable ?? []).reduce((s: number, r: any) => s + Number(r.falta_por_pagar_eur || 0), 0);
+  // Según lo contratado: suma lo mismo que la lista "Pendiente por pagar" de abajo y el informe de giros.
+  const contratado = await contratadoPorCamino(supabase, departure_id ?? null);
+  const totalPorPagar = Array.from(contratado.values()).reduce((s, v) => s + v.falta, 0);
   const budgetPendingTotal = (budgetPending ?? []).reduce((s: number, r: any) => s + Number(r.saldo_eur || 0), 0);
 
   const totalEur = (movements ?? []).reduce((s: number, r: any) => s + Number(r.amount_eur || 0), 0);
@@ -107,6 +106,10 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
   const personalExp = Number(g.personal_withdrawals_eur ?? 0);
   const realizedProfit = Number(g.realized_operational_profit_eur ?? 0);
   const cashAvailable = Number(g.cash_available_eur ?? 0);
+
+  // Estas tarjetas salen de v_financial_global (todos los caminos). Con un camino filtrado,
+  // la lista y el "pendiente" sí se filtran: el rótulo lo dice para que no se lean como del camino.
+  const alcance = departure_id ? " · todos los caminos" : "";
 
   const totalPending = (pending ?? []).reduce((s: number, p: any) => s + Number(p.saldo_eur || 0), 0);
 
@@ -137,7 +140,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
               <TrendingUp className="h-3 w-3" /> Ingresado
             </div>
             <div className="text-lg sm:text-2xl font-display font-semibold mt-1 text-ok-900"><EurCop value={collected} /></div>
-            <div className="text-[11px] sm:text-xs text-muted-foreground">cobros peregrinos</div>
+            <div className="text-[11px] sm:text-xs text-muted-foreground">cobros peregrinos{alcance}</div>
           </CardContent>
         </Card>
         <Card>
@@ -146,7 +149,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
               <TrendingDown className="h-3 w-3" /> Pagado proveedores
             </div>
             <div className="text-lg sm:text-2xl font-display font-semibold mt-1"><EurCop value={paidProviders} /></div>
-            <div className="text-[11px] sm:text-xs text-muted-foreground">+ <EurCop value={opsExpenses} /> operativos</div>
+            <div className="text-[11px] sm:text-xs text-muted-foreground">+ <EurCop value={opsExpenses} /> operativos{alcance}</div>
           </CardContent>
         </Card>
         <Card className="border-aviso-300 border-2">
@@ -162,7 +165,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
           <CardContent className="p-3 sm:p-4">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Utilidad realizada</div>
             <div className={`text-lg sm:text-2xl font-display font-semibold mt-1 ${realizedProfit >= 0 ? "text-ok-700" : "text-error-700"}`}><EurCop value={realizedProfit} /></div>
-            <div className="text-[11px] sm:text-xs text-muted-foreground">ingreso − proveedores − operativo</div>
+            <div className="text-[11px] sm:text-xs text-muted-foreground">ingreso − proveedores − operativo{alcance}</div>
           </CardContent>
         </Card>
         <Card className="border-ocre border-2 col-span-2 lg:col-span-1">
@@ -171,14 +174,17 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
               <Wallet className="h-3 w-3" /> Caja disponible
             </div>
             <div className="text-lg sm:text-2xl font-display font-semibold mt-1"><EurCop value={cashAvailable} /></div>
-            <div className="text-[11px] sm:text-xs text-muted-foreground">menos retiros <EurCop value={personalExp} /></div>
+            <div className="text-[11px] sm:text-xs text-muted-foreground">menos retiros <EurCop value={personalExp} />{alcance}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* En el celular esta página medía ~20 pantallas: los saldos y los pendientes arrancan
+          plegados (el total queda a la vista) para llegar rápido a los movimientos. */}
       <AccountBalancesCard
         accounts={(accounts as AccountBalance[]) ?? []}
         breakdown={(accountsByCurrency as AccountCurrencyBreakdown[]) ?? []}
+        plegableEnMovil
       />
 
       <Card className="border-aviso-300 border-2">
@@ -192,6 +198,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
           {(!pending || pending.length === 0) ? (
             <div className="py-6 text-center text-sm text-muted-foreground">Todo al día. No hay saldos pendientes.</div>
           ) : (
+            <PlegableMovil etiqueta={`Ver los ${pending.length} pendientes`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -255,6 +262,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                 })}
               </TableBody>
             </Table>
+            </PlegableMovil>
           )}
         </CardContent>
       </Card>
@@ -270,6 +278,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
           {(!budgetPending || budgetPending.length === 0) ? (
             <div className="py-6 text-center text-sm text-muted-foreground">Sin ítems de presupuesto pendientes (fuera de reservas).</div>
           ) : (
+            <PlegableMovil etiqueta={`Ver los ${budgetPending.length} ítems`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -298,6 +307,7 @@ export default async function GastosPage({ searchParams }: { searchParams: { kin
                 ))}
               </TableBody>
             </Table>
+            </PlegableMovil>
           )}
         </CardContent>
       </Card>

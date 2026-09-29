@@ -12,6 +12,8 @@ import { Global66Fields } from "@/components/ui/global66-fields";
 import { global66Rate } from "@/lib/global66";
 import { toast } from "@/components/ui/toaster";
 import { CreditCard } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
 
 export function NewPaymentDialog({
   registrationId,
@@ -27,7 +29,7 @@ export function NewPaymentDialog({
 }) {
   const tasaCierre = settlementTrm ? Number(settlementTrm) : 0;
   const [open, setOpen] = useState(false);
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(hoyBogota());
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">(pilgrimPaysInCop ? "COP" : "EUR");
   const [trm, setTrm] = useState("");
@@ -75,7 +77,7 @@ export function NewPaymentDialog({
       if (conversionGlobal66 && !tasaGlobal66) {
         throw new Error(`Indicá los euros que entraron a ${GLOBAL66}.`);
       }
-      await createPilgrimPayment({
+      exigir(await createPilgrimPayment({
         registration_id: registrationId,
         paid_at: paidAt,
         amount: a,
@@ -86,7 +88,7 @@ export function NewPaymentDialog({
         account,
         reference: reference || null,
         notes: notes || null,
-      });
+      }));
       toast({ title: "Pago registrado", variant: "success" });
       setOpen(false);
       router.refresh();

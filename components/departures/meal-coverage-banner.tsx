@@ -31,7 +31,8 @@ export async function MealCoverageBanner({ departureId }: { departureId: string 
 
   if (missing.length === 0) {
     return (
-      <Card className="border-ok-200 bg-ok-50">
+      // "Todo cubierto" es un aviso de que todo va bien: en el celular no vale la media pantalla.
+      <Card className="hidden sm:block border-ok-200 bg-ok-50">
         <CardContent className="py-2.5 px-4 text-sm text-ok-900 flex items-center gap-2">
           <Coffee className="h-4 w-4" />
           <UtensilsCrossed className="h-4 w-4" />

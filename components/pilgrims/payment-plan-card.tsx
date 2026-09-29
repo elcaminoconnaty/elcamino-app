@@ -1,13 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { setPaymentPlan, type InstallmentInput } from "@/lib/actions/payment-plans";
-import { createClient } from "@/lib/supabase/client";
-import { formatEUR, formatDate } from "@/lib/utils";
+import { formatEUR, formatDate, hoyBogota } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
+import { exigir } from "@/lib/resultado";
 import { CalendarClock, Plus, X, Check } from "lucide-react";
 
 type Inst = {
@@ -18,25 +18,23 @@ type Inst = {
   status: string;
 };
 
-export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }: { registrationId: string; totalEur: number; departureStartDate: string | null }) {
-  const [installments, setInstallments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("v_installment_status")
-        .select("*")
-        .eq("registration_id", registrationId)
-        .order("position", { ascending: true });
-      // amount_eur = monto programado, para compatibilidad con el editor del plan
-      setInstallments((data ?? []).map((r: any) => ({ ...r, amount_eur: r.scheduled_amount_eur })));
-      setLoading(false);
-    })();
-  }, [registrationId]);
-
-  if (loading) return null;
+export function PaymentPlanCard({
+  registrationId,
+  totalEur,
+  departureStartDate,
+  cuotas,
+}: {
+  registrationId: string;
+  totalEur: number;
+  departureStartDate: string | null;
+  /** Filas de `v_installment_status` de esta inscripción, leídas en el servidor. */
+  cuotas: any[];
+}) {
+  // amount_eur = monto programado, para compatibilidad con el editor del plan
+  const installments = cuotas.map((r: any) => ({ ...r, amount_eur: r.scheduled_amount_eur }));
+  // El diálogo arma sus filas una sola vez al montarse: con esta llave se vuelve a montar
+  // cuando cambia el plan, y al reabrirlo no se edita (ni se pisa) la versión vieja.
+  const llave = JSON.stringify(installments.map((i: any) => [i.id, i.due_date, i.amount_eur, i.status, i.label]));
 
   if (installments.length === 0) {
     return (
@@ -45,6 +43,7 @@ export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }
           registrationId={registrationId}
           totalEur={totalEur}
           departureStartDate={departureStartDate}
+          key={llave}
           current={[]}
           trigger={
             <Button variant="ghost" size="sm" className="w-full text-xs">
@@ -66,6 +65,7 @@ export function PaymentPlanCard({ registrationId, totalEur, departureStartDate }
           registrationId={registrationId}
           totalEur={totalEur}
           departureStartDate={departureStartDate}
+          key={llave}
           current={installments}
           trigger={<button className="text-ocre-profundo hover:underline">Editar</button>}
         />
@@ -132,7 +132,7 @@ function PaymentPlanDialog({
   function add() {
     const defaultDate = departureStartDate
       ? new Date(new Date(departureStartDate).getTime() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)
-      : new Date().toISOString().slice(0, 10);
+      : hoyBogota();
     setRows([...rows, { label: "", due_date: defaultDate, amount_eur: "", status: "pendiente" }]);
   }
 
@@ -169,12 +169,13 @@ function PaymentPlanDialog({
     setSaving(true);
     try {
       const installments: InstallmentInput[] = rows.map((r) => ({
+        id: r.id,
         label: r.label || null,
         due_date: r.due_date,
         amount_eur: Number(r.amount_eur) || 0,
         status: r.status,
       }));
-      await setPaymentPlan(registrationId, installments);
+      exigir(await setPaymentPlan(registrationId, installments));
       toast({ title: "Plan de pagos guardado", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -202,33 +203,35 @@ function PaymentPlanDialog({
           <Button type="button" variant="outline" size="sm" onClick={() => suggestSplit(4, [25, 25, 25, 25])}>25 x 4</Button>
         </div>
 
-        <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+        <div className="space-y-2 sm:max-h-[40vh] sm:overflow-y-auto">
           {rows.length === 0 && (
             <div className="text-center py-6 text-sm text-muted-foreground">No hay cuotas. Tocá una sugerencia o "+ Agregar cuota".</div>
           )}
           {rows.map((r, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+            // En el celular, dos líneas por cuota (nombre + quitar; fecha + monto): en 12 columnas la fecha
+            // quedaba de 70px y no se veía el año.
+            <div key={idx} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-center border-b pb-2 last:border-0 sm:grid-cols-12 sm:border-0 sm:pb-0">
               <Input
-                className="col-span-5"
+                className="col-span-2 min-w-0 sm:col-span-5"
                 placeholder={`Cuota ${idx + 1}`}
                 value={r.label}
                 onChange={(e) => update(idx, "label", e.target.value)}
               />
               <Input
-                className="col-span-3"
+                className="col-span-1 min-w-0 sm:col-span-3"
                 type="date"
                 value={r.due_date}
                 onChange={(e) => update(idx, "due_date", e.target.value)}
               />
               <Input
-                className="col-span-3"
+                className="col-span-2 min-w-0 sm:col-span-3"
                 type="number"
                 step="0.01"
                 placeholder="Monto EUR"
                 value={r.amount_eur}
                 onChange={(e) => update(idx, "amount_eur", e.target.value)}
               />
-              <Button type="button" variant="ghost" size="icon" onClick={() => remove(idx)} className="col-span-1 h-8 w-8">
+              <Button type="button" variant="ghost" size="icon" onClick={() => remove(idx)} className="col-start-3 row-start-1 h-10 w-10 sm:col-span-1 sm:col-start-auto sm:row-start-auto sm:h-8 sm:w-8">
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>

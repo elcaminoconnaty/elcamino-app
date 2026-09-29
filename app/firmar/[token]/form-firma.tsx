@@ -119,7 +119,18 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
       {/* 1 — Leer */}
       <section>
         <Paso n={1} titulo="Lee el contrato" />
-        <div className="rounded overflow-hidden border" style={{ borderColor: COLOR.piedra }}>
+        {/* En el iPhone un PDF dentro de un iframe muestra solo la primera página y no deja
+            desplazarse: ahí va un botón que abre el contrato completo en el visor de Safari. */}
+        <a
+          href={`/api/pdf/contrato/publico/${token}`}
+          target="_blank"
+          rel="noopener"
+          className="block w-full rounded px-4 py-3 text-center sm:hidden"
+          style={{ background: COLOR.atlantico, color: COLOR.alba, fontSize: 16, textDecoration: "none" }}
+        >
+          Abrir el contrato completo (PDF)
+        </a>
+        <div className="hidden rounded overflow-hidden border sm:block" style={{ borderColor: COLOR.piedra }}>
           <iframe
             src={`/api/pdf/contrato/publico/${token}#view=FitH`}
             title="Contrato"
@@ -127,9 +138,9 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
             style={{ height: 560, border: 0, background: "#fff" }}
           />
         </div>
-        <p className="mt-2 text-xs" style={{ color: COLOR.castano }}>
+        <p className="mt-2 hidden text-xs sm:block" style={{ color: COLOR.castano }}>
           ¿Prefieres tenerlo en el celular?{" "}
-          <a href={`/api/pdf/contrato/publico/${token}`} download style={{ color: COLOR.atlantico, textDecoration: "underline" }}>
+          <a href={`/api/pdf/contrato/publico/${token}`} download target="_blank" rel="noopener" style={{ color: COLOR.atlantico, textDecoration: "underline" }}>
             Descárgalo en PDF
           </a>
           .
@@ -139,12 +150,12 @@ export function FormularioFirma({ token, contrato }: { token: string; contrato: 
       {/* 2 — Aceptar y firmar */}
       <section>
         <Paso n={2} titulo="Acepta y dibuja tu firma" />
-        <label className="flex gap-3 items-start text-sm mb-3" style={{ color: COLOR.noche }}>
-          <input type="checkbox" checked={leyo} onChange={(e) => setLeyo(e.target.checked)} className="mt-1" />
+        <label className="flex gap-3 items-start text-sm mb-3 py-1 sm:py-0" style={{ color: COLOR.noche }}>
+          <input type="checkbox" checked={leyo} onChange={(e) => setLeyo(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 sm:mt-1 sm:h-auto sm:w-auto" />
           <span>{CONSENTIMIENTO.lectura}</span>
         </label>
-        <label className="flex gap-3 items-start text-sm mb-5" style={{ color: COLOR.noche }}>
-          <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} className="mt-1" />
+        <label className="flex gap-3 items-start text-sm mb-5 py-1 sm:py-0" style={{ color: COLOR.noche }}>
+          <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 sm:mt-1 sm:h-auto sm:w-auto" />
           <span>{CONSENTIMIENTO.firma}</span>
         </label>
         <SignaturePad onChange={setTrazo} disabled={pendiente || codigoPedido} />

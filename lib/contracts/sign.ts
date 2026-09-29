@@ -11,6 +11,7 @@ import {
   OTP_MAX_INTENTOS, OTP_VIGENCIA_MIN, textoConsentimiento, tokenPlausible, trazoValido,
   ubicacionPlausible,
 } from "./firma";
+import { baseUrl } from "@/lib/url";
 
 /**
  * El motor de firma.
@@ -120,7 +121,7 @@ export async function contratoPorToken(token: string, huella?: Huella): Promise<
     firmadoEn: c.signed_at ? enBogota(c.signed_at) : null,
     huella: c.pdf_signed_sha256 ? huellaLegible(c.pdf_signed_sha256) : null,
     urlVerificacion: c.pdf_signed_sha256
-      ? `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/${c.pdf_signed_sha256}`
+      ? `${baseUrl()}/verificar/${c.pdf_signed_sha256}`
       : null,
   };
 }
@@ -163,11 +164,13 @@ export async function pedirCodigo(token: string, huella?: Huella): Promise<{ ok:
   }
 
   const codigo = nuevoCodigo();
-  await supabase.from("contract_otps").insert({
+  const { error: errOtp } = await supabase.from("contract_otps").insert({
     signer_id: firmante.id,
     code_hash: hashCodigo(codigo, firmante.id),
     expires_at: new Date(Date.now() + OTP_VIGENCIA_MIN * 60_000).toISOString(),
   });
+  // Sin el código guardado, el que llega al correo nunca validaría.
+  if (errOtp) return { ok: false, error: "No pude generar el código. Vuelve a intentar." };
 
   const { enviarCorreo } = await import("@/lib/email/send");
   const { correoCodigoDeFirma } = await import("@/lib/email/templates");
@@ -260,7 +263,9 @@ export async function firmarContrato(args: {
       error: quedan > 0 ? `El código no coincide. Te quedan ${quedan} intentos.` : "Se acabaron los intentos. Pedí un código nuevo.",
     };
   }
-  await supabase.from("contract_otps").update({ consumed_at: new Date().toISOString() }).eq("id", otp.id);
+  // Un código que no se pudo marcar como usado podría volver a servir: se frena acá.
+  const { error: errConsumir } = await supabase.from("contract_otps").update({ consumed_at: new Date().toISOString() }).eq("id", otp.id);
+  if (errConsumir) return { ok: false, error: "No pude validar el código. Vuelve a intentar." };
   await anotar(c.id, "otp_validado", { signerId: viajero.id, huella });
 
   // --- El trazo ---
@@ -317,7 +322,7 @@ export async function firmarContrato(args: {
       actualizadoEn: enBogota(ahora),
       documento: `${minuta.titulo} · ${s.plan_descripcion}`,
       huellaOriginal: huellaLegible(primera.sha256),
-      urlVerificacion: `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar`,
+      urlVerificacion: `${baseUrl()}/verificar`,
       firmantes: fichas,
       paginas: primera.paginas + 1,
     };
@@ -346,7 +351,9 @@ export async function firmarContrato(args: {
       .upload(rutaFirmado, sellado.pdf, { contentType: "application/pdf", upsert: true });
     if (errPdf) throw new Error(errPdf.message);
 
-    await supabase.from("contract_signers").update({
+    // La evidencia del firmante (IP, dispositivo, consentimiento) tiene que quedar en la base
+    // ANTES de cerrar el contrato: si esta escritura falla, no se cierra como firmado.
+    const { error: errEvidencia } = await supabase.from("contract_signers").update({
       signed_at: ahora.toISOString(),
       signature_image_path: rutaTrazo,
       auth_method: "otp_email",
@@ -355,16 +362,18 @@ export async function firmarContrato(args: {
       geo: ubicacion,
       consent_text: textoConsentimiento(),
     }).eq("id", viajero.id);
+    if (errEvidencia) throw new Error(`No pude guardar la evidencia de la firma: ${errEvidencia.message}`);
 
     if (!camino.signed_at) {
-      await supabase.from("contract_signers").update({
+      const { error: errCamino } = await supabase.from("contract_signers").update({
         signed_at: new Date(firmaNatyEn).toISOString(), auth_method: "sesion_plataforma",
       }).eq("id", camino.id);
+      if (errCamino) throw new Error(`No pude registrar la firma de la organizadora: ${errCamino.message}`);
     }
 
     // Cierre condicional: si dos pestañas firman a la vez, solo una cierra. El token NO se
     // anula — el peregrino tiene que poder volver a abrir su contrato y verlo firmado.
-    const { data: cerrado } = await supabase
+    const { data: cerrado, error: errCierre } = await supabase
       .from("contracts")
       .update({
         status: "firmado",
@@ -377,12 +386,13 @@ export async function firmarContrato(args: {
       .select("id")
       .maybeSingle();
 
+    if (errCierre) throw new Error(`No pude cerrar el contrato como firmado: ${errCierre.message}`);
     if (!cerrado) return { ok: false, error: "Este contrato acaba de ser firmado en otra ventana." };
 
     await anotar(c.id, "firmado", { signerId: viajero.id, huella, detail: { sha256: sellado.sha256 } });
     await anotar(c.id, "pdf_sellado", { detail: { paginas: sellado.paginas, ruta: rutaFirmado } });
 
-    const urlVerificacion = `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/${sellado.sha256}`;
+    const urlVerificacion = `${baseUrl()}/verificar/${sellado.sha256}`;
     const nombreCamino = (c.registrations as any)?.departures?.name ?? "tu Camino";
 
     // La copia al peregrino y el aviso a Naty van en envíos separados y después de cerrar la

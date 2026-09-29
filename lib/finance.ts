@@ -49,20 +49,27 @@ export type Scenario = {
   utilidad_por_pagante_eur: number | null;
 };
 
-// Costo efectivo de un budget_item según su escala. Única fórmula compartida por
-// el presupuesto, el resumen y los prorrateos — debe coincidir con v_departure_finance.
+// Costo efectivo de un budget_item según su escala. Es la MISMA regla de v_departure_finance
+// y v_budget_payable (la base manda; esto la replica para el presupuesto que se edita en vivo):
+//   por_inscrito → costo × (pagantes + equipo) × (1 + contingencia)   (camas y servicios de todos)
+//   por_pagante  → costo × pagantes × (1 + contingencia)              (lo personal del que paga)
+//   fijo_grupo y viatico_team → costo × cantidad
+// Antes acá por_pagante multiplicaba también al equipo y no había contingencia: el Presupuesto
+// sumaba 18.920,56 € y la tarjeta "Total" de al lado, 19.545,89 € (auditoría 2026-09-29).
 export function effectiveLineTotal(
   item: { scaling?: string | null; confirmed_unit_cost_eur?: number | null; estimated_unit_cost_eur?: number | null; quantity?: number | null },
   pagantes: number,
-  team: number
+  team: number,
+  contingenciaPct = 0
 ): number {
   const unit = Number(item.confirmed_unit_cost_eur ?? item.estimated_unit_cost_eur ?? 0);
   const qty = Number(item.quantity ?? 1);
+  const factor = 1 + Number(contingenciaPct || 0) / 100;
   switch (item.scaling) {
     case "por_inscrito":
+      return unit * (pagantes + team) * factor;
     case "por_pagante":
-      // Tanto camas como ítems por-peregrino los consumen TODOS los inscritos (pagantes + equipo).
-      return unit * (pagantes + team);
+      return unit * pagantes * factor;
     case "fijo_grupo":
     case "viatico_team":
     default:
@@ -74,11 +81,12 @@ export function computeBreakEven(f: DepartureFinance): { n: number | null; reach
   const price = f.precio_promedio_pagante_eur ?? 0;
   if (price <= 0) return { n: null, reachable: false };
   const factor = 1 + Number(f.variable_buffer_pct ?? 0) / 100; // % de contingencia sobre variables por persona
-  const costoMarginalPorPagante = (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * factor;
+  const costoMarginalPorPagante = (Number(f.por_inscrito_unit_eur) + Number(f.por_pagante_unit_eur)) * factor;
   const margenContribucion = price - costoMarginalPorPagante;
   if (margenContribucion <= 0) return { n: null, reachable: false };
-  // Costos fijos = fijo grupo + viáticos + costo per-persona del equipo (camas + ítems por-peregrino, con %)
-  const costosFijosTotal = f.fijo_grupo_eur + f.viatico_team_eur + (f.por_inscrito_unit_eur + f.por_pagante_unit_eur) * f.team_count * factor;
+  // Costos fijos = fijo grupo + viáticos + las camas y servicios del equipo (solo por_inscrito: lo
+  // "por pagante" es de quien paga, igual que en v_departure_finance).
+  const costosFijosTotal = Number(f.fijo_grupo_eur) + Number(f.viatico_team_eur) + Number(f.por_inscrito_unit_eur) * f.team_count * factor;
   const n = Math.ceil(costosFijosTotal / margenContribucion);
   const reachable = f.capacity == null || n <= f.capacity;
   return { n, reachable };
@@ -93,9 +101,10 @@ export function simulateScenario(f: DepartureFinance, nPagantes: number): Scenar
   const viatico = Number(f.viatico_team_eur);
   const price = Number(f.precio_promedio_pagante_eur ?? 0);
 
-  // por_pagante también lo consume el equipo → × inscritos. El % de contingencia aplica a las variables por persona.
+  // La misma regla de v_departure_finance: camas y servicios × (pagantes + equipo), lo personal ×
+  // pagantes, los dos con la contingencia. Así el escenario "hoy" da la utilidad del camino al centavo.
   const factor = 1 + Number(f.variable_buffer_pct ?? 0) / 100;
-  const costoTotal = fijo + (inscritoUnit + pagUnit) * inscritos * factor + viatico;
+  const costoTotal = fijo + (inscritoUnit * inscritos + pagUnit * nPagantes) * factor + viatico;
   const ingreso = price * nPagantes;
   const utilidad = ingreso - costoTotal;
 
@@ -132,3 +141,46 @@ export const SCALING_LABELS: Record<string, { label: string; color: string; desc
     description: "Costo personal de Naty + Nico para ir al camino (vuelos, hoteles Madrid, comidas)",
   },
 };
+
+/**
+ * Utilidad según cuántos paguen, desde los inscritos de hoy hasta llenar el cupo.
+ *
+ * Supone lo que hace Nico: las camas y servicios se ajustan a los inscritos (las alertas de
+ * "sobran camas" avisan cuándo cancelar), así que el costo sigue el modelo por persona. El
+ * ingreso de hoy es el esperado real (cada uno con su precio y descuento) y cada peregrino
+ * nuevo entra con el precio de lista del camino (`departures.base_price_eur`), o con el
+ * promedio si no hay precio de lista.
+ */
+export type FilaCupo = {
+  pagantes: number;
+  ingreso_eur: number;
+  costo_eur: number;
+  utilidad_eur: number;
+  /** Cuánto suma a la utilidad este peregrino respecto a la fila anterior. */
+  suma_eur: number | null;
+  utilidad_por_pagante_eur: number | null;
+  hoy: boolean;
+};
+
+export function tablaPorCupo(f: DepartureFinance, precioLista: number | null | undefined): FilaCupo[] {
+  const hoy = Number(f.pagantes_count ?? 0);
+  const precio = Number(precioLista ?? 0) > 0 ? Number(precioLista) : Number(f.precio_promedio_pagante_eur ?? 0);
+  const tope = f.capacity && f.capacity > hoy ? f.capacity : hoy + 8;
+  const filas: FilaCupo[] = [];
+  for (let n = Math.max(hoy, 1); n <= tope; n++) {
+    const costo = simulateScenario(f, n).costo_total_eur;
+    const ingreso = Number(f.expected_revenue_eur ?? 0) + (n - hoy) * precio;
+    const utilidad = ingreso - costo;
+    const anterior = filas[filas.length - 1];
+    filas.push({
+      pagantes: n,
+      ingreso_eur: ingreso,
+      costo_eur: costo,
+      utilidad_eur: utilidad,
+      suma_eur: anterior ? utilidad - anterior.utilidad_eur : null,
+      utilidad_por_pagante_eur: n > 0 ? utilidad / n : null,
+      hoy: n === hoy,
+    });
+  }
+  return filas;
+}

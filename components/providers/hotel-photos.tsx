@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { borrarFoto, moverFoto, registrarFoto, urlDeSubidaDeFoto } from "@/lib/actions/provider-photos";
+import { exigir, type Resultado } from "@/lib/resultado";
 
 export type FotoProveedor = { id: string; storage_path: string; url: string; caption: string | null };
 
@@ -40,14 +41,14 @@ export function HotelPhotos({ providerId, fotos }: { providerId: string; fotos: 
     try {
       for (const file of Array.from(files)) {
         const blob = await comprimir(file);
-        const { ruta, signedUrl } = await urlDeSubidaDeFoto(providerId, "image/jpeg");
+        const { ruta, signedUrl } = exigir(await urlDeSubidaDeFoto(providerId, "image/jpeg"));
         const r = await fetch(signedUrl, {
           method: "PUT",
           body: blob,
           headers: { "content-type": "image/jpeg" },
         });
         if (!r.ok) throw new Error(`No pude subir ${file.name}.`);
-        await registrarFoto(providerId, ruta);
+        exigir(await registrarFoto(providerId, ruta));
       }
       toast({ title: files.length > 1 ? "Fotos cargadas" : "Foto cargada", variant: "success" });
     } catch (e: any) {
@@ -57,10 +58,10 @@ export function HotelPhotos({ providerId, fotos }: { providerId: string; fotos: 
     if (input.current) input.current.value = "";
   }
 
-  const correr = (fn: () => Promise<unknown>) =>
+  const correr = (fn: () => Promise<Resultado<object>>) =>
     empezar(async () => {
       try {
-        await fn();
+        exigir(await fn());
       } catch (e: any) {
         toast({ title: "No se pudo", description: e?.message, variant: "destructive" });
       }

@@ -96,9 +96,9 @@ export default async function ConfigPage() {
           <CardDescription>Usuarios y roles se gestionan desde Supabase Auth.</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Para invitar a Naty: en Supabase → Auth → Invite users con su email. Luego desde SQL editor actualizar su rol en <code>elcamino.profiles</code>:</p>
-          <pre className="bg-piedra-suave p-3 rounded text-xs overflow-x-auto">
-{`update elcamino.profiles set app_role = 'naty' where email = 'naty@correo.com';`}
+          <p>Para invitar a Naty: en Supabase → Auth → Invite users con su email. Luego desde SQL editor actualizar su rol en <code>public.profiles</code> (desde la app nadie puede cambiarse el rol: las cuentas nuevas nacen sin acceso):</p>
+          <pre className="bg-piedra-suave p-3 rounded text-xs whitespace-pre-wrap break-all">
+{`update public.profiles set app_role = 'naty' where email = 'naty@correo.com';`}
           </pre>
         </CardContent>
       </Card>

@@ -7,6 +7,7 @@ import { ContractCard, type EstadoContrato } from "@/components/pilgrims/contrac
 import { revisarContrato } from "@/lib/actions/contracts";
 import type { RevisionContrato } from "@/lib/contracts/datos";
 import { EnvioMasivoContratos } from "@/components/contracts/envio-masivo";
+import { baseUrl } from "@/lib/url";
 
 /**
  * Los contratos de un camino, todos en una pantalla.
@@ -56,7 +57,7 @@ export async function ContratosTab({ departureId }: { departureId: string }) {
         signedAt: c.signed_at,
         huella: c.pdf_signed_sha256,
         urlVerificacion: c.pdf_signed_sha256
-          ? `${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/verificar/${c.pdf_signed_sha256}`
+          ? `${baseUrl()}/verificar/${c.pdf_signed_sha256}`
           : null,
       },
     ])
@@ -152,7 +153,7 @@ export async function ContratosTab({ departureId }: { departureId: string }) {
                 </Link>
                 <Link
                   href={rutaPeregrino(r.pilgrim_id, departureId)}
-                  className="text-xs text-muted-foreground hover:underline"
+                  className="inline-block py-2 text-xs text-muted-foreground hover:underline sm:py-0"
                 >
                   Abrir la ficha →
                 </Link>

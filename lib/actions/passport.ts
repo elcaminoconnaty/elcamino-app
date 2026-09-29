@@ -1,4 +1,5 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -10,26 +11,30 @@ export type { PassportData };
  * No hay límite de payload del server action porque el archivo va directo al bucket.
  */
 export async function getPassportUploadUrl(pilgrimId: string, filename: string) {
-  const supabase = createClient();
-  const ext = filename.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${pilgrimId}/${Date.now()}.${ext}`;
-  const { data, error } = await supabase.storage
-    .from("passports")
-    .createSignedUploadUrl(path);
-  if (error) throw new Error(error.message);
-  return { path, signedUrl: data.signedUrl, token: data.token };
+  return intentar(async () => {
+    const supabase = createClient();
+    const ext = filename.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${pilgrimId}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("passports")
+      .createSignedUploadUrl(path);
+    if (error) throw new Error(error.message);
+    return { path, signedUrl: data.signedUrl, token: data.token };
+  });
 }
 
 /**
  * Después de subir, llama a Claude Vision con el path para extraer datos.
  */
 export async function extractPassportFromStorage(pilgrimId: string, storagePath: string) {
-  const supabase = createClient();
-  const data = await extraerDatosPasaporte(supabase, storagePath);
-  const { error: updErr } = await supabase.from("pilgrims").update(camposDesdePasaporte(data, storagePath)).eq("id", pilgrimId);
-  if (updErr) throw new Error(updErr.message);
-  revalidatePath(`/peregrinos/${pilgrimId}`);
-  return { data, path: storagePath };
+  return intentar(async () => {
+    const supabase = createClient();
+    const data = await extraerDatosPasaporte(supabase, storagePath);
+    const { error: updErr } = await supabase.from("pilgrims").update(camposDesdePasaporte(data, storagePath)).eq("id", pilgrimId);
+    if (updErr) throw new Error(updErr.message);
+    revalidatePath(`/peregrinos/${pilgrimId}`);
+    return { data, path: storagePath };
+  });
 }
 
 export async function getPassportImageUrl(pilgrimId: string): Promise<string | null> {
@@ -45,34 +50,36 @@ export async function getPassportImageUrl(pilgrimId: string): Promise<string | n
  * Pensado para usarse cuando el viaje termina (departure.status = 'finished').
  */
 export async function deletePassportsForDeparture(departureId: string) {
-  const supabase = createClient();
-  const { data: regs } = await supabase
-    .from("registrations")
-    .select("pilgrim_id, pilgrims!inner(passport_image_path)")
-    .eq("departure_id", departureId);
+  return intentar(async () => {
+    const supabase = createClient();
+    const { data: regs } = await supabase
+      .from("registrations")
+      .select("pilgrim_id, pilgrims!inner(passport_image_path)")
+      .eq("departure_id", departureId);
 
-  const paths: string[] = [];
-  const pilgrimIds: string[] = [];
-  for (const r of (regs ?? []) as any[]) {
-    if (r.pilgrims?.passport_image_path) {
-      paths.push(r.pilgrims.passport_image_path);
-      pilgrimIds.push(r.pilgrim_id);
+    const paths: string[] = [];
+    const pilgrimIds: string[] = [];
+    for (const r of (regs ?? []) as any[]) {
+      if (r.pilgrims?.passport_image_path) {
+        paths.push(r.pilgrims.passport_image_path);
+        pilgrimIds.push(r.pilgrim_id);
+      }
     }
-  }
 
-  if (paths.length === 0) return { deleted: 0 };
+    if (paths.length === 0) return { deleted: 0 };
 
-  const { error: rmErr } = await supabase.storage.from("passports").remove(paths);
-  if (rmErr) throw new Error(rmErr.message);
+    const { error: rmErr } = await supabase.storage.from("passports").remove(paths);
+    if (rmErr) throw new Error(rmErr.message);
 
-  await supabase
-    .from("pilgrims")
-    .update({
-      passport_image_path: null,
-      passport_extracted_at: null,
-    })
-    .in("id", pilgrimIds);
+    await supabase
+      .from("pilgrims")
+      .update({
+        passport_image_path: null,
+        passport_extracted_at: null,
+      })
+      .in("id", pilgrimIds);
 
-  revalidatePath("/peregrinos");
-  return { deleted: paths.length };
+    revalidatePath("/peregrinos");
+    return { deleted: paths.length };
+  });
 }

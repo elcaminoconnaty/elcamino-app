@@ -1,4 +1,5 @@
 "use server";
+import { intentar } from "@/lib/resultado";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,7 @@ import { renderContrato } from "@/lib/contracts/render";
 import { enviarCorreo, avisoInterno, nuevoTokenCorreo } from "@/lib/email/send";
 import { correoContratoParaFirmar } from "@/lib/email/templates";
 import { CONTACTO } from "@/lib/brand";
+import { baseUrl } from "@/lib/url";
 
 /**
  * Las acciones del módulo de contratos.
@@ -35,10 +37,6 @@ const RUTA_PEREGRINO = (id: string) => `/peregrinos/${id}`;
 function revalidarContrato(pilgrimId: string) {
   revalidatePath(RUTA_PEREGRINO(pilgrimId));
   revalidatePath("/caminos/[id]", "page");
-}
-
-function baseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
 /** Registra un evento en la bitácora. Nunca lanza: la evidencia no puede tumbar la acción. */
@@ -84,101 +82,128 @@ export async function generarContrato(
   pilgrimId: string,
   opciones?: { anexo1Url?: string; formaDePagoManual?: string }
 ) {
-  const supabase = createClient();
+  return intentar(async () => {
+    const supabase = createClient();
 
-  const { datos, pendientes } = await armarDatosContrato(registrationId, opciones);
-  if (pendientes.length) {
-    throw new Error(
-      `Falta ${pendientes.map((p) => p.que_falta).join("; ")}. Completalo antes de generar el contrato.`
-    );
-  }
-  const faltan = camposFaltantes(datos);
-  if (faltan.length) throw new Error(`Faltan datos del contrato: ${faltan.join(", ")}.`);
+    const { datos, pendientes } = await armarDatosContrato(registrationId, opciones);
+    if (pendientes.length) {
+      throw new Error(
+        `Falta ${pendientes.map((p) => p.que_falta).join("; ")}. Completalo antes de generar el contrato.`
+      );
+    }
+    const faltan = camposFaltantes(datos);
+    if (faltan.length) throw new Error(`Faltan datos del contrato: ${faltan.join(", ")}.`);
 
-  // Si ya hay uno vivo, este es su reemplazo: se anula el anterior y sube la versión.
-  const { data: vigente } = await supabase
-    .from("contracts")
-    .select("id, version, status")
-    .eq("registration_id", registrationId)
-    .in("status", ["borrador", "enviado", "visto", "firmado"])
-    .maybeSingle();
+    // Si ya hay uno vivo, este es su reemplazo: se anula el anterior y sube la versión.
+    const { data: vigente, error: errVigente } = await supabase
+      .from("contracts")
+      .select("id, version, status")
+      .eq("registration_id", registrationId)
+      .in("status", ["borrador", "enviado", "visto", "firmado"])
+      .maybeSingle();
+    if (errVigente) throw new Error(errVigente.message);
 
-  if (vigente?.status === "firmado") {
-    throw new Error(
-      "Este contrato ya está firmado. Para cambiarlo hay que anularlo y emitir una versión nueva, " +
-        "que el peregrino tendrá que volver a firmar."
-    );
-  }
+    if (vigente?.status === "firmado") {
+      throw new Error(
+        "Este contrato ya está firmado. Para cambiarlo hay que anularlo y emitir una versión nueva, " +
+          "que el peregrino tendrá que volver a firmar."
+      );
+    }
 
-  const minuta = await minutaVigente();
-  const version = (vigente?.version ?? 0) + 1;
-  const token = nuevoToken();
-  const codigo = token.slice(0, 8).toUpperCase();
+    const minuta = await minutaVigente();
+    const version = (vigente?.version ?? 0) + 1;
+    const token = nuevoToken();
+    const codigo = token.slice(0, 8).toUpperCase();
 
-  // El trazo guardado de Naty (Configuración → Mi firma). Va desde el original: el peregrino
-  // firma sobre un documento que ya lleva la firma real de la otra parte, no sobre un nombre
-  // en cursiva que cambia después. Si aún no la capturó, sale la firma mecánica.
-  const { data: ajuste } = await supabase.from("app_settings").select("value").eq("key", "org_signature").maybeSingle();
-  const trazoNaty = (ajuste?.value as any)?.data_url as string | undefined;
+    // El trazo guardado de Naty (Configuración → Mi firma). Va desde el original: el peregrino
+    // firma sobre un documento que ya lleva la firma real de la otra parte, no sobre un nombre
+    // en cursiva que cambia después. Si aún no la capturó, sale la firma mecánica.
+    const { data: ajuste } = await supabase.from("app_settings").select("value").eq("key", "org_signature").maybeSingle();
+    const trazoNaty = (ajuste?.value as any)?.data_url as string | undefined;
 
-  const { pdf, sha256: huella } = await renderContrato({
-    minuta,
-    datos: datos as DatosContrato,
-    codigo,
-    trazos: trazoNaty ? { camino: trazoNaty } : undefined,
+    const { pdf, sha256: huella } = await renderContrato({
+      minuta,
+      datos: datos as DatosContrato,
+      codigo,
+      trazos: trazoNaty ? { camino: trazoNaty } : undefined,
+    });
+
+    const anio = new Date().getFullYear();
+    const ruta = `${anio}/${registrationId}/Contrato-${codigo}-v${version}.pdf`;
+    const { error: errSubida } = await supabase.storage
+      .from("contracts")
+      .upload(ruta, pdf, { contentType: "application/pdf", upsert: true });
+    if (errSubida) throw new Error(`No pude guardar el PDF: ${errSubida.message}`);
+
+    if (vigente) {
+      const { error: errAnular } = await supabase
+        .from("contracts")
+        .update({ status: "anulado", revoked_at: new Date().toISOString() })
+        .eq("id", vigente.id);
+      if (errAnular) throw new Error(`No pude anular la versión anterior: ${errAnular.message}`);
+      await anotar(vigente.id, "anulado", { detail: { motivo: `reemplazado por la versión ${version}` } });
+    }
+
+    // Si algo falla de acá en adelante, la versión anterior vuelve a quedar vigente: mejor el
+    // contrato de antes que ninguno.
+    const restaurarAnterior = async () => {
+      if (!vigente) return;
+      await supabase.from("contracts").update({ status: vigente.status, revoked_at: null }).eq("id", vigente.id);
+      await anotar(vigente.id, "restaurado", { detail: { motivo: `falló la emisión de la versión ${version}` } });
+    };
+
+    const { data: creado, error } = await supabase
+      .from("contracts")
+      .insert({
+        registration_id: registrationId,
+        parent_contract_id: vigente?.id ?? null,
+        version,
+        status: "borrador",
+        snapshot: datos,
+        template_version: minuta.version,
+        pdf_original_path: ruta,
+        pdf_original_sha256: huella,
+        access_token: token,
+        token_expires_at: new Date(Date.now() + TOKEN_VIGENCIA_DIAS * 864e5).toISOString(),
+      })
+      .select("id")
+      .single();
+    if (error) {
+      await restaurarAnterior();
+      throw new Error(error.message);
+    }
+
+    // Los dos firmantes. Naty firma desde la plataforma; el viajero, por enlace. Sin ellos el
+    // contrato no se puede firmar, así que si fallan se deshace el contrato recién creado.
+    const { error: errFirmantes } = await supabase.from("contract_signers").insert([
+      {
+        contract_id: creado.id,
+        role: "viajero",
+        full_name: datos.viajero_nombre!,
+        document_label: datos.viajero_documento_label!,
+        email: datos.viajero_email!,
+      },
+      {
+        contract_id: creado.id,
+        role: "camino",
+        full_name: "NATALIA LARGO DURÁN",
+        document_label: "C.C. 1.037.593.713",
+        email: CONTACTO.correo,
+      },
+    ]);
+    if (errFirmantes) {
+      const { error: errBorrar } = await supabase.from("contracts").delete().eq("id", creado.id);
+      if (errBorrar) {
+        await supabase.from("contracts").update({ status: "anulado", revoked_at: new Date().toISOString() }).eq("id", creado.id);
+      }
+      await restaurarAnterior();
+      throw new Error(`No pude registrar los firmantes del contrato: ${errFirmantes.message}`);
+    }
+
+    await anotar(creado.id, "creado", { detail: { version, minuta: minuta.version, sha256: huella } });
+    revalidarContrato(pilgrimId);
+    return { contractId: creado.id, codigo, version };
   });
-
-  const anio = new Date().getFullYear();
-  const ruta = `${anio}/${registrationId}/Contrato-${codigo}-v${version}.pdf`;
-  const { error: errSubida } = await supabase.storage
-    .from("contracts")
-    .upload(ruta, pdf, { contentType: "application/pdf", upsert: true });
-  if (errSubida) throw new Error(`No pude guardar el PDF: ${errSubida.message}`);
-
-  if (vigente) {
-    await supabase.from("contracts").update({ status: "anulado", revoked_at: new Date().toISOString() }).eq("id", vigente.id);
-    await anotar(vigente.id, "anulado", { detail: { motivo: `reemplazado por la versión ${version}` } });
-  }
-
-  const { data: creado, error } = await supabase
-    .from("contracts")
-    .insert({
-      registration_id: registrationId,
-      parent_contract_id: vigente?.id ?? null,
-      version,
-      status: "borrador",
-      snapshot: datos,
-      template_version: minuta.version,
-      pdf_original_path: ruta,
-      pdf_original_sha256: huella,
-      access_token: token,
-      token_expires_at: new Date(Date.now() + TOKEN_VIGENCIA_DIAS * 864e5).toISOString(),
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-
-  // Los dos firmantes. Naty firma desde la plataforma; el viajero, por enlace.
-  await supabase.from("contract_signers").insert([
-    {
-      contract_id: creado.id,
-      role: "viajero",
-      full_name: datos.viajero_nombre!,
-      document_label: datos.viajero_documento_label!,
-      email: datos.viajero_email!,
-    },
-    {
-      contract_id: creado.id,
-      role: "camino",
-      full_name: "NATALIA LARGO DURÁN",
-      document_label: "C.C. 1.037.593.713",
-      email: CONTACTO.correo,
-    },
-  ]);
-
-  await anotar(creado.id, "creado", { detail: { version, minuta: minuta.version, sha256: huella } });
-  revalidarContrato(pilgrimId);
-  return { contractId: creado.id, codigo, version };
 }
 
 /**
@@ -194,98 +219,111 @@ export async function enviarContratoAFirmar(
   pilgrimId: string,
   opciones?: { pruebaEmail?: string | null }
 ) {
-  const supabase = createClient();
-  const pruebaEmail = opciones?.pruebaEmail?.trim() || null;
-  if (pruebaEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pruebaEmail)) {
-    throw new Error("El correo de prueba no tiene forma de correo.");
-  }
+  return intentar(async () => {
+    const supabase = createClient();
+    const pruebaEmail = opciones?.pruebaEmail?.trim() || null;
+    if (pruebaEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pruebaEmail)) {
+      throw new Error("El correo de prueba no tiene forma de correo.");
+    }
 
-  const { data: c, error } = await supabase
-    .from("contracts")
-    .select(
-      `id, status, access_token, snapshot, version,
-       registrations:registration_id ( departures:departure_id ( name ) )`
-    )
-    .eq("id", contractId)
-    .single();
-  if (error || !c) throw new Error(error?.message ?? "No encontré el contrato.");
-  if (c.status === "firmado") throw new Error("Este contrato ya está firmado.");
-  if (c.status === "anulado") throw new Error("Este contrato está anulado.");
+    const { data: c, error } = await supabase
+      .from("contracts")
+      .select(
+        `id, status, access_token, snapshot, version,
+         registrations:registration_id ( departures:departure_id ( name ) )`
+      )
+      .eq("id", contractId)
+      .single();
+    if (error || !c) throw new Error(error?.message ?? "No encontré el contrato.");
+    if (c.status === "firmado") throw new Error("Este contrato ya está firmado.");
+    if (c.status === "anulado") throw new Error("Este contrato está anulado.");
 
-  const s = c.snapshot as DatosContrato;
-  const camino = (c.registrations as any)?.departures?.name ?? "tu Camino";
-  const tokenWeb = nuevoTokenCorreo();
-  const urlFirma = `${baseUrl()}/firmar/${c.access_token}`;
+    const s = c.snapshot as DatosContrato;
+    const camino = (c.registrations as any)?.departures?.name ?? "tu Camino";
+    const tokenWeb = nuevoTokenCorreo();
+    const urlFirma = `${baseUrl()}/firmar/${c.access_token}`;
 
-  const correo = correoContratoParaFirmar({
-    nombre: s.viajero_nombre,
-    camino,
-    valorTotal: s.valor_total,
-    formaDePago: s.forma_de_pago,
-    urlFirma,
-    urlVersionWeb: `${baseUrl()}/correo/${tokenWeb}`,
+    const correo = correoContratoParaFirmar({
+      nombre: s.viajero_nombre,
+      camino,
+      valorTotal: s.valor_total,
+      formaDePago: s.forma_de_pago,
+      urlFirma,
+      urlVersionWeb: `${baseUrl()}/correo/${tokenWeb}`,
+    });
+
+    const r = await enviarCorreo({
+      ...correo,
+      subject: pruebaEmail ? `[PRUEBA] ${correo.subject}` : correo.subject,
+      to: pruebaEmail ?? s.viajero_email,
+      tipo: "contrato_firmar",
+      templateSlug: "contrato_firmar",
+      tokenVersionWeb: tokenWeb,
+    });
+
+    if (!r.ok) {
+      await anotar(contractId, pruebaEmail ? "prueba_fallida" : "enviado", { detail: { error: r.error, to: pruebaEmail ?? s.viajero_email } });
+      throw new Error(`No pude enviar el correo: ${r.error}`);
+    }
+
+    if (pruebaEmail) {
+      // Una prueba no mueve el estado ni renueva el enlace: el peregrino no recibió nada.
+      await anotar(contractId, "prueba_enviada", { detail: { to: pruebaEmail, messageId: r.messageId } });
+      return { ok: true as const, prueba: pruebaEmail };
+    }
+
+    // Renovamos la vigencia del enlace: el del último correo siempre tiene que funcionar.
+    const enviadoEn = new Date().toISOString();
+    const { error: errEstado } = await supabase
+      .from("contracts")
+      .update({
+        status: "enviado",
+        sent_at: enviadoEn,
+        token_expires_at: new Date(Date.now() + TOKEN_VIGENCIA_DIAS * 864e5).toISOString(),
+        reminder_count: 0,
+      })
+      .eq("id", contractId);
+    if (errEstado) {
+      await anotar(contractId, "enviado", { detail: { to: s.viajero_email, messageId: r.messageId, error: errEstado.message } });
+      throw new Error(`El correo salió, pero no pude marcar el contrato como enviado: ${errEstado.message}`);
+    }
+
+    // Naty firma en este momento: el envío al peregrino es su acto de firma, con su trazo
+    // guardado ya estampado en el PDF. Así lo dice el Informe de Firmas. Un reenvío no la
+    // mueve: la firma es la del primer envío.
+    const { error: errFirmaCamino } = await supabase
+      .from("contract_signers")
+      .update({ signed_at: enviadoEn, auth_method: "sesion_plataforma" })
+      .eq("contract_id", contractId)
+      .eq("role", "camino")
+      .is("signed_at", null);
+    if (errFirmaCamino) {
+      throw new Error(`El correo salió, pero no quedó registrada la firma de la organizadora: ${errFirmaCamino.message}`);
+    }
+
+    await anotar(contractId, "enviado", { detail: { to: s.viajero_email, messageId: r.messageId } });
+    revalidarContrato(pilgrimId);
+    return { ok: true as const };
   });
-
-  const r = await enviarCorreo({
-    ...correo,
-    subject: pruebaEmail ? `[PRUEBA] ${correo.subject}` : correo.subject,
-    to: pruebaEmail ?? s.viajero_email,
-    tipo: "contrato_firmar",
-    templateSlug: "contrato_firmar",
-    tokenVersionWeb: tokenWeb,
-  });
-
-  if (!r.ok) {
-    await anotar(contractId, pruebaEmail ? "prueba_fallida" : "enviado", { detail: { error: r.error, to: pruebaEmail ?? s.viajero_email } });
-    throw new Error(`No pude enviar el correo: ${r.error}`);
-  }
-
-  if (pruebaEmail) {
-    // Una prueba no mueve el estado ni renueva el enlace: el peregrino no recibió nada.
-    await anotar(contractId, "prueba_enviada", { detail: { to: pruebaEmail, messageId: r.messageId } });
-    return { ok: true as const, prueba: pruebaEmail };
-  }
-
-  // Renovamos la vigencia del enlace: el del último correo siempre tiene que funcionar.
-  const enviadoEn = new Date().toISOString();
-  await supabase
-    .from("contracts")
-    .update({
-      status: "enviado",
-      sent_at: enviadoEn,
-      token_expires_at: new Date(Date.now() + TOKEN_VIGENCIA_DIAS * 864e5).toISOString(),
-      reminder_count: 0,
-    })
-    .eq("id", contractId);
-
-  // Naty firma en este momento: el envío al peregrino es su acto de firma, con su trazo
-  // guardado ya estampado en el PDF. Así lo dice el Informe de Firmas. Un reenvío no la
-  // mueve: la firma es la del primer envío.
-  await supabase
-    .from("contract_signers")
-    .update({ signed_at: enviadoEn, auth_method: "sesion_plataforma" })
-    .eq("contract_id", contractId)
-    .eq("role", "camino")
-    .is("signed_at", null);
-
-  await anotar(contractId, "enviado", { detail: { to: s.viajero_email, messageId: r.messageId } });
-  revalidarContrato(pilgrimId);
-  return { ok: true as const };
 }
 
 /** Anula el contrato vigente sin crear otro. */
 export async function anularContrato(contractId: string, pilgrimId: string, motivo?: string) {
-  const supabase = createClient();
-  const { data: c } = await supabase.from("contracts").select("status").eq("id", contractId).single();
-  if (c?.status === "firmado") {
-    throw new Error("Un contrato firmado no se anula: se emite una versión nueva que lo reemplaza.");
-  }
-  await supabase
-    .from("contracts")
-    .update({ status: "anulado", revoked_at: new Date().toISOString() })
-    .eq("id", contractId);
-  await anotar(contractId, "anulado", { detail: { motivo: motivo ?? null } });
-  revalidarContrato(pilgrimId);
+  return intentar(async () => {
+    const supabase = createClient();
+    const { data: c, error: errLeer } = await supabase.from("contracts").select("status").eq("id", contractId).single();
+    if (errLeer) throw new Error(errLeer.message);
+    if (c?.status === "firmado") {
+      throw new Error("Un contrato firmado no se anula: se emite una versión nueva que lo reemplaza.");
+    }
+    const { error } = await supabase
+      .from("contracts")
+      .update({ status: "anulado", revoked_at: new Date().toISOString() })
+      .eq("id", contractId);
+    if (error) throw new Error(error.message);
+    await anotar(contractId, "anulado", { detail: { motivo: motivo ?? null } });
+    revalidarContrato(pilgrimId);
+  });
 }
 
 /** URL firmada de corta vida para descargar el PDF. Nada se sirve directo desde Storage. */
@@ -339,17 +377,19 @@ export async function avisarFirma(nombre: string, camino: string) {
  * una sola vez. Sin esto los contratos salen con su nombre en cursiva.
  */
 export async function guardarFirmaOrganizador(trazoDataUrl: string) {
-  const { trazoValido } = await import("@/lib/contracts/firma");
-  const v = trazoValido(trazoDataUrl);
-  if (!v.ok) throw new Error(v.error);
+  return intentar(async () => {
+    const { trazoValido } = await import("@/lib/contracts/firma");
+    const v = trazoValido(trazoDataUrl);
+    if (!v.ok) throw new Error(v.error);
 
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("app_settings")
-    .upsert(
-      { key: "org_signature", value: { data_url: trazoDataUrl, updated_at: new Date().toISOString() } },
-      { onConflict: "key" }
-    );
-  if (error) throw new Error(error.message);
-  revalidatePath("/configuracion");
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert(
+        { key: "org_signature", value: { data_url: trazoDataUrl, updated_at: new Date().toISOString() } },
+        { onConflict: "key" }
+      );
+    if (error) throw new Error(error.message);
+    revalidatePath("/configuracion");
+  });
 }

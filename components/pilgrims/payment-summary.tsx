@@ -1,29 +1,46 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatEUR, formatCOP } from "@/lib/utils";
 
+/**
+ * El resumen de pagos de la ficha del peregrino.
+ *
+ * El avance y el pendiente salen de `v_pilgrim_settlement` (una fila por inscripción no
+ * cancelada): `paid_eur_cierre` es lo acreditado (a la tasa de cierre cuando la hay, y ya sin
+ * devoluciones) y `saldo_final_eur` el saldo. Antes se restaba precio − Σ amount_eur a la tasa
+ * de cada abono, y a quien ya había liquidado o recibido su devolución le salía un pendiente
+ * falso (a Santiago, 283 € que en realidad se le habían devuelto). Los cortes por divisa y por
+ * cuenta sí salen de los movimientos: son la plata que efectivamente se movió.
+ */
+export type LiquidacionResumen = {
+  net_total_eur: number | string;
+  paid_eur_cierre: number | string;
+  saldo_final_eur: number | string;
+  penalidad_eur?: number | string | null;
+  settlement_trm?: number | string | null;
+};
+
 export function PaymentSummary({
   payments,
-  totalEur,
-  penaltyEur = 0,
+  liquidacion,
 }: {
   payments: any[];
-  /** Precio acordado de los viajes. La penalidad no va acá. */
-  totalEur: number;
-  /** Penalidades registradas, en positivo: ya vienen restadas de los abonos. */
-  penaltyEur?: number;
+  /** Filas de v_pilgrim_settlement de las inscripciones NO canceladas. */
+  liquidacion: LiquidacionResumen[];
 }) {
+  const totalEur = liquidacion.reduce((s, r) => s + Number(r.net_total_eur || 0), 0);
+  const acreditado = liquidacion.reduce((s, r) => s + Number(r.paid_eur_cierre || 0), 0);
+  const saldo = liquidacion.reduce((s, r) => s + Number(r.saldo_final_eur || 0), 0);
+  const penaltyEur = liquidacion.reduce((s, r) => s + Number(r.penalidad_eur || 0), 0);
+  const conCierre = liquidacion.some((r) => r.settlement_trm != null);
   let copPaid = 0;
   let copEurEquivalent = 0;
   let eurPaid = 0;
   let usdPaid = 0;
-  let totalEurEquivalent = 0;
   const byAccount = new Map<string, number>();
 
   for (const p of payments) {
     const eurEq = Number(p.amount_eur || 0);
-    // El acreditado sí cuenta la penalidad (le resta); los cortes por divisa y
-    // por cuenta no, porque ahí solo va la plata que efectivamente se movió.
-    totalEurEquivalent += eurEq;
+    // La penalidad no es plata que se movió: no va en los cortes por divisa ni por cuenta.
     if (p.kind === "penalidad") continue;
     if (p.currency === "COP") {
       copPaid += Number(p.amount);
@@ -37,7 +54,7 @@ export function PaymentSummary({
     byAccount.set(acc, (byAccount.get(acc) ?? 0) + eurEq);
   }
 
-  const pct = totalEur > 0 ? Math.round((totalEurEquivalent / totalEur) * 100) : 0;
+  const pct = totalEur > 0 ? Math.round((acreditado / totalEur) * 100) : 0;
 
   return (
     <Card>
@@ -54,7 +71,7 @@ export function PaymentSummary({
             <div className="h-full bg-ocre" style={{ width: `${Math.min(100, pct)}%` }} />
           </div>
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>{formatEUR(totalEurEquivalent)}</span>
+            <span>{formatEUR(acreditado)}{conCierre ? " acreditado" : ""}</span>
             <span>de {formatEUR(totalEur)}</span>
           </div>
         </div>
@@ -89,11 +106,14 @@ export function PaymentSummary({
             </div>
           )}
           <div className="flex justify-between font-medium pt-1.5 border-t mt-1.5">
-            <span>Pendiente EUR</span>
-            <span className={totalEur - totalEurEquivalent > 0 ? "text-aviso-700" : "text-ok-700"}>
-              {formatEUR(totalEur - totalEurEquivalent)}
+            <span>{saldo < -0.5 ? "A favor del peregrino" : "Pendiente EUR"}</span>
+            <span className={saldo > 0.5 ? "text-aviso-700" : "text-ok-700"}>
+              {formatEUR(Math.abs(saldo) < 0.005 ? 0 : Math.abs(saldo))}
             </span>
           </div>
+          {conCierre && (
+            <p className="text-[11px] text-muted-foreground">Liquidado a la tasa de cierre: los abonos en pesos se revaloraron.</p>
+          )}
         </div>
 
         {byAccount.size > 0 && (

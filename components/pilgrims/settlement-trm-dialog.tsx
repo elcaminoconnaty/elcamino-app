@@ -9,6 +9,8 @@ import { setRegistrationSettlementTrm } from "@/lib/actions/settlement";
 import { getTrmForDate } from "@/lib/actions/payments";
 import { toast } from "@/components/ui/toaster";
 import { Landmark } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Tasa de cierre pactada aparte con un peregrino. Lo normal es usar la del grupo
@@ -31,7 +33,7 @@ export function SettlementTrmDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [trm, setTrm] = useState(esExcepcion && currentTrm ? String(currentTrm) : "");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(hoyBogota());
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -46,7 +48,7 @@ export function SettlementTrmDialog({
     try {
       const n = limpiar ? null : Number(trm);
       if (!limpiar && (!n || n <= 0)) throw new Error("Tasa inválida.");
-      await setRegistrationSettlementTrm(registrationId, n, date);
+      exigir(await setRegistrationSettlementTrm(registrationId, n, date));
       toast({ title: limpiar ? "Vuelve a usar la tasa del grupo" : "Tasa de cierre guardada", variant: "success" });
       setOpen(false);
       router.refresh();

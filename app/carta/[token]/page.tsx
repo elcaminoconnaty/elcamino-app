@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { COLOR, CONTACTO } from "@/lib/brand";
 import { MarcoPublico } from "@/components/publico/marco-publico";
 import { cartaPorToken } from "@/lib/bienvenida/por-token";
+import { baseUrl } from "@/lib/url";
 
 /**
  * La carta de bienvenida del peregrino, dentro de una página con la marca. Un PDF abierto
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const c = await cartaPorToken(params.token);
   const titulo = c ? `Carta de bienvenida · ${c.camino}` : CONTACTO.marca;
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const base = baseUrl();
   return {
     title: titulo,
     description: "Todo lo que necesitas para prepararte en cuerpo y alma.",

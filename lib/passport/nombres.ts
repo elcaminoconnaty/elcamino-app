@@ -111,3 +111,12 @@ export function armarNombreCompleto(datos: {
 export function compararNombres(a: string, b: string): number {
   return (a ?? "").localeCompare(b ?? "", "es", { sensitivity: "base" });
 }
+
+/**
+ * Cómo se le dice a la persona: su apodo o su primer nombre, en tipo título. Fuente única
+ * del saludo: la carta, el WhatsApp y el formulario tienen que decir lo mismo ("Maria", no
+ * "MARIA" cuando el nombre vino del pasaporte).
+ */
+export function nombreDePila(p: { full_name?: string | null; nickname?: string | null }): string {
+  return tituloDeNombre((p.nickname ?? "").trim() || String(p.full_name ?? "").trim().split(/\s+/)[0] || "");
+}

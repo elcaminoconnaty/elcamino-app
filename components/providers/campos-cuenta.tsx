@@ -34,7 +34,7 @@ export function CamposCuenta({ cuenta }: { cuenta?: any }) {
         </div>
         <div className="grid gap-2">
           <Label>Medio de pago</Label>
-          <select name="method" value={method} onChange={(e) => setMethod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <select name="method" value={method} onChange={(e) => setMethod(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
             {RESERVATION_PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
@@ -83,7 +83,7 @@ export function CamposCuenta({ cuenta }: { cuenta?: any }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label>Moneda en la que cobra</Label>
-          <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
             {PROVIDER_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>

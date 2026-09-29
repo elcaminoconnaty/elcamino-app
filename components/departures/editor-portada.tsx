@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { guardarPortada, urlDeSubidaDePortada } from "@/lib/actions/travel-doc";
 import { ImagePlus } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 /**
  * La portada del documento: lo único que no sale de la operación.
@@ -46,12 +47,12 @@ export function EditorPortada({
         canvas.toBlob((b) => (b ? res(b) : rej(new Error("No pude procesar la imagen."))), "image/jpeg", 0.85)
       );
 
-      const { signedUrl, urlPublica } = await urlDeSubidaDePortada(departureId, "image/jpeg");
+      const { signedUrl, urlPublica } = exigir(await urlDeSubidaDePortada(departureId, "image/jpeg"));
       const r = await fetch(signedUrl, { method: "PUT", body: blob, headers: { "content-type": "image/jpeg" } });
       if (!r.ok) throw new Error("No pude subir la foto.");
 
       setFoto(urlPublica);
-      await guardarPortada(departureId, { cover_photo: urlPublica });
+      exigir(await guardarPortada(departureId, { cover_photo: urlPublica }));
       toast({ title: "Portada actualizada", variant: "success" });
     } catch (e: any) {
       toast({ title: "No se pudo", description: e?.message, variant: "destructive" });
@@ -102,11 +103,11 @@ export function EditorPortada({
         onClick={() =>
           empezar(async () => {
             try {
-              await guardarPortada(departureId, {
+              exigir(await guardarPortada(departureId, {
                 cover_photo: foto || undefined,
                 tagline: tagline || undefined,
                 banda: banda || undefined,
-              });
+              }));
               toast({ title: "Portada guardada", variant: "success" });
             } catch (e: any) {
               toast({ title: "No se pudo", description: e?.message, variant: "destructive" });

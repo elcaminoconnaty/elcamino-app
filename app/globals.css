@@ -82,6 +82,10 @@
  * <Table>). Deslizar una tabla de lado en un iPhone era la queja; esto la vuelve una lista.
  * Una tabla que no deba apilarse (editable, con celdas combinadas) usa <Table apilar={false}>.
  */
+/* Un <select> nativo toma el ancho de su opción más larga y empujaba formularios enteros fuera de
+   la pantalla en el iPhone. Que nunca pase del contenedor. */
+select { min-width: 0; max-width: 100%; }
+
 @media (max-width: 639px) {
   .tabla-apilable thead { display: none; }
   .tabla-apilable, .tabla-apilable tbody, .tabla-apilable tfoot { display: block; width: 100%; }
@@ -112,6 +116,20 @@
     font-size: 0.75rem;
     color: hsl(var(--muted-foreground));
   }
+  /* Celdas con varias piezas (correo + teléfono, entrada + salida): la etiqueta a la izquierda y
+     las piezas apiladas a la derecha, partiendo línea si son largas. Con flex se desparramaban
+     por la tarjeta y el teléfono quedaba cortado en el borde. */
+  .tabla-apilable td[data-label] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.75rem;
+    /* Sin esto hereda el gap de 0.75rem del td flex, y como la etiqueta abarca 20 filas implícitas,
+       cada celda sumaba 19 huecos (~230px) y las tarjetas quedaban eternas. */
+    row-gap: 0;
+    align-items: baseline;
+  }
+  .tabla-apilable td[data-label]::before { grid-row: 1 / span 20; }
+  .tabla-apilable td[data-label] > * { grid-column: 2; justify-self: end; max-width: 100%; overflow-wrap: anywhere; }
   /* La primera celda es el título de la tarjeta: sin etiqueta, grande y a la izquierda. */
   .tabla-apilable td:first-child {
     display: block;

@@ -102,7 +102,7 @@ export function EnviarProveedorDialog({
       }
       toast({
         title: copiaAMi ? "Copia de prueba enviada" : t.ok,
-        description: `A ${r.to}${r.cc.length ? ` y en copia a ${r.cc.join(", ")}` : ""} por ${r.via === "gmail" ? "Gmail" : "Brevo"}`,
+        description: `A ${r.to}${r.cc.length ? ` y en copia a ${r.cc.join(", ")}` : ""} por ${r.via === "gmail" ? "Gmail" : "Brevo"}${r.aviso ? `. ${r.aviso}` : ""}`,
         variant: "success",
       });
       if (!copiaAMi) {
@@ -124,7 +124,7 @@ export function EnviarProveedorDialog({
           {enviadoEl ? `Enviado ${formatDate(enviadoEl.slice(0, 10))}` : t.boton(proveedor)}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t.titulo(proveedor)}</DialogTitle>
           <DialogDescription>{t.descripcion}</DialogDescription>

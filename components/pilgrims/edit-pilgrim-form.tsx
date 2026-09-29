@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { updatePilgrim } from "@/lib/actions/pilgrims";
 import { toast } from "@/components/ui/toaster";
 import { Pencil } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
   const [open, setOpen] = useState(false);
@@ -27,7 +28,7 @@ export function EditPilgrimDialog({ pilgrim }: { pilgrim: any }) {
           action={async (fd) => {
             setSaving(true);
             try {
-              await updatePilgrim(pilgrim.id, fd);
+              exigir(await updatePilgrim(pilgrim.id, fd));
               toast({ title: "Guardado", variant: "success" });
               setOpen(false);
               router.refresh();

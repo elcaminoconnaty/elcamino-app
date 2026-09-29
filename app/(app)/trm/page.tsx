@@ -48,7 +48,8 @@ export default async function TrmPage() {
           {(!rates || rates.length === 0) ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Aún no hay TRM cargada.</div>
           ) : (
-            <Table>
+            // Tres columnas cortas caben en el celular: como tabla se lee mejor que una tarjeta por día.
+            <Table apilar={false}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
@@ -59,7 +60,7 @@ export default async function TrmPage() {
               <TableBody>
                 {rates.map((r: any) => (
                   <TableRow key={r.date}>
-                    <TableCell>{formatDate(r.date)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(r.date)}</TableCell>
                     <TableCell className="text-right font-medium">{Number(r.eur_cop).toLocaleString("es-CO")}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.notes ?? "—"}</TableCell>
                   </TableRow>

@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { contratadoPorCamino } from "@/lib/data/costos-contratados";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatEUR, formatDate, daysUntil } from "@/lib/utils";
 import type { FinancialGlobal, DepartureSummary, AccountBalance, AccountCurrencyBreakdown } from "@/types/db";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AccountBalancesCard } from "@/components/finance/account-balances-card";
+import { conteoPorCamino, textoCupo } from "@/lib/data/inscritos";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,6 @@ export default async function NatyDashboard() {
     { data: dps },
     { data: upcoming },
     { data: fin },
-    { data: payable },
     { data: accounts },
     { data: accountsByCurrency },
   ] = await Promise.all([
@@ -23,20 +24,21 @@ export default async function NatyDashboard() {
     supabase.from("v_departure_summary").select("*").order("start_date", { ascending: true }),
     supabase.from("v_upcoming_installments").select("*").limit(15),
     supabase.from("v_departure_finance").select("departure_id, name, costo_peregrinos_eur, costo_equipo_eur, fijo_grupo_eur, costo_total_eur").order("start_date", { ascending: true }),
-    supabase.from("v_departure_payable").select("*"),
     supabase.from("v_account_balances").select("*"),
     supabase.from("v_account_currency_breakdown").select("*"),
   ]);
   const global = (g as FinancialGlobal) ?? null;
   const departures = (dps as DepartureSummary[]) ?? [];
+  const conteo = await conteoPorCamino(supabase);
   const upcomingInstallments = upcoming ?? [];
   const totalUpcoming = upcomingInstallments.reduce((s: number, i: any) => s + Number(i.amount_eur || 0), 0);
 
   // Falta por pagar por ítem del presupuesto (incluye viáticos y tiquetes, descuenta
   // pagos hechos como provider_payment o como gasto vinculado). Fuente: v_budget_payable.
-  const payableByDep = new Map<string, number>();
-  (payable ?? []).forEach((p: any) => payableByDep.set(p.departure_id, Number(p.falta_por_pagar_eur || 0)));
-  const faltaPorPagar = (payable ?? []).reduce((s: number, p: any) => s + Number(p.falta_por_pagar_eur || 0), 0);
+  // Según lo contratado (lib/data/costos-contratados.ts): la misma cifra de la pestaña Pagos y del informe de giros.
+  const contratado = await contratadoPorCamino(supabase);
+  const payableByDep = new Map<string, number>(Array.from(contratado.entries()).map(([k, v]) => [k, v.falta]));
+  const faltaPorPagar = Array.from(contratado.values()).reduce((s, v) => s + v.falta, 0);
 
   const finRows = (fin ?? []) as any[];
   const costoPeregrinosGlobal = finRows.reduce((s, r) => s + Number(r.costo_peregrinos_eur || 0), 0);
@@ -48,10 +50,8 @@ export default async function NatyDashboard() {
   // Con salidas ya liquidadas, el pendiente real es el saldo a la tasa de cierre:
   // los abonos en pesos re-valorados. La diferencia en cambio es plata que no va
   // a entrar (o que entró de más), así que va aparte y no como "pendiente".
-  const hayLiquidacion = Number(global?.pending_settled_eur ?? 0) > 0 || Number(global?.por_devolver_eur ?? 0) > 0.5;
-  const pendientePorEntrar = hayLiquidacion
-    ? Number(global?.pending_settled_eur ?? 0)
-    : Number(global?.pending_revenue_eur ?? 0);
+  // pending_settled_eur ya cae al histórico en las salidas sin tasa de cierre: es la única cifra.
+  const pendientePorEntrar = Number(global?.pending_settled_eur ?? 0);
   const porDevolver = Number(global?.por_devolver_eur ?? 0);
   const difCambio = Number(global?.fx_difference_eur ?? 0);
 
@@ -63,18 +63,18 @@ export default async function NatyDashboard() {
         <div className="brand-yellow-bar mt-2" />
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <KPI label="Plata disponible" value={formatEUR(global?.cash_available_eur)} hint="Cobrado − pagado prov. − operativo − personal" accent />
         <KPI label="Utilidad proyectada" value={formatEUR(global?.projected_profit_eur)} hint="Ingresos esperados − costo estimado" />
         <KPI
           label="Pendiente por entrar"
           value={formatEUR(pendientePorEntrar)}
-          hint={hayLiquidacion ? "Liquidado a la tasa de cierre" : "De peregrinos inscritos"}
+          hint="De peregrinos inscritos · a la tasa de cierre en los caminos liquidados"
         />
         <KPI label="Falta por pagar" value={formatEUR(faltaPorPagar)} hint="Costo del presupuesto − ya pagado (incluye viáticos y tiquetes)" />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <KPI label="Cobrado" value={formatEUR(global?.collected_eur)} small />
         {porDevolver > 0.5 && (
           <KPI label="Por devolver a peregrinos" value={formatEUR(porDevolver)} hint="Pagaron de más a la tasa de cierre" small />
@@ -221,7 +221,7 @@ export default async function NatyDashboard() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <CardTitle className="text-lg">{d.name}</CardTitle>
-                        <CardDescription>{d.start_date ?? "Sin fecha"} · {d.pilgrims_count} peregrinos</CardDescription>
+                        <CardDescription>{d.start_date ?? "Sin fecha"} · {textoCupo(conteo.get(d.departure_id), null)} peregrinos</CardDescription>
                       </div>
                       <Badge variant="muted">{d.status}</Badge>
                     </div>
@@ -251,7 +251,7 @@ function KPI({ label, value, hint, accent, small }: { label: string; value: stri
     <Card className={accent ? "border-ocre border-2" : undefined}>
       <CardContent className="pt-6">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className={small ? "text-xl font-semibold mt-1" : "text-2xl font-semibold mt-1 font-display"}>{value}</div>
+        <div className={small ? "text-lg sm:text-xl font-semibold mt-1 break-words" : "text-xl sm:text-2xl font-semibold mt-1 font-display break-words"}>{value}</div>
         {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
       </CardContent>
     </Card>

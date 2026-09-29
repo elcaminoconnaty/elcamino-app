@@ -19,6 +19,9 @@ import {
 import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton, useAccionUnica } from "@/components/ui/submit-button";
 
 type Kind = "operativo" | "personal" | "pago_proveedor";
 
@@ -44,7 +47,7 @@ export function NewExpenseDialog({
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Kind>("operativo");
   const [currency, setCurrency] = useState<"EUR" | "COP" | "USD">("EUR");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(hoyBogota());
   const [trm, setTrm] = useState("");
   const [departureId, setDepartureId] = useState(defaultDepartureId ?? "");
   const [providerId, setProviderId] = useState("");
@@ -109,14 +112,15 @@ export function NewExpenseDialog({
 
   const esPagoProveedor = kind === "pago_proveedor";
 
-  async function onSubmit(fd: FormData) {
+  // Un solo envío a la vez: un doble toque creaba dos movimientos.
+  const onSubmit = useAccionUnica(async (fd: FormData) => {
     try {
       if (esPagoProveedor) {
         if (!fd.get("provider_id")) throw new Error("Elegí el proveedor.");
-        await createProviderPayment(fd);
+        { const pago = exigir(await createProviderPayment(fd)); if (pago.aviso) toast({ title: "Pago guardado, con un aviso", description: pago.aviso, variant: "destructive" }); }
         toast({ title: "Pago a proveedor registrado", variant: "success" });
       } else {
-        await createExpense(fd);
+        exigir(await createExpense(fd));
         toast({ title: "Gasto registrado", variant: "success" });
       }
       setOpen(false);
@@ -124,7 +128,7 @@ export function NewExpenseDialog({
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  }
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -139,7 +143,7 @@ export function NewExpenseDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Fecha</Label><Input name="expense_date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
             <div className="grid gap-2"><Label>Tipo</Label>
-              <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {KIND_OPTIONS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
               </select>
               {!esPagoProveedor && <input type="hidden" name="kind" value={kind} />}
@@ -149,7 +153,7 @@ export function NewExpenseDialog({
           {/* Camino: relevante para operativo y pago a proveedor */}
           {kind !== "personal" && (
             <div className="grid gap-2"><Label>Camino {esPagoProveedor ? "" : "(opcional)"}</Label>
-              <select name="departure_id" value={departureId} onChange={(e) => setDepartureId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="departure_id" value={departureId} onChange={(e) => setDepartureId(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">(General)</option>
                 {departures.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
@@ -159,7 +163,7 @@ export function NewExpenseDialog({
           {esPagoProveedor && (
             <>
               <div className="grid gap-2"><Label>Proveedor *</Label>
-                <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <select name="provider_id" value={providerId} onChange={(e) => setProviderId(e.target.value)} required className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                   <option value="">Elegí un proveedor…</option>
                   {departureId && providerIdsDelViaje.size > 0 && (
                     <optgroup label="Proveedores de este camino">
@@ -176,7 +180,7 @@ export function NewExpenseDialog({
                 </select>
               </div>
               <div className="grid gap-2"><Label>Reserva (opcional — para descontar del saldo)</Label>
-                <select name="reservation_id" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <select name="reservation_id" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                   <option value="">Sin reserva puntual</option>
                   {reservasFiltradas.map((r) => (
                     <option key={r.id} value={r.id}>{r.type}{r.location ? ` · ${r.location}` : ""} ({r.status})</option>
@@ -188,7 +192,7 @@ export function NewExpenseDialog({
 
           {!esPagoProveedor && (
             <div className="grid gap-2"><Label>Categoría</Label>
-              <select name="category" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="category" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {cats.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -197,7 +201,7 @@ export function NewExpenseDialog({
           {/* Vínculo opcional a un ítem del presupuesto (gasto operativo de un camino) */}
           {kind === "operativo" && departureId && itemsDelCamino.length > 0 && (
             <div className="grid gap-2"><Label>Ítem del presupuesto (opcional — lo marca como cubierto)</Label>
-              <select name="budget_item_id" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="budget_item_id" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">Sin vincular</option>
                 {itemsDelCamino.map((b) => (
                   <option key={b.id} value={b.id}>{b.description}{b.status === "pagado" ? " (ya pagado)" : ""}</option>
@@ -211,7 +215,7 @@ export function NewExpenseDialog({
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2 sm:col-span-2"><Label>Monto *</Label><Input name="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
-              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="EUR">EUR</option>
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
@@ -237,19 +241,19 @@ export function NewExpenseDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Método de pago</Label>
-              <select name={esPagoProveedor ? "method" : "payment_method"} value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name={esPagoProveedor ? "method" : "payment_method"} value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div className="grid gap-2"><Label>Cuenta / de dónde sale</Label>
-              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
           </div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Registrar</Button>
+            <SubmitButton variant="accent">Registrar</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

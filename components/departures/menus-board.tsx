@@ -77,6 +77,24 @@ export function MenusBoard({
     )
   );
 
+  // En el celular todas las cenas abiertas hacían una página eterna: ahí arranca abierta solo la
+  // primera que falta completar. En pantallas grandes queda como siempre.
+  React.useEffect(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
+    setAbiertas((prev) => {
+      let primera = true;
+      return Object.fromEntries(
+        dinners.map((d) => {
+          const abrir = primera && !!prev[d.id];
+          if (abrir) primera = false;
+          return [d.id, abrir];
+        })
+      );
+    });
+    // Solo al montar: después manda lo que Nico abra o cierre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Quiénes eligieron por su enlace (para mostrarlo; no es estado editable). */
   const porSuCuenta = React.useMemo(() => {
     const m: Record<string, Set<string>> = {};
@@ -270,7 +288,7 @@ export function MenusBoard({
               {copiando ? "Generando…" : "Enlaces personales"}
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href={`/api/export/caminos/${departureId}/cenas`} download>
+              <a href={`/api/export/caminos/${departureId}/cenas`} download target="_blank" rel="noopener">
                 <Download className="h-3.5 w-3.5" /> Excel
               </a>
             </Button>
@@ -384,7 +402,7 @@ export function MenusBoard({
                         {pilgrims.filter((p) => ex.has(p.id)).map((p) => (
                           <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-background border pl-2 pr-1 py-0.5">
                             {p.full_name}
-                            <button type="button" onClick={() => toggleOptOut(d, p.id)} title="Deshacer: sí cena" className="inline-flex items-center rounded-full p-0.5 hover:bg-accent/10">
+                            <button type="button" onClick={() => toggleOptOut(d, p.id)} title="Deshacer: sí cena" className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-accent/10 sm:h-auto sm:w-auto sm:p-0.5">
                               <Undo2 className="h-3 w-3" />
                             </button>
                           </span>
@@ -393,7 +411,66 @@ export function MenusBoard({
                     </div>
                   )}
 
-                  <div className="overflow-x-auto">
+                  {/* En el celular, una tarjeta por peregrino: la tabla dejaba los platos, "no cena" y el
+                      enlace fuera de la pantalla, sin pista de que había que deslizar. */}
+                  <div className="space-y-2 sm:hidden">
+                    {pilgrims.map((p) => {
+                      const noCena = ex.has(p.id);
+                      const fila = g[p.id] ?? {};
+                      return (
+                        <div key={p.id} className={cn("rounded-lg border p-3 space-y-2 text-sm", noCena && "text-muted-foreground bg-alba/40")}>
+                          <div>
+                            <span className="font-medium">{p.full_name}</span>
+                            {p.is_team ? <span className="text-muted-foreground"> (equipo)</span> : ""}
+                            {porSuCuenta[d.id]?.has(p.id) && !noCena && (
+                              <span className="ml-1.5 rounded-full bg-ok-50 text-ok-700 px-1.5 py-0.5 text-[11px]">por su cuenta</span>
+                            )}
+                            {!p.menu_submitted_at && <span className="ml-1.5 text-[11px] text-muted-foreground">sin enviar</span>}
+                            {noCena && <span className="ml-1.5 text-xs">· no cena</span>}
+                          </div>
+                          {columnas.map((c) => {
+                            if (c.mode === "fijo") {
+                              return noCena ? null : (
+                                <div key={c.id} className="text-xs text-muted-foreground">
+                                  {courseTitle(c)}: {c.options[0]?.name ?? "—"} (todos)
+                                </div>
+                              );
+                            }
+                            if (!courseApplies(c, fila, d.courses)) return null;
+                            return (
+                              <label key={c.id} className="block text-xs text-muted-foreground">
+                                {courseTitle(c)}
+                                {!c.required && " (opcional)"}
+                                <select
+                                  value={fila[c.id] ?? ""}
+                                  disabled={noCena}
+                                  onChange={(e) => elegir(d, p.id, c.id, e.target.value)}
+                                  className="mt-1 h-11 w-full rounded-md border border-input bg-background px-2 text-base text-foreground disabled:opacity-50"
+                                >
+                                  <option value="">— sin elegir —</option>
+                                  {c.options.map((o) => (
+                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                  ))}
+                                </select>
+                              </label>
+                            );
+                          })}
+                          {p.dietary_notes && <div className="text-xs text-muted-foreground">Alimentación: {p.dietary_notes}</div>}
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" size="sm" className="h-10 flex-1" onClick={() => toggleOptOut(d, p.id)}>
+                              {noCena ? <Undo2 className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                              {noCena ? "Sí cena" : "No cena"}
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" className="h-10 flex-1" onClick={() => copiarEnlace(p)}>
+                              <Copy className="h-4 w-4" /> Copiar enlace
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="hidden overflow-x-auto sm:block">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="text-left text-muted-foreground">
@@ -486,8 +563,10 @@ export function MenusBoard({
                     {!sinMenu && <EnviarProveedorDialog tipo="menu" reservationId={d.id} proveedor={d.provider_name} enviadoEl={d.menu_sent_at} />}
                     <GmailThreadDialog reservationId={d.id} departureId={departureId} providerName={d.provider_name} hilo={d.gmail_thread} />
                     <Button asChild variant="ghost" size="sm">
-                      <a href={`/api/export/caminos/${departureId}/cenas?restaurante=${d.provider_id}`} download>
-                        <Download className="h-3 w-3" /> Excel solo de {d.provider_name}
+                      <a href={`/api/export/caminos/${departureId}/cenas?restaurante=${d.provider_id}`} download target="_blank" rel="noopener">
+                        <Download className="h-3 w-3" />
+                        <span className="sm:hidden">Excel de este restaurante</span>
+                        <span className="hidden sm:inline">Excel solo de {d.provider_name}</span>
                       </a>
                     </Button>
                   </div>

@@ -16,6 +16,8 @@ import { tokenPlausible } from "@/lib/menus/por-token";
 import { extraerDatosPasaporte, camposDesdePasaporte, ocrDisponible } from "@/lib/passport/extraer";
 import { revisarMrz, type Aviso } from "@/lib/passport/verificar";
 import { TALLAS_CAMISETA, TALLAS_SANDALIA } from "@/lib/registro/textos";
+import { normalizarCelular } from "@/lib/telefono";
+import { nombreDePila } from "@/lib/passport/nombres";
 
 /** Lo que el formulario sabe de la persona antes de que escriba. */
 export type FichaParaFormulario = {
@@ -109,9 +111,7 @@ export function palabrasDeNombre(s: string): string[] {
     .filter((p) => p.length >= 2 && !["de", "del", "la", "las", "los", "y"].includes(p));
 }
 
-function saludoDe(p: any): string {
-  return (p.nickname ?? "").trim() || String(p.full_name ?? "").trim().split(/\s+/)[0] || "";
-}
+const saludoDe = (p: any): string => nombreDePila(p);
 
 function armarFicha(a: Acceso): FichaParaFormulario {
   const p = a.reg.pilgrims;
@@ -255,7 +255,9 @@ export async function leerPasaporte(token: string, registrationId: string, path:
   if (!path.startsWith(`${a.reg.pilgrim_id}/`)) return { ok: false, error: "Ese archivo no es tuyo." };
   const vacio = { passport_number: null, birth_date: null, passport_expiry_date: null, full_name: null, avisos: [] };
   if (!ocrDisponible()) {
-    await supabase.from("pilgrims").update({ passport_image_path: path }).eq("id", a.reg.pilgrim_id);
+    const { error } = await supabase.from("pilgrims").update({ passport_image_path: path }).eq("id", a.reg.pilgrim_id);
+    // Si no queda en la ficha, la persona vería "listo" y el equipo no tendría su pasaporte.
+    if (error) return { ok: false, error: "No se pudo guardar tu pasaporte. Vuelve a intentar." };
     return { ok: true, ...vacio };
   }
   try {
@@ -263,7 +265,8 @@ export async function leerPasaporte(token: string, registrationId: string, path:
     // Se guarda lo leído (como hace el equipo desde la ficha); el formulario deja corregirlo.
     const campos = camposDesdePasaporte(data, path);
     delete campos.full_name; // el nombre lo escribe la persona como quiere que aparezca
-    await supabase.from("pilgrims").update(campos).eq("id", a.reg.pilgrim_id);
+    const { error: errCampos } = await supabase.from("pilgrims").update(campos).eq("id", a.reg.pilgrim_id);
+    if (errCampos) throw new Error(errCampos.message);
     // Si la MRZ cuadra con sus tres dígitos de control, manda sobre la zona impresa: es lo
     // que se le prellena y contra lo que se compara lo que escriba. La vigencia la avisa el
     // formulario mismo con la fecha de vencimiento prellenada.
@@ -278,7 +281,9 @@ export async function leerPasaporte(token: string, registrationId: string, path:
       avisos: [],
     };
   } catch {
-    await supabase.from("pilgrims").update({ passport_image_path: path }).eq("id", a.reg.pilgrim_id);
+    const { error } = await supabase.from("pilgrims").update({ passport_image_path: path }).eq("id", a.reg.pilgrim_id);
+    // Si no queda en la ficha, la persona vería "listo" y el equipo no tendría su pasaporte.
+    if (error) return { ok: false, error: "No se pudo guardar tu pasaporte. Vuelve a intentar." };
     return { ok: true, ...vacio };
   }
 }
@@ -323,7 +328,7 @@ export async function enviarFormulario(token: string, registrationId: string, d:
   const ficha = {
     full_name: limpiar(d.full_name, 120),
     email: limpiar(d.email, 120).toLowerCase(),
-    phone: limpiar(d.phone, 40),
+    phone: normalizarCelular(limpiar(d.phone, 40)),
     birth_date: d.birth_date,
     passport_number: limpiar(d.passport_number, 40).toUpperCase().replace(/[^A-Z0-9]/g, ""),
     passport_expiry_date: d.passport_expiry_date,
@@ -340,10 +345,12 @@ export async function enviarFormulario(token: string, registrationId: string, d:
   const { error } = await supabase.from("pilgrims").update(ficha).eq("id", a.reg.pilgrim_id);
   if (error) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   const ahora = new Date().toISOString();
-  await supabase
+  const { error: errMarca } = await supabase
     .from("registrations")
     .update({ registration_form_submitted_at: ahora, registration_form_raw: { ...ficha, enviado: ahora, por: a.personal ? "enlace personal" : "enlace del camino" } })
     .eq("id", a.reg.id);
+  // Sin la marca el equipo no ve que llenó el formulario; reenviar es seguro (sobrescribe).
+  if (errMarca) return { ok: false, error: "No se pudo guardar. Vuelve a intentar." };
   revalidatePath(`/caminos/${a.reg.departure_id}`);
   revalidatePath(`/peregrinos/${a.reg.pilgrim_id}`);
   return { ok: true };
@@ -361,7 +368,7 @@ export async function solicitarInscripcion(token: string, d: { full_name: string
     departure_id: camino.id,
     full_name,
     email: limpiar(d.email, 120).toLowerCase(),
-    phone: limpiar(d.phone, 40) || null,
+    phone: normalizarCelular(limpiar(d.phone, 40)),
     payload: { mensaje: limpiar(d.mensaje, 500) || null },
   });
   if (error) return { ok: false, error: "No se pudo enviar. Vuelve a intentar." };

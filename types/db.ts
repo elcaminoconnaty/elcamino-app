@@ -1,4 +1,5 @@
 import type { EstadoLiquidacion, PaymentKind, SettlementMode } from "@/lib/settlement";
+import type { BudgetStatus, ReservationStatus } from "@/lib/constants";
 
 export type Route = {
   id: string;
@@ -170,7 +171,7 @@ export type Reservation = {
   accommodation_type: string | null;
   estimated_cost_eur: number;
   confirmed_cost_eur: number | null;
-  status: "presupuestado" | "contactado" | "reservado" | "confirmado" | "pagado" | "cancelado";
+  status: ReservationStatus;
   confirmation_ref: string | null;
   notes: string | null;
   /** Si se les pide menú a los peregrinos para esta reserva (solo cenas). */
@@ -210,7 +211,7 @@ export type BudgetItem = {
   confirmed_total_eur: number;
   provider_id: string | null;
   reservation_id: string | null;
-  status: "estimado" | "confirmado" | "pagado" | "cancelado";
+  status: BudgetStatus;
   notes: string | null;
   position: number;
 };

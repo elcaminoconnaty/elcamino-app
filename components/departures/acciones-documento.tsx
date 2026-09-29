@@ -7,6 +7,8 @@ import { toast } from "@/components/ui/toaster";
 import {
   despublicarDocumentoDeViaje, enviarDocumentoAlGrupo, publicarDocumentoDeViaje,
 } from "@/lib/actions/travel-doc";
+import { baseUrl } from "@/lib/url";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Publicar, copiar el enlace y mandarlo al grupo.
@@ -16,7 +18,7 @@ import {
  */
 export function AccionesDocumento({ departureId, token }: { departureId: string; token: string | null; inscritos?: number }) {
   const [url, setUrl] = useState<string | null>(
-    token ? `${typeof window !== "undefined" ? window.location.origin : ""}/viaje/${token}` : null
+    token ? `${baseUrl()}/viaje/${token}` : null
   );
   const [pendiente, empezar] = useTransition();
 
@@ -41,7 +43,7 @@ export function AccionesDocumento({ departureId, token }: { departureId: string;
             onClick={() =>
               empezar(async () => {
                 try {
-                  const r = await publicarDocumentoDeViaje(departureId);
+                  const r = exigir(await publicarDocumentoDeViaje(departureId));
                   setUrl(r.url);
                   toast({ title: "Documento publicado", variant: "success" });
                 } catch (e: any) {
@@ -81,7 +83,7 @@ export function AccionesDocumento({ departureId, token }: { departureId: string;
               onClick={() =>
                 empezar(async () => {
                   try {
-                    const r = await enviarDocumentoAlGrupo(departureId);
+                    const r = exigir(await enviarDocumentoAlGrupo(departureId));
                     toast({
                       title: `Enviado a ${r.enviados} de ${r.total}`,
                       description: r.fallidos.length
@@ -104,7 +106,7 @@ export function AccionesDocumento({ departureId, token }: { departureId: string;
               title="Retira el enlace: quien lo tenga deja de poder abrirlo."
               onClick={() =>
                 correr(async () => {
-                  await despublicarDocumentoDeViaje(departureId);
+                  exigir(await despublicarDocumentoDeViaje(departureId));
                   setUrl(null);
                 }, "Enlace retirado")
               }

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { EurCop } from "@/components/ui/eur-cop";
 import { formatCOP, formatEUR } from "@/lib/utils";
+import { PlegableMovil } from "@/components/ui/plegable-movil";
 import type { AccountBalance, AccountCurrencyBreakdown } from "@/types/db";
 
 /**
@@ -14,11 +15,14 @@ export function AccountBalancesCard({
   breakdown = [],
   variant = "full",
   title = "Saldo por cuenta",
+  plegableEnMovil = false,
 }: {
   accounts: AccountBalance[];
   breakdown?: AccountCurrencyBreakdown[];
   variant?: "full" | "compact";
   title?: string;
+  /** En el celular, el detalle por cuenta arranca plegado (el total sigue a la vista). */
+  plegableEnMovil?: boolean;
 }) {
   const sorted = [...accounts].sort((a, b) => Number(b.saldo_eur) - Number(a.saldo_eur));
   const totalSaldo = sorted.reduce((s, a) => s + Number(a.saldo_eur ?? 0), 0);
@@ -32,18 +36,9 @@ export function AccountBalancesCard({
     conversionesPorCuenta.set(b.account, list);
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
-          <span>{title}</span>
-          <span className="text-sm text-muted-foreground">
-            Total: <strong className="text-foreground"><EurCop value={totalSaldo} /></strong>
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        {sorted.length === 0 ? (
+  const detalle = (
+    <>
+      {sorted.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">Sin movimientos cargados con cuenta.</div>
         ) : (
           <Table>
@@ -99,6 +94,25 @@ export function AccountBalancesCard({
               })}
             </TableBody>
           </Table>
+        )}
+    </>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
+          <span>{title}</span>
+          <span className="text-sm text-muted-foreground">
+            Total: <strong className="text-foreground"><EurCop value={totalSaldo} /></strong>
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {plegableEnMovil && sorted.length > 0 ? (
+          <PlegableMovil etiqueta={`Ver las ${sorted.length} cuentas`}>{detalle}</PlegableMovil>
+        ) : (
+          detalle
         )}
       </CardContent>
     </Card>

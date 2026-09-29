@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toaster";
 import { obtenerEnlacesPersonales, marcarPasoEnviado } from "@/lib/actions/registro";
 import type { Aviso } from "@/lib/passport/verificar";
 import { Paso, type EstadoPaso } from "@/components/pilgrims/paso";
+import { numeroWhatsApp } from "@/lib/telefono";
 
 /**
  * Los pasos 2 y 3 del paso a paso de cada inscripción (el 1 es el contrato):
@@ -44,19 +45,8 @@ function mensajeFormulario(d: DatosPasos, url: string) {
   return `Hola ${d.nombre} 💛\n\nPara seguir con tu inscripción necesitamos tus datos para las reservas, el seguro y tu kit de peregrino (con la foto de tu pasaporte y tus tallas). Llénalos aquí:\n${url}\n\nEs tu enlace personal: solo tú ves tus datos. Si algo cambia, vuelve a entrar y corrígelo.`;
 }
 
-/**
- * El número como lo quiere wa.me: solo dígitos y con indicativo. Hay peregrinos guardados
- * como "300 491 2345", sin +57, y wa.me lo leería como indicativo 300: un celular colombiano
- * (10 dígitos que empiezan por 3) sin "+" se completa con 57. Si no hay número usable, null.
- */
-export function numeroWhatsApp(telefono: string | null): string | null {
-  const crudo = (telefono ?? "").trim();
-  const digitos = crudo.replace(/\D/g, "");
-  if (!crudo.startsWith("+") && /^3\d{9}$/.test(digitos)) return `57${digitos}`;
-  if (crudo.startsWith("+") && digitos.length >= 8) return digitos;
-  if (/^573\d{9}$/.test(digitos)) return digitos;
-  return null;
-}
+// La regla del celular vive en lib/telefono.ts; se reexporta porque lista-videos la importa de acá.
+export { numeroWhatsApp };
 
 /** Sin número usable, WhatsApp abre el selector de chats y el mensaje va igual. */
 function enlaceWhatsApp(numero: string | null, texto: string) {
@@ -158,7 +148,7 @@ export function PasosBienvenida({ datos }: { datos: DatosPasos }) {
             <a href={`/peregrinos/${datos.pilgrimId}/carta/${datos.registrationId}`} title="Ver la carta con su nombre"><FileText className="h-4 w-4" /> Ver</a>
           </Button>
           <Button asChild variant="ghost" size="sm">
-            <a href={`/api/pdf/bienvenida/${datos.registrationId}?descargar`} title="Descargar el PDF"><Download className="h-4 w-4" /></a>
+            <a href={`/api/pdf/bienvenida/${datos.registrationId}?descargar`} download target="_blank" rel="noopener" title="Descargar el PDF"><Download className="h-4 w-4" /></a>
           </Button>
           <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => copiar("bienvenida")} title="Copiar el mensaje con el enlace a su carta">
             <Copy className="h-4 w-4" />

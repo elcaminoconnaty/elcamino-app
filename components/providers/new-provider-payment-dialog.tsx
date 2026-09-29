@@ -11,6 +11,9 @@ import { PAYMENT_METHODS, ACCOUNTS, GLOBAL66 } from "@/lib/constants";
 import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
 import { Plus } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
+import { SubmitButton, useAccionUnica } from "@/components/ui/submit-button";
 
 export function NewProviderPaymentDialog({ providerId, reservations, departures }: { providerId: string; reservations: any[]; departures: any[] }) {
   const [open, setOpen] = useState(false);
@@ -28,6 +31,19 @@ export function NewProviderPaymentDialog({ providerId, reservations, departures 
     setMethod(m);
     if (m === GLOBAL66) setAccount(GLOBAL66);
   }
+  // Un solo envío a la vez: un doble toque creaba dos pagos al proveedor.
+  const registrar = useAccionUnica(async (fd: FormData) => {
+    try {
+      fd.set("provider_id", providerId);
+      { const pago = exigir(await createProviderPayment(fd)); if (pago.aviso) toast({ title: "Pago guardado, con un aviso", description: pago.aviso, variant: "destructive" }); }
+      toast({ title: "Pago registrado", variant: "success" });
+      setOpen(false);
+      router.refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  });
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -36,21 +52,11 @@ export function NewProviderPaymentDialog({ providerId, reservations, departures 
       <DialogContent>
         <DialogHeader><DialogTitle>Nuevo pago a proveedor</DialogTitle></DialogHeader>
         <form
-          action={async (fd) => {
-            try {
-              fd.set("provider_id", providerId);
-              await createProviderPayment(fd);
-              toast({ title: "Pago registrado", variant: "success" });
-              setOpen(false);
-              router.refresh();
-            } catch (e: any) {
-              toast({ title: "Error", description: e.message, variant: "destructive" });
-            }
-          }}
+          action={registrar}
           className="space-y-3"
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2"><Label>Fecha</Label><Input name="paid_at" type="date" defaultValue={new Date().toISOString().slice(0,10)} /></div>
+            <div className="grid gap-2"><Label>Fecha</Label><Input name="paid_at" type="date" defaultValue={hoyBogota()} /></div>
             <div className="grid gap-2"><Label>Método</Label>
               <select name="method" value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -98,7 +104,7 @@ export function NewProviderPaymentDialog({ providerId, reservations, departures 
           <div className="grid gap-2"><Label>Referencia</Label><Input name="reference" /></div>
           <div className="grid gap-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
           <DialogFooter>
-            <Button type="submit" variant="accent">Registrar</Button>
+            <SubmitButton variant="accent">Registrar</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

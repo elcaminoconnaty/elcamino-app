@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { SignaturePad } from "./signature-pad";
 import { guardarFirmaOrganizador } from "@/lib/actions/contracts";
+import { exigir } from "@/lib/resultado";
 
 /**
  * Donde Naty captura su firma, una sola vez.
@@ -48,7 +49,7 @@ export function FirmaOrganizador({ yaCapturada }: { yaCapturada: boolean }) {
           onClick={() =>
             empezar(async () => {
               try {
-                await guardarFirmaOrganizador(trazo!);
+                exigir(await guardarFirmaOrganizador(trazo!));
                 toast({ title: "Firma guardada", variant: "success" });
                 setRehacer(false);
               } catch (e: any) {

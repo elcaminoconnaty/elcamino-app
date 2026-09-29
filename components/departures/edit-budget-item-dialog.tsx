@@ -11,6 +11,8 @@ import { BUDGET_CATEGORIES, BUDGET_STATUSES, PAYMENT_METHODS, ACCOUNTS } from "@
 import { SCALING_LABELS } from "@/lib/finance";
 import { toast } from "@/components/ui/toaster";
 import { Pencil, Trash2, CreditCard } from "lucide-react";
+import { hoyBogota } from "@/lib/utils";
+import { exigir } from "@/lib/resultado";
 
 export function EditBudgetItemDialog({ item, providers, departureId, lockScaling }: { item: any; providers: any[]; departureId: string; lockScaling?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -23,7 +25,7 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
   // Registro del pago real cuando el item pasa a "pagado"
   const goingToPaid = status === "pagado" && item.status !== "pagado";
   const [registrarPago, setRegistrarPago] = useState(true);
-  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(hoyBogota());
   const [payAmount, setPayAmount] = useState(
     String((Number(item.confirmed_unit_cost_eur ?? item.estimated_unit_cost_eur ?? 0) * Number(item.quantity ?? 1)).toFixed(2))
   );
@@ -37,7 +39,7 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
     if (!confirm("¿Eliminar este item?")) return;
     setDeleting(true);
     try {
-      await deleteBudgetItem(item.id, departureId);
+      exigir(await deleteBudgetItem(item.id, departureId));
       toast({ title: "Item eliminado", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -50,7 +52,7 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" size="sm" className="h-10 w-10 p-0 sm:h-7 sm:w-7"><Pencil className="h-3.5 w-3.5" /></Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -84,9 +86,9 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
                 item_date: fd.get("item_date")?.toString() || null,
                 notes: fd.get("notes")?.toString() || null,
               };
-              await updateBudgetItem(item.id, payload, departureId);
+              exigir(await updateBudgetItem(item.id, payload, departureId));
               if (registraElPago) {
-                await payBudgetItem(item.id, {
+                exigir(await payBudgetItem(item.id, {
                   paid_at: payDate,
                   amount: Number(payAmount),
                   currency: payCurrency,
@@ -95,7 +97,7 @@ export function EditBudgetItemDialog({ item, providers, departureId, lockScaling
                   method: payMethod,
                   account: payAccount,
                   notes: null,
-                });
+                }));
                 toast({ title: "Guardado y pago registrado en gastos", variant: "success" });
               } else {
                 toast({ title: "Guardado", variant: "success" });

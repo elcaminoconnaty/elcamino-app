@@ -10,6 +10,7 @@ import { createProviderAccount, listProviderAccounts } from "@/lib/actions/provi
 import { ACCOUNTS, RESERVATION_PAYMENT_METHODS } from "@/lib/constants";
 import { formatearIban } from "@/lib/banco";
 import { Plus, AlertTriangle } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 const LABEL = new Map(RESERVATION_PAYMENT_METHODS.map((m) => [m.value, m.label]));
 
@@ -161,7 +162,7 @@ export function BloquePagoReserva({
               if (!providerId) return;
               setGuardandoCuenta(true);
               try {
-                const creada: any = await createProviderAccount(providerId, fd);
+                const creada: any = exigir(await createProviderAccount(providerId, fd));
                 setCuentas((cs) => [...cs, creada]);
                 set({ payment_account_id: creada.id, payment_method: creada.method });
                 toast({ title: "Cuenta creada y asignada a esta reserva", variant: "success" });
@@ -172,7 +173,7 @@ export function BloquePagoReserva({
                 setGuardandoCuenta(false);
               }
             }}
-            className="space-y-3 max-h-[70vh] overflow-y-auto pr-1"
+            className="space-y-3 sm:max-h-[70vh] sm:overflow-y-auto pr-1"
           >
             <CamposCuenta />
             <DialogFooter>

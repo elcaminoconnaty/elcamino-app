@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatEUR } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import type { DepartureSummary } from "@/types/db";
+import { conteoPorCamino, textoCupo } from "@/lib/data/inscritos";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function CaminosListPage() {
     .select("*")
     .order("start_date", { ascending: true });
   const departures = (data as DepartureSummary[]) ?? [];
+  const conteo = await conteoPorCamino(supabase);
 
   return (
     <div className="space-y-6">
@@ -53,7 +55,7 @@ export default async function CaminosListPage() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Peregrinos</span>
-                  <span>{d.pilgrims_count}{d.capacity ? ` / ${d.capacity}` : ""}</span>
+                  <span>{textoCupo(conteo.get(d.departure_id), d.capacity)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Ingresos esperados</span>

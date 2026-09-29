@@ -18,6 +18,7 @@ import {
 import { Global66Fields } from "@/components/ui/global66-fields";
 import { toast } from "@/components/ui/toaster";
 import { Pencil, Trash2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function EditExpenseDialog({ expense, departures }: { expense: any; departures: any[] }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +45,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
     if (!confirm("¿Eliminar este gasto?")) return;
     setDeleting(true);
     try {
-      await deleteExpense(expense.id);
+      exigir(await deleteExpense(expense.id));
       toast({ title: "Eliminado", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -57,7 +58,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" size="sm" className="h-10 w-10 p-0 sm:h-7 sm:w-7"><Pencil className="h-3.5 w-3.5" /></Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Editar gasto</DialogTitle></DialogHeader>
@@ -79,7 +80,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
                 account: fd.get("account")?.toString() || null,
                 notes: fd.get("notes")?.toString() || null,
               };
-              await updateExpense(expense.id, payload);
+              exigir(await updateExpense(expense.id, payload));
               toast({ title: "Guardado", variant: "success" });
               setOpen(false);
               router.refresh();
@@ -93,13 +94,13 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Fecha</Label><Input name="expense_date" type="date" defaultValue={expense.expense_date} /></div>
             <div className="grid gap-2"><Label>Tipo</Label>
-              <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={kind} onChange={(e) => setKind(e.target.value as any)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 {EXPENSE_KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
               </select>
             </div>
           </div>
           <div className="grid gap-2"><Label>Categoría</Label>
-            <select name="category" defaultValue={expense.category} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <select name="category" defaultValue={expense.category} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
               {cats.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -107,7 +108,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2 sm:col-span-2"><Label>Monto</Label><Input name="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
             <div className="grid gap-2"><Label>Divisa</Label>
-              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value as any)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="COP">COP</option><option value="EUR">EUR</option>
               </select>
             </div>
@@ -127,7 +128,7 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           )}
           {kind === "operativo" && (
             <div className="grid gap-2"><Label>Camino</Label>
-              <select name="departure_id" defaultValue={expense.departure_id ?? ""} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="departure_id" defaultValue={expense.departure_id ?? ""} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">(General)</option>
                 {departures.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
@@ -135,13 +136,13 @@ export function EditExpenseDialog({ expense, departures }: { expense: any; depar
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Método</Label>
-              <select name="payment_method" value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="payment_method" value={method} onChange={(e) => onMethodChange(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">—</option>
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div className="grid gap-2"><Label>Cuenta / dónde está la plata</Label>
-              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <select name="account" value={account} onChange={(e) => setAccount(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
                 <option value="">—</option>
                 {ACCOUNTS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>

@@ -20,11 +20,13 @@ import { GastosTab } from "@/components/departures/tabs/gastos-tab";
 import { DocumentoTab } from "@/components/departures/tabs/documento-tab";
 import { ContratosTab } from "@/components/departures/tabs/contratos-tab";
 import { VideosTab } from "@/components/departures/tabs/videos-tab";
+import { PestanaVisible } from "@/components/departures/pestana-visible";
+import { contratadoPorCamino } from "@/lib/data/costos-contratados";
 import { MoneyPanorama } from "@/components/departures/money-panorama";
 import { type DepartureFinance } from "@/lib/finance";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
 import type { Departure } from "@/types/db";
-import { BedDouble, Users, UtensilsCrossed } from "lucide-react";
+import { BedDouble, Users, UtensilsCrossed, FileSpreadsheet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -60,9 +62,9 @@ export default async function DepartureDetailPage({
   if (!departure) notFound();
   const d = departure as Departure;
 
-  const [{ data: finance }, { data: payable }, { data: latestTrm }] = await Promise.all([
+  const [{ data: finance }, contratadoMap, { data: latestTrm }] = await Promise.all([
     supabase.from("v_departure_finance").select("*").eq("departure_id", params.id).maybeSingle(),
-    supabase.from("v_departure_payable").select("*").eq("departure_id", params.id).maybeSingle(),
+    contratadoPorCamino(supabase, params.id),
     supabase.from("trm_rates").select("eur_cop").order("date", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
@@ -73,12 +75,17 @@ export default async function DepartureDetailPage({
   const conRecalculo = (d.settlement_mode ?? "recalculo") === "recalculo";
   const needsFreeze = conRecalculo && days !== null && days <= 30 && days >= -7 && !d.trm_frozen_at_date;
   const activeTab = searchParams.tab ?? "resumen";
+  const excels = [
+    { href: `/api/export/caminos/${d.id}/habitaciones`, label: "Habitaciones", Icon: BedDouble, title: "Excel con la distribución de habitaciones por hospedaje y día" },
+    { href: `/api/export/caminos/${d.id}/cenas`, label: "Cenas", Icon: UtensilsCrossed, title: "Excel con la elección de menú de cada peregrino, una pestaña por restaurante" },
+    { href: `/api/export/caminos/${d.id}/peregrinos`, label: "Peregrinos", Icon: Users, title: "Excel con los datos de contacto y pasaporte de cada peregrino" },
+  ];
 
   return (
     <TrmProvider defaultTrm={defaultTrm}>
     <div className="space-y-6">
       <div>
-        <Link href="/caminos" className="text-sm text-muted-foreground hover:underline">← Caminos</Link>
+        <Link href="/caminos" className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline">← Caminos</Link>
         <div className="flex items-start justify-between mt-2 gap-3 flex-wrap">
           <div className="min-w-0">
             <h1 className="font-display text-2xl sm:text-3xl text-noche break-words">{d.name}</h1>
@@ -90,30 +97,27 @@ export default async function DepartureDetailPage({
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <TrmSelector />
-            <a
-              href={`/api/export/caminos/${d.id}/habitaciones`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
-              title="Excel con la distribución de habitaciones por hospedaje y día"
-            >
-              <BedDouble className="h-4 w-4" /> Habitaciones
-            </a>
-            <a
-              href={`/api/export/caminos/${d.id}/cenas`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
-              title="Excel con la elección de menú de cada peregrino, una pestaña por restaurante"
-            >
-              <UtensilsCrossed className="h-4 w-4" /> Cenas
-            </a>
-            <a
-              href={`/api/export/caminos/${d.id}/peregrinos`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10"
-              title="Excel con los datos de contacto y pasaporte de cada peregrino"
-            >
-              <Users className="h-4 w-4" /> Peregrinos
-            </a>
+            {/* Los tres Excel: botones en pantalla grande; en el celular, un solo menú "Excel" para
+                que la cabecera no empuje las pestañas fuera de la primera pantalla. */}
+            <div className="hidden sm:contents">
+              {excels.map((x) => (
+                <a key={x.href} href={x.href} download target="_blank" rel="noopener" title={x.title} className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/10">
+                  <x.Icon className="h-4 w-4" /> {x.label}
+                </a>
+              ))}
+            </div>
+            <details className="relative sm:hidden">
+              <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm [&::-webkit-details-marker]:hidden">
+                <FileSpreadsheet className="h-4 w-4" /> Excel
+              </summary>
+              <div className="absolute right-0 z-30 mt-1 w-56 rounded-md border bg-background p-1 shadow-lg">
+                {excels.map((x) => (
+                  <a key={x.href} href={x.href} download target="_blank" rel="noopener" className="flex min-h-11 items-center gap-2 rounded px-3 text-sm hover:bg-accent/10">
+                    <x.Icon className="h-4 w-4" /> {x.label}
+                  </a>
+                ))}
+              </div>
+            </details>
             <Link href={`/caminos/${d.id}/wizard`} className="inline-flex items-center gap-1 bg-ocre text-noche rounded-md px-3 py-1.5 text-sm font-medium hover:bg-ocre-profundo">
               ✨ Wizard
             </Link>
@@ -126,18 +130,18 @@ export default async function DepartureDetailPage({
       {f && (
         <>
           <div className="hidden sm:block">
-            <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
+            <MoneyPanorama finance={f} contratado={contratadoMap.get(params.id) ?? null} capacity={d.capacity ?? null} />
           </div>
           {/* En el celular la plata va plegada: si no, las pestañas quedaban tres pantallas más abajo. */}
           <details className="sm:hidden group rounded-xl border bg-background">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
               <span className="font-medium text-noche">Plata del camino</span>
               <span className="text-xs text-muted-foreground">
-                {f.inscritos_total ?? 0}{d.capacity ? `/${d.capacity}` : ""} inscritos · <span className="group-open:hidden">ver</span><span className="hidden group-open:inline">ocultar</span>
+                {f.pagantes_count ?? 0}{d.capacity ? `/${d.capacity}` : ""} inscritos · <span className="group-open:hidden">ver</span><span className="hidden group-open:inline">ocultar</span>
               </span>
             </summary>
             <div className="px-3 pb-3">
-              <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
+              <MoneyPanorama finance={f} contratado={contratadoMap.get(params.id) ?? null} capacity={d.capacity ?? null} />
             </div>
           </details>
         </>
@@ -170,11 +174,13 @@ export default async function DepartureDetailPage({
       )}
 
       <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-14 z-20 bg-alba">
-        <nav className="flex gap-0.5 sm:gap-1 overflow-x-auto -mb-px">
+        <div className="relative">
+        <nav id="pestanas-camino" className="flex gap-0.5 sm:gap-1 overflow-x-auto -mb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => (
             <Link
               key={t.value}
               href={`/caminos/${d.id}?tab=${t.value}`}
+              aria-current={activeTab === t.value ? "page" : undefined}
               className={cn(
                 "px-3 sm:px-4 py-2.5 text-sm border-b-2 transition-colors whitespace-nowrap shrink-0",
                 activeTab === t.value
@@ -186,6 +192,10 @@ export default async function DepartureDetailPage({
             </Link>
           ))}
         </nav>
+          {/* Pista de que hay más pestañas a la derecha. */}
+          <div aria-hidden className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-alba sm:hidden" />
+          <PestanaVisible navId="pestanas-camino" />
+        </div>
       </div>
 
       <div>

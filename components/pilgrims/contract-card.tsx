@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toaster";
 import {
   anularContrato, enviarContratoAFirmar, generarContrato, verificarIntegridad,
 } from "@/lib/actions/contracts";
+import { exigir, type Resultado } from "@/lib/resultado";
 
 /**
  * El módulo de contrato, dentro de la tarjeta de cada inscripción del peregrino.
@@ -70,10 +71,11 @@ export function ContractCard({
   // Dentro del paso a paso, la caja de prueba queda escondida hasta que se pida.
   const [verPrueba, setVerPrueba] = useState(false);
 
-  const correr = (fn: () => Promise<unknown>, exito: string) =>
+  const correr = (fn: () => Promise<Resultado<object>>, exito: string) =>
     empezar(async () => {
       try {
-        await fn();
+        // Las acciones devuelven el error en vez de lanzarlo (en producción un throw llega sin mensaje).
+        exigir(await fn());
         toast({ title: exito });
       } catch (e: any) {
         toast({ title: "No se pudo", description: e?.message ?? String(e), variant: "destructive" });
@@ -215,7 +217,7 @@ export function ContractCard({
           {(!enPaso || verPrueba) && contrato.status !== "firmado" && contrato.status !== "anulado" && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs rounded-md border bg-muted/40 px-2.5 py-2">
               <label className="inline-flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={modoPrueba} onChange={(e) => setModoPrueba(e.target.checked)} />
+                <input type="checkbox" checked={modoPrueba} onChange={(e) => setModoPrueba(e.target.checked)} className="h-5 w-5 sm:h-auto sm:w-auto" />
                 <span>Enviar como prueba a…</span>
               </label>
               <input
@@ -224,7 +226,7 @@ export function ContractCard({
                 onChange={(e) => setEmailPrueba(e.target.value)}
                 disabled={!modoPrueba}
                 placeholder="tu@correo.com"
-                className="h-7 rounded border bg-background px-2 text-xs disabled:opacity-50 min-w-[200px]"
+                className="h-10 w-full rounded border bg-background px-2 text-base disabled:opacity-50 sm:h-7 sm:w-auto sm:min-w-[200px] sm:text-xs"
               />
               {modoPrueba && (
                 <span className="text-muted-foreground">

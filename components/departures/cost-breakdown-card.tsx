@@ -10,8 +10,11 @@ export function CostBreakdownCard({ finance }: { finance: DepartureFinance }) {
 
   // Componentes del costo por pagante
   // Cuando hay 0 pagantes, los costos fijos quedan sin alguien que los pague
-  const camasYServiciosPersona = finance.por_inscrito_unit_eur; // cada cama/servicio que toca a UN inscrito
-  const serviciosPagantePersona = finance.por_pagante_unit_eur;
+  // Con la contingencia, como v_departure_finance: así el total por pagante de esta tarjeta es
+  // el mismo "costo por pagante" del KPI (antes daba 1.455,43 contra 1.503,53).
+  const factor = 1 + Number(finance.variable_buffer_pct ?? 0) / 100;
+  const camasYServiciosPersona = Number(finance.por_inscrito_unit_eur) * factor; // cada cama/servicio que toca a UN inscrito
+  const serviciosPagantePersona = Number(finance.por_pagante_unit_eur) * factor;
   const camasYServiciosTeamPorPagante = pagantes > 0 ? (camasYServiciosPersona * team) / pagantes : 0; // las camas de Naty+Nico se reparten entre pagantes
   const fijoGrupoPorPagante = pagantes > 0 ? finance.fijo_grupo_eur / pagantes : 0;
   const viaticoTeamPorPagante = pagantes > 0 ? finance.viatico_team_eur / pagantes : 0;
@@ -24,7 +27,7 @@ export function CostBreakdownCard({ finance }: { finance: DepartureFinance }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Costo por peregrino pagante</CardTitle>
-        <CardDescription>Cómo se compone con {pagantes} pagantes y {team} de equipo</CardDescription>
+        <CardDescription>Cómo se compone con {pagantes} pagantes y {team} de equipo{Number(finance.variable_buffer_pct) > 0 ? ` · camas y servicios con +${finance.variable_buffer_pct}% de contingencia` : ""}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-1.5 text-sm">
         <Row label={`Su cama + servicios (1 inscrito)`} value={<EurCop value={camasYServiciosPersona} />} />

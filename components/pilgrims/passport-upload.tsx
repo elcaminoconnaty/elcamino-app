@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toaster";
 import { Upload, Eye, Sparkles, FileCheck2, FileText } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { ACEPTA_PASAPORTE, revisarArchivoDePasaporte, tipoDeArchivoDePasaporte } from "@/lib/passport/formatos";
+import { exigir } from "@/lib/resultado";
 
 export function PassportUpload({ pilgrim }: { pilgrim: any }) {
   const [uploading, setUploading] = useState(false);
@@ -29,7 +30,7 @@ export function PassportUpload({ pilgrim }: { pilgrim: any }) {
     setStage("uploading");
     try {
       // 1. Pedir signed URL al server
-      const { path, token } = await getPassportUploadUrl(pilgrim.id, file.name);
+      const { path, token } = exigir(await getPassportUploadUrl(pilgrim.id, file.name));
 
       // 2. Subir directo al Storage (sin pasar por server action)
       const supabase = createClient();
@@ -40,7 +41,7 @@ export function PassportUpload({ pilgrim }: { pilgrim: any }) {
 
       // 3. Pedir al server que llame a Claude con el archivo del Storage
       setStage("analyzing");
-      const result = await extractPassportFromStorage(pilgrim.id, path);
+      const result = exigir(await extractPassportFromStorage(pilgrim.id, path));
       toast({
         title: "Datos extraídos",
         description: `Confianza: ${result.data.confidence}. Revisá los campos.`,
@@ -169,7 +170,8 @@ export function PassportUpload({ pilgrim }: { pilgrim: any }) {
             <>
               <Upload className="h-5 w-5 text-ocre-profundo" />
               <span className="text-xs text-center">
-                Arrastrá el pasaporte acá o hacé clic
+                <span className="sm:hidden">Toca para subir el pasaporte</span>
+                <span className="hidden sm:inline">Arrastra el pasaporte acá o haz clic</span>
                 <br />
                 <span className="text-muted-foreground">Foto o PDF · Claude extrae los datos</span>
               </span>

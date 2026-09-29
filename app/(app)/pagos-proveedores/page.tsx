@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatEUR, formatDate, cn } from "@/lib/utils";
+import { formatEUR, formatDate, cn, hoyBogota } from "@/lib/utils";
 import { armarInformePagos, type Giro } from "@/lib/pagos-pendientes/datos";
 import { rutaCamino } from "@/lib/rutas";
 import { Download, FileText, AlertTriangle } from "lucide-react";
@@ -19,9 +19,9 @@ const PLAZOS = [
 ];
 
 function enDias(dias: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  // Se parte de "hoy" en Bogotá: el servidor corre en UTC y de noche ya sería mañana.
+  const [a, m, d] = hoyBogota().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
 function FilaGiro({ g }: { g: Giro }) {
@@ -183,7 +183,7 @@ export default async function PagosProveedoresPage({ searchParams }: { searchPar
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Button asChild variant="outline" size="sm">
-                    <a href={`/api/export/caminos/${c.id}/pagos-pendientes${qs}`}>
+                    <a href={`/api/export/caminos/${c.id}/pagos-pendientes${qs}`} download target="_blank" rel="noopener">
                       <Download className="h-4 w-4" /> Excel
                     </a>
                   </Button>
@@ -235,7 +235,8 @@ export default async function PagosProveedoresPage({ searchParams }: { searchPar
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {incompletos.slice(0, 8).map((g, i) => (
-              <div key={i} className="flex justify-between gap-3 flex-wrap">
+              // En el celular cada pago en su bloque con separador: al partir línea no se sabía de quién era cada "falta …".
+              <div key={i} className="flex flex-col gap-0.5 border-b py-1.5 last:border-0 sm:flex-row sm:flex-wrap sm:justify-between sm:gap-3 sm:border-0 sm:py-0">
                 <span>{g.proveedor} · {g.servicio}</span>
                 <span className="text-aviso-800">falta {g.faltan.join(", ")}</span>
               </div>

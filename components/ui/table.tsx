@@ -12,7 +12,9 @@ import { cn } from "@/lib/utils";
 function etiquetar(tabla: HTMLTableElement) {
   const encabezados: string[] = [];
   tabla.querySelectorAll("thead tr:last-child th").forEach((th) => {
-    const texto = (th as HTMLElement).innerText.trim();
+    // Una columna de botones (data-acciones) no lleva etiqueta en la tarjeta: queda como fila de
+    // botones y no como "Registrar · [botón]". En escritorio el encabezado se sigue viendo.
+    const texto = (th as HTMLElement).hasAttribute("data-acciones") ? "" : (th as HTMLElement).innerText.trim();
     const span = Number((th as HTMLTableCellElement).colSpan) || 1;
     for (let i = 0; i < span; i++) encabezados.push(texto);
   });

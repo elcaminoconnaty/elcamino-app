@@ -30,9 +30,11 @@ export function EurCop({ value, className, hideZeroCop }: { value: number | null
   const cop = trm > 0 ? eur * trm : 0;
   return (
     <span className={className}>
-      <span>{formatEUR(eur)}</span>
+      <span className="whitespace-nowrap">{formatEUR(eur)}</span>
+      {/* <wbr>: entre los dos nowrap no había dónde partir y en tarjetas angostas el COP se salía. */}
+      {trm > 0 && (!hideZeroCop || cop !== 0) && <wbr />}
       {trm > 0 && (!hideZeroCop || cop !== 0) && (
-        <span className="text-[0.85em] text-muted-foreground ml-1">· {formatCOP(cop)}</span>
+        <span className="whitespace-nowrap text-[0.85em] text-muted-foreground ml-1">· {formatCOP(cop)}</span>
       )}
     </span>
   );
@@ -66,7 +68,7 @@ export function TrmSelector({ small }: { small?: boolean }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${isOverride ? "bg-aviso-100 text-aviso-900" : "bg-piedra-suave text-muted-foreground hover:bg-piedra"} ${small ? "" : "h-7"}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${isOverride ? "bg-aviso-100 text-aviso-900" : "bg-piedra-suave text-muted-foreground hover:bg-piedra"} ${small ? "" : "h-9 sm:h-7"}`}
       title={isOverride ? "TRM editada — toca para ajustar o reset" : "TRM actual — toca para simular otra"}
     >
       <span>1 € = {trm > 0 ? trm.toLocaleString("es-CO") : "—"} COP</span>

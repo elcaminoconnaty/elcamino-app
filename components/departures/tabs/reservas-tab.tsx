@@ -80,7 +80,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <ImportReservationFromEmail departureId={departureId} providers={providers ?? []} />
         <AddReservation departureId={departureId} providers={providers ?? []} />
       </div>
@@ -111,7 +111,11 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                   const rooms = roomsByReservation.get(r.id) ?? [];
                   return (
                     <TableRow key={r.id} className={r.is_critical ? "bg-aviso-50" : undefined}>
-                      <TableCell>{r.day_number ?? "—"}</TableCell>
+                      {/* En el celular la primera celda es el título de la tarjeta: "Día 3 · Hotel", no un "3" suelto. */}
+                      <TableCell>
+                        <span className="sm:hidden">Día {r.day_number ?? "—"} · {r.providers?.name ?? "Sin proveedor"}</span>
+                        <span className="hidden sm:inline">{r.day_number ?? "—"}</span>
+                      </TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         <div>{formatDate(r.check_in)}</div>
                         <div className="text-muted-foreground">{formatDate(r.check_out)}</div>
@@ -147,7 +151,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                             <Link
                               href={`/caminos/${departureId}?tab=cenas`}
                               title="Cargar el menú y ver qué eligió cada uno"
-                              className="text-xs font-medium hover:underline text-muted-foreground"
+                              className="inline-block py-2 text-xs font-medium hover:underline text-muted-foreground sm:py-0"
                             >
                               Menú
                             </Link>
@@ -164,7 +168,7 @@ export async function ReservasTab({ departureId }: { departureId: string }) {
                               <Link
                                 href={`/caminos/${departureId}?tab=habitaciones`}
                                 title="Repartir la gente en las habitaciones"
-                                className={`text-xs font-medium hover:underline ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}
+                                className={`inline-block py-2 sm:py-0 text-xs font-medium hover:underline ${completo ? "text-ok-700" : asignados > 0 ? "text-aviso-700" : "text-muted-foreground"}`}
                               >
                                 {asignados}{inscritos > 0 ? `/${esperados}` : ""}
                               </Link>

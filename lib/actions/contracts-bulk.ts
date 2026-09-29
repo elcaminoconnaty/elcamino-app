@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { generarContrato, enviarContratoAFirmar, revisarContrato } from "@/lib/actions/contracts";
 import { problemaDeConfiguracion } from "@/lib/email/send";
+import { exigir, intentar } from "@/lib/resultado";
 
 /**
  * Emitir y mandar a firmar los contratos de un camino, de una sola pasada.
@@ -132,55 +133,57 @@ export async function previsualizarEnvioMasivo(departureId: string): Promise<Fil
 export async function enviarContratosMasivo(
   departureId: string,
   registrationIds: string[]
-): Promise<{ enviados: number; fallidos: number; omitidos: number; filas: ResultadoFila[] }> {
-  if (registrationIds.length === 0) {
-    return { enviados: 0, fallidos: 0, omitidos: 0, filas: [] };
-  }
-
-  // Si falta la clave de Brevo, se sabe antes de generar un solo contrato: si no, quedarían
-  // trece contratos emitidos sin que saliera ningún correo.
-  const problema = await problemaDeConfiguracion();
-  if (problema) throw new Error(problema);
-
-  const previa = await previsualizarEnvioMasivo(departureId);
-  const seleccionadas = new Set(registrationIds);
-  const filas: ResultadoFila[] = [];
-
-  for (const p of previa) {
-    if (!seleccionadas.has(p.registrationId)) continue;
-
-    if (p.accion === "omitir") {
-      filas.push({ ...idFila(p), ok: false, detalle: `Omitido: ${p.motivo}` });
-      continue;
+) {
+  return intentar(async () => {
+    if (registrationIds.length === 0) {
+      return { enviados: 0, fallidos: 0, omitidos: 0, filas: [] };
     }
 
-    try {
-      let contractId = p.contractId;
-      if (p.accion === "generar_y_enviar") {
-        const creado = await generarContrato(p.registrationId, p.pilgrimId);
-        contractId = creado.contractId;
+    // Si falta la clave de Brevo, se sabe antes de generar un solo contrato: si no, quedarían
+    // trece contratos emitidos sin que saliera ningún correo.
+    const problema = await problemaDeConfiguracion();
+    if (problema) throw new Error(problema);
+
+    const previa = await previsualizarEnvioMasivo(departureId);
+    const seleccionadas = new Set(registrationIds);
+    const filas: ResultadoFila[] = [];
+
+    for (const p of previa) {
+      if (!seleccionadas.has(p.registrationId)) continue;
+
+      if (p.accion === "omitir") {
+        filas.push({ ...idFila(p), ok: false, detalle: `Omitido: ${p.motivo}` });
+        continue;
       }
-      if (!contractId) throw new Error("No quedó ningún contrato que enviar.");
-      await enviarContratoAFirmar(contractId, p.pilgrimId);
-      filas.push({
-        ...idFila(p),
-        ok: true,
-        detalle: p.accion === "generar_y_enviar" ? "Contrato generado y enviado" : "Enlace de firma reenviado",
-      });
-    } catch (e: any) {
-      // Se sigue con el resto: un correo rebotado no puede dejar sin contrato a los demás.
-      filas.push({ ...idFila(p), ok: false, detalle: e?.message ?? "Error desconocido" });
+
+      try {
+        let contractId = p.contractId;
+        if (p.accion === "generar_y_enviar") {
+          const creado = exigir(await generarContrato(p.registrationId, p.pilgrimId));
+          contractId = creado.contractId;
+        }
+        if (!contractId) throw new Error("No quedó ningún contrato que enviar.");
+        exigir(await enviarContratoAFirmar(contractId, p.pilgrimId));
+        filas.push({
+          ...idFila(p),
+          ok: true,
+          detalle: p.accion === "generar_y_enviar" ? "Contrato generado y enviado" : "Enlace de firma reenviado",
+        });
+      } catch (e: any) {
+        // Se sigue con el resto: un correo rebotado no puede dejar sin contrato a los demás.
+        filas.push({ ...idFila(p), ok: false, detalle: e?.message ?? "Error desconocido" });
+      }
     }
-  }
 
-  revalidatePath(`/caminos/${departureId}`);
+    revalidatePath(`/caminos/${departureId}`);
 
-  return {
-    enviados: filas.filter((f) => f.ok).length,
-    fallidos: filas.filter((f) => !f.ok && !f.detalle.startsWith("Omitido")).length,
-    omitidos: filas.filter((f) => f.detalle.startsWith("Omitido")).length,
-    filas,
-  };
+    return {
+      enviados: filas.filter((f) => f.ok).length,
+      fallidos: filas.filter((f) => !f.ok && !f.detalle.startsWith("Omitido")).length,
+      omitidos: filas.filter((f) => f.detalle.startsWith("Omitido")).length,
+      filas,
+    };
+  });
 }
 
 function idFila(p: FilaPrevisualizacion) {

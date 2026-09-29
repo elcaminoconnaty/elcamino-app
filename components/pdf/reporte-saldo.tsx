@@ -1,5 +1,6 @@
 import { base, Document, Membrete, Page, Pie, StyleSheet, Text, View } from "./brand-shell";
 import { FUENTE } from "@/lib/brand";
+import { hoyBogota } from "@/lib/utils";
 
 /** Anchos de la tabla de pagos. Todo lo demás sale de `base`. */
 const col = StyleSheet.create({
@@ -77,7 +78,7 @@ export function ReporteSaldoPDF({ data }: { data: ReporteData }) {
         <Membrete />
 
         <Text style={base.title}>Reporte de saldo</Text>
-        <Text style={base.subtitle}>Generado el {fmt.date(new Date().toISOString().slice(0, 10))}</Text>
+        <Text style={base.subtitle}>Generado el {fmt.date(hoyBogota())}</Text>
 
         <View style={base.section}>
           <Text style={base.sectionTitle}>Peregrino</Text>

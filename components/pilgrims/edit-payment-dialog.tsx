@@ -13,6 +13,7 @@ import { global66Rate } from "@/lib/global66";
 import { toast } from "@/components/ui/toaster";
 import { PAYMENT_KIND, type PaymentKind } from "@/lib/settlement";
 import { Pencil, Trash2 } from "lucide-react";
+import { exigir } from "@/lib/resultado";
 
 export function EditPaymentDialog({ payment }: { payment: any }) {
   const [open, setOpen] = useState(false);
@@ -53,7 +54,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
         throw new Error(`Indicá los euros que entraron a ${GLOBAL66}.`);
       }
       if (esPenalidad && !concept.trim()) throw new Error("Escribí el concepto de la penalidad.");
-      await updatePilgrimPayment(payment.id, {
+      exigir(await updatePilgrimPayment(payment.id, {
         paid_at: paidAt,
         amount: a,
         currency,
@@ -69,7 +70,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
         reference: esPenalidad ? null : reference || null,
         notes: notes || null,
         ...(esPenalidad ? { concept: concept.trim() } : {}),
-      });
+      }));
       toast({ title: "Pago actualizado", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -83,7 +84,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
     if (!confirm(`¿Eliminar ${esPenalidad ? "esta penalidad" : "este pago"}? Esta acción no se puede deshacer.`)) return;
     setDeleting(true);
     try {
-      await deletePilgrimPayment(payment.id);
+      exigir(await deletePilgrimPayment(payment.id));
       toast({ title: "Pago eliminado", variant: "success" });
       setOpen(false);
       router.refresh();
@@ -96,7 +97,7 @@ export function EditPaymentDialog({ payment }: { payment: any }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" size="sm" className="h-10 w-10 p-0 sm:h-7 sm:w-7"><Pencil className="h-3.5 w-3.5" /></Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
