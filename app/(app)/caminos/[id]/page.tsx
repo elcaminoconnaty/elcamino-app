@@ -124,7 +124,23 @@ export default async function DepartureDetailPage({
       </div>
 
       {f && (
-        <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
+        <>
+          <div className="hidden sm:block">
+            <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
+          </div>
+          {/* En el celular la plata va plegada: si no, las pestañas quedaban tres pantallas más abajo. */}
+          <details className="sm:hidden group rounded-xl border bg-background">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm">
+              <span className="font-medium text-noche">Plata del camino</span>
+              <span className="text-xs text-muted-foreground">
+                {f.inscritos_total ?? 0}{d.capacity ? `/${d.capacity}` : ""} inscritos · <span className="group-open:hidden">ver</span><span className="hidden group-open:inline">ocultar</span>
+              </span>
+            </summary>
+            <div className="px-3 pb-3">
+              <MoneyPanorama finance={f} payable={payable as any} capacity={d.capacity ?? null} />
+            </div>
+          </details>
+        </>
       )}
 
       <CriticalAlertsBanner departureId={d.id} inscritosTotal={f?.inscritos_total ?? 0} />
@@ -153,7 +169,7 @@ export default async function DepartureDetailPage({
         </Card>
       )}
 
-      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0">
+      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-14 z-20 bg-alba/95 backdrop-blur">
         <nav className="flex gap-0.5 sm:gap-1 overflow-x-auto -mb-px">
           {TABS.map((t) => (
             <Link
