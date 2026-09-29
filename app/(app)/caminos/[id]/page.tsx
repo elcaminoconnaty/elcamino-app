@@ -169,7 +169,7 @@ export default async function DepartureDetailPage({
         </Card>
       )}
 
-      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-14 z-20 bg-alba/95 backdrop-blur">
+      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-14 z-20 bg-alba">
         <nav className="flex gap-0.5 sm:gap-1 overflow-x-auto -mb-px">
           {TABS.map((t) => (
             <Link

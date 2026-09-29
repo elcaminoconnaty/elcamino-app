@@ -36,3 +36,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Capturas y registros de la auditoría (pesados, se regeneran)
+auditoria/capturas/
+auditoria/dev.log
