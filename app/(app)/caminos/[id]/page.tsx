@@ -19,6 +19,7 @@ import { CenasTab } from "@/components/departures/tabs/cenas-tab";
 import { GastosTab } from "@/components/departures/tabs/gastos-tab";
 import { DocumentoTab } from "@/components/departures/tabs/documento-tab";
 import { ContratosTab } from "@/components/departures/tabs/contratos-tab";
+import { VideosTab } from "@/components/departures/tabs/videos-tab";
 import { MoneyPanorama } from "@/components/departures/money-panorama";
 import { type DepartureFinance } from "@/lib/finance";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
@@ -40,6 +41,7 @@ const TABS = [
   { value: "cenas", label: "Cenas" },
   { value: "gastos", label: "Otros gastos" },
   { value: "documento", label: "Documento de viaje" },
+  { value: "videos", label: "Videos" },
 ];
 
 export default async function DepartureDetailPage({
@@ -183,6 +185,7 @@ export default async function DepartureDetailPage({
         {activeTab === "gastos" && <GastosTab departureId={d.id} />}
         {activeTab === "contratos" && <ContratosTab departureId={d.id} />}
         {activeTab === "documento" && <DocumentoTab departureId={d.id} />}
+        {activeTab === "videos" && <VideosTab departureId={d.id} />}
       </div>
     </div>
     </TrmProvider>
