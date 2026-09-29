@@ -40,9 +40,9 @@ Mientras corre `next dev` en 3011 NO correr `next build` en la misma carpeta (pi
   permisos negó aplicar `scripts/sql/20261002_seguridad_auditoria.sql` ("Modify Shared Resources").
   NO intentar aplicarla por otra vía. Preparar todas las migraciones como archivos y pedir el OK en el informe.
   Hallazgo extra mío: `profiles.app_role` tiene DEFAULT 'nico' + registro abierto ⇒ toda cuenta nueva es equipo.
-- ☐ Triage y arreglos (anotar cada uno en "Arreglos hechos").
-- ☐ Verificación final (tsc, build, capturas de nuevo, verificadores de videos) y deploy.
-- ☐ Informe para Nico (`INFORME.md`) + memoria.
+- ✅ Triage y arreglos.
+- ✅ Verificación final y deploy (commit 49cb0d2, en vivo; videos 13/13 ok).
+- ✅ Informe (`INFORME.md`) + memoria.
 
 ## Arreglos hechos
 - (commit 406cd72, push hecho) Header y pestañas sólidos (app/(app)/layout.tsx, app/(app)/caminos/[id]/page.tsx); toasts respetan el borde inferior del iPhone.
