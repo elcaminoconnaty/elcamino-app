@@ -30,7 +30,7 @@ const fecha = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" }) : null;
 
 function mensaje(nombre: string, url: string) {
-  return `Hola ${nombre} 💛\n\nHay personas que caminan contigo aunque no estén aquí, y te dejaron un mensaje. Es solo para ti:\n${url}\n\nBúscate un momento tranquilo, sube el volumen y ábrelo con calma.\n\nNati & Nico`;
+  return `Hola ${nombre} 💛\n\nHay personas que caminan contigo aunque no estén aquí, y te dejaron un mensaje. Es solo para ti:\n${url}\n\nBúscate un momento tranquilo, sube el volumen y ábrelo con calma (si puedes, con wifi: es un video largo).\n\nNati & Nico`;
 }
 
 /** Para quien no tiene celular en su ficha: se escribe ahí mismo y entra a la serie. */
@@ -77,8 +77,8 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
     if (!f.video) return;
     const numero = numeroWhatsApp(f.telefono);
     window.open(`https://wa.me/${numero ?? ""}?text=${encodeURIComponent(mensaje(f.nombre, f.video.url))}`, "_blank");
-    if (numero) marcar(f.video.id, true);
-    else toast({ title: "No tiene un celular válido en su ficha", description: "Elige su chat en WhatsApp y, cuando lo mandes, toca «ya lo mandé».", variant: "destructive" });
+    // No se marca al abrir: abrir WhatsApp no es enviar. Se marca con «ya lo mandé».
+    toast({ title: numero ? `Cuando le llegue a ${f.nombre}, toca «ya lo mandé»` : "No tiene un celular válido en su ficha", description: numero ? undefined : "Elige su chat en WhatsApp y, cuando lo mandes, toca «ya lo mandé».", variant: numero ? "default" : "destructive" });
   }
 
   async function copiar(f: FilaVideo) {
@@ -92,34 +92,72 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
   }
 
   // «Enviar a todos»: WhatsApp no deja mandar solo desde un número personal, así que va en
-  // serie. Cada toque abre el chat con el mensaje listo; al volver, la tarjeta ya muestra al
-  // siguiente. Quien no tiene celular en su ficha no entra en la serie (no hay a quién abrirle).
+  // serie. Cada persona son dos toques: abrir su chat (con el mensaje listo) y, de vuelta,
+  // confirmar que se envió. Solo la confirmación la marca como enviada: abrir WhatsApp no es
+  // enviar, y si el celular recarga la app a mitad de camino, quien no se confirmó sigue en
+  // la cola. Quien no tiene celular en su ficha no entra (no hay a quién abrirle).
+  //
+  // El ensayo hace la misma serie pero todo va al número de quien prueba, con enlaces que no
+  // suman vistas (?vista=equipo), y no marca nada: sirve para ver en el iPhone que WhatsApp
+  // abre bien, que el texto sale completo y que cada enlace abre el video de esa persona.
   const cola = filas.filter((f) => f.video && !f.video.enviado && numeroWhatsApp(f.telefono));
+  const conVideo = filas.filter((f) => f.video);
   const sinCelular = filas.filter((f) => f.video && !f.video.enviado && !numeroWhatsApp(f.telefono));
   const [serie, setSerie] = useState<FilaVideo[] | null>(null);
   const [paso, setPaso] = useState(0);
+  const [abierto, setAbierto] = useState(false);
+  const [ensayo, setEnsayo] = useState<string | null>(null);
+  const [numeroEnsayo, setNumeroEnsayo] = useState(() => {
+    try { return localStorage.getItem("videos-ensayo-numero") ?? ""; } catch { return ""; }
+  });
+  const [pidiendoNumero, setPidiendoNumero] = useState(false);
   const actual = serie?.[paso] ?? null;
 
-  function enviarActual() {
+  function abrirActual() {
     if (!actual?.video) return;
-    const numero = numeroWhatsApp(actual.telefono);
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensaje(actual.nombre, actual.video.url))}`, "_blank");
-    marcarVideoEnviado(actual.video.id, true).then((r) => {
-      if (!r.ok) toast({ title: `No se pudo marcar a ${actual.nombre}`, description: r.error, variant: "destructive" });
-    });
+    const destino = ensayo ?? numeroWhatsApp(actual.telefono);
+    const url = ensayo ? `${actual.video.url}?vista=equipo` : actual.video.url;
+    const texto = (ensayo ? `[ENSAYO · para ${actual.nombreCompleto}]\n\n` : "") + mensaje(actual.nombre, url);
+    window.open(`https://wa.me/${destino}?text=${encodeURIComponent(texto)}`, "_blank");
+    setAbierto(true);
+  }
+
+  function confirmarActual() {
+    if (!actual?.video) return;
+    if (!ensayo) {
+      const quien = actual;
+      marcarVideoEnviado(quien.video!.id, true).then((r) => {
+        if (!r.ok) toast({ title: `No se pudo marcar a ${quien.nombre}`, description: `${r.error}. Márcalo a mano con «ya lo mandé».`, variant: "destructive" });
+      });
+    }
+    setAbierto(false);
     setPaso((p) => p + 1);
+  }
+
+  function empezarEnsayo() {
+    const n = numeroWhatsApp(numeroEnsayo);
+    if (!n) { toast({ title: "Ese número no sirve para WhatsApp", description: "Escríbelo con los 10 dígitos (o con +52, +1… si no es de Colombia).", variant: "destructive" }); return; }
+    try { localStorage.setItem("videos-ensayo-numero", numeroEnsayo); } catch {}
+    setEnsayo(n);
+    setPidiendoNumero(false);
+    setSerie(conVideo);
+    setPaso(0);
+    setAbierto(false);
   }
 
   function cerrarSerie() {
     setSerie(null);
+    setEnsayo(null);
     setPaso(0);
+    setAbierto(false);
     router.refresh();
   }
 
   return (
     <>
     {serie ? (
-      <div className="mb-4 rounded-xl border-2 border-ocre bg-ocre/10 p-4 sm:p-5">
+      <div className={`mb-4 rounded-xl border-2 p-4 sm:p-5 ${ensayo ? "border-atlantico bg-atlantico/10" : "border-ocre bg-ocre/10"}`}>
+        {ensayo && <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-atlantico">Ensayo · todo te llega a ti, nada se marca</p>}
         {actual ? (
           <>
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -129,36 +167,72 @@ export function ListaVideos({ filas }: { filas: FilaVideo[] }) {
             <div className="mt-2 h-1.5 rounded-full bg-background overflow-hidden">
               <div className="h-full bg-ocre transition-all" style={{ width: `${(paso / serie.length) * 100}%` }} />
             </div>
-            {paso > 0 && <p className="mt-3 text-sm text-ok-700 flex items-center gap-1.5"><Check className="h-4 w-4" /> Listo {serie[paso - 1].nombre}. Sigue:</p>}
+            {paso > 0 && !abierto && <p className="mt-3 text-sm text-ok-700 flex items-center gap-1.5"><Check className="h-4 w-4" /> Listo {serie[paso - 1].nombre}. Sigue:</p>}
             <p className="font-display text-2xl text-noche mt-2">{actual.nombreCompleto}</p>
-            <Button variant="accent" className="mt-3 w-full h-12 text-base" onClick={enviarActual}>
-              <MessageCircle className="h-5 w-5" /> Abrir WhatsApp de {actual.nombre}
-            </Button>
+            {!abierto ? (
+              <Button variant="accent" className="mt-3 w-full h-12 text-base" onClick={abrirActual}>
+                <MessageCircle className="h-5 w-5" /> Abrir WhatsApp {ensayo ? "(ensayo)" : `de ${actual.nombre}`}
+              </Button>
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-noche">¿{ensayo ? "Te llegó" : `Le llegó a ${actual.nombre}`} el mensaje en WhatsApp?</p>
+                <Button variant="accent" className="mt-2 w-full h-12 text-base" onClick={confirmarActual}>
+                  <Check className="h-5 w-5" /> Sí, enviado · siguiente
+                </Button>
+                <Button variant="outline" className="mt-2 w-full h-11" onClick={abrirActual}>
+                  <MessageCircle className="h-4 w-4" /> No, abrir WhatsApp otra vez
+                </Button>
+              </>
+            )}
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Toca enviar en WhatsApp y vuelve aquí.</span>
-              <button type="button" onClick={() => setPaso((p) => p + 1)} className="inline-flex items-center gap-1 hover:text-foreground"><SkipForward className="h-3.5 w-3.5" /> Saltar</button>
+              <span>{abierto ? "Solo cuenta como enviado si tocas «Sí»." : "Toca enviar en WhatsApp y vuelve aquí."}</span>
+              <button type="button" onClick={() => { setAbierto(false); setPaso((p) => p + 1); }} className="inline-flex items-center gap-1 hover:text-foreground"><SkipForward className="h-3.5 w-3.5" /> Saltar</button>
             </div>
           </>
         ) : (
           <div className="text-center py-2">
-            <p className="font-display text-2xl text-noche">¡Listo! 💛</p>
-            <p className="text-sm text-muted-foreground mt-1">Se abrieron los {serie.length} chats.</p>
+            <p className="font-display text-2xl text-noche">{ensayo ? "Ensayo terminado" : "¡Listo! 💛"}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {ensayo
+                ? "Revisa en tu WhatsApp que llegaron todos y abre cada enlace: tiene que decir el nombre de esa persona."
+                : "Revisa la lista: quien diga «Por enviar» se saltó o no se confirmó."}
+            </p>
             <Button variant="outline" className="mt-3" onClick={cerrarSerie}>Cerrar</Button>
           </div>
         )}
       </div>
-    ) : (cola.length > 0 || sinCelular.length > 0) && (
-      <div className="mb-4 rounded-xl border bg-background p-4 flex flex-wrap items-center gap-3 justify-between">
-        <div className="text-sm">
-          <p className="font-medium text-noche">{cola.length ? `${cola.length} por enviar` : "Nadie más con celular por enviar"}</p>
-          {sinCelular.length > 0 && (
-            <p className="text-xs text-aviso-800 mt-0.5">Sin celular en su ficha: {sinCelular.map((f) => f.nombre).join(", ")}</p>
+    ) : conVideo.length > 0 && (
+      <div className="mb-4 rounded-xl border bg-background p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <div className="text-sm">
+            <p className="font-medium text-noche">{cola.length ? `${cola.length} por enviar` : "Nadie más con celular por enviar"}</p>
+            {sinCelular.length > 0 && (
+              <p className="text-xs text-aviso-800 mt-0.5">Sin celular en su ficha: {sinCelular.map((f) => f.nombre).join(", ")}</p>
+            )}
+          </div>
+          {cola.length > 0 && (
+            <Button variant="accent" className="h-11 w-full sm:w-auto" onClick={() => { setEnsayo(null); setSerie(cola); setPaso(0); setAbierto(false); }}>
+              <Send className="h-4 w-4" /> Enviar a todos
+            </Button>
           )}
         </div>
-        {cola.length > 0 && (
-          <Button variant="accent" className="h-11 w-full sm:w-auto" onClick={() => { setSerie(cola); setPaso(0); }}>
-            <Send className="h-4 w-4" /> Enviar a todos
-          </Button>
+        {pidiendoNumero ? (
+          <form onSubmit={(e) => { e.preventDefault(); empezarEnsayo(); }} className="flex gap-1.5">
+            <input
+              type="tel"
+              inputMode="tel"
+              autoFocus
+              value={numeroEnsayo}
+              onChange={(e) => setNumeroEnsayo(e.target.value)}
+              placeholder="Tu celular, para mandarte el ensayo"
+              className="min-w-0 flex-1 h-10 rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+            />
+            <Button type="submit" variant="outline" className="h-10">Empezar</Button>
+          </form>
+        ) : (
+          <button type="button" onClick={() => setPidiendoNumero(true)} className="text-xs text-atlantico underline underline-offset-2">
+            Hacer un ensayo: mandarme los {conVideo.length} mensajes a mí primero
+          </button>
         )}
       </div>
     )}

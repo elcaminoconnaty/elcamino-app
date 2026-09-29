@@ -29,8 +29,12 @@ function s3() {
   return cliente;
 }
 
-/** Doce horas: alcanza para una pestaña que se queda abierta, y el enlace se refirma al recargar. */
-const VIGENCIA_S = 12 * 60 * 60;
+/**
+ * Siete días, el máximo que permite la firma S3: una pestaña que el peregrino deja en pausa y
+ * retoma al día siguiente sigue andando. Y si aun así vence, el reproductor recarga la página
+ * (que firma de nuevo).
+ */
+const VIGENCIA_S = 7 * 24 * 60 * 60 - 60;
 
 export async function urlFirmada(key: string, opciones?: { descargarComo?: string }): Promise<string> {
   const nombre = opciones?.descargarComo;

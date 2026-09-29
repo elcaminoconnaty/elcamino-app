@@ -53,7 +53,18 @@ export function ReproductorVideo({ token, src, ancho, alto, minutos, nombre, con
           controlsList="nodownload noplaybackrate"
           disablePictureInPicture
           onEnded={() => setFase("fin")}
-          onError={() => setError(true)}
+          onError={() => {
+            // Lo más probable es que venciera la firma: recargar firma de nuevo. Una sola vez
+            // por sesión, para no quedar en un ciclo si lo que falla es la conexión.
+            try {
+              if (!sessionStorage.getItem(`recargado-${token}`)) {
+                sessionStorage.setItem(`recargado-${token}`, "1");
+                window.location.reload();
+                return;
+              }
+            } catch {}
+            setError(true);
+          }}
           style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
         />
 
