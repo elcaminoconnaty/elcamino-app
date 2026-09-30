@@ -84,7 +84,7 @@ export function ReproductorVideo({ token, src, ancho, alto, minutos, nombre, con
                 </span>
                 <span className="font-display" style={{ position: "relative", fontSize: 24, fontStyle: "italic" }}>Toca para verlo</span>
                 <span style={{ position: "relative", fontSize: 13, color: COLOR.piedra, lineHeight: 1.5, maxWidth: 240 }}>
-                  {minutos} min · Busca un momento tranquilo y sube el volumen
+                  {minutos} min · Ponte los audífonos y sube el volumen
                 </span>
               </>
             ) : (
