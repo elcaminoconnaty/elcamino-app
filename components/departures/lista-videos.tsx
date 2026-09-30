@@ -30,7 +30,9 @@ const fecha = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" }) : null;
 
 function mensaje(nombre: string, url: string) {
-  return `Hola ${nombre} 💛\n\nHay personas que caminan contigo aunque no estén aquí, y te dejaron un mensaje. Es solo para ti:\n${url}\n\nBúscate un momento tranquilo, sube el volumen y ábrelo con calma (si puedes, con wifi: es un video largo).\n\nNati & Nico`;
+  // No dice que es un video ni de quién: los peregrinos no saben que su familia les grabó un
+  // mensaje, y la sorpresa se descubre al darle play.
+  return `Hola ${nombre} 💛\n\nPonte los audífonos: tenemos un audio muy especial para ti.\n\nBusca un momento tranquilo y escucha con atención el mensaje que hay para ti:\n${url}\n\nSi puedes, ábrelo con wifi.\n\nNati & Nico`;
 }
 
 /** Para quien no tiene celular en su ficha: se escribe ahí mismo y entra a la serie. */

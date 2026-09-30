@@ -18,7 +18,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const v = await videoPorToken(params.token);
   const titulo = v ? `Un mensaje para ti, ${v.nombre}` : CONTACTO.marca;
-  const descripcion = "Hay personas que caminan contigo aunque no estén aquí.";
+  // Es lo que WhatsApp muestra debajo del enlace: no puede adelantar la sorpresa.
+  const descripcion = "Ponte los audífonos y escucha con atención.";
   const base = baseUrl();
   return {
     title: titulo,
