@@ -6,6 +6,7 @@ import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk"
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LOGIN_LOCAL, MODELO, problemaDeConfiguracion } from "@/lib/asistente/config";
+import { prepararEnvioContratos, type VistaAccion } from "@/lib/asistente/acciones";
 
 export { MODELO };
 
@@ -19,14 +20,17 @@ export { MODELO };
  * estuvieran, le ganarían al token (la de la importación de reservas sí existe en Railway).
  *
  * El SDK levanta un proceso de Claude Code por pregunta. Se le quitan TODAS las herramientas
- * de fábrica (nada de Bash, leer archivos ni navegar): la única que tiene es `consultar`, un
- * SELECT de solo lectura que corre con la sesión de quien pregunta, con su RLS (ver
- * `asistente_consulta` en scripts/sql/20261015_equipo_actividad_asistente.sql).
+ * de fábrica (nada de Bash, leer archivos ni navegar). Tiene dos clases de herramientas
+ * propias, las dos con la sesión y el RLS de quien pregunta:
+ *   - `consultar`: un SELECT de solo lectura (`asistente_consulta`).
+ *   - `proponer_*`: dejan una acción PROPUESTA con la lista exacta de lo que pasaría. No
+ *     ejecutan nada: la persona confirma con un botón en el chat (ver lib/asistente/acciones.ts).
  */
 
 export type EventoAsistente =
   | { t: "texto"; d: string }
   | { t: "consulta"; sql: string }
+  | { t: "accion"; accion: VistaAccion }
   | { t: "fin"; texto: string; consultas: string[]; modelo: string | null; ms: number }
   | { t: "error"; mensaje: string };
 
@@ -95,7 +99,9 @@ async function instrucciones(supabase: SupabaseClient, quien: string) {
 Cómo trabajás:
 - Para cualquier dato de peregrinos, pagos, contratos, reservas, proveedores o plata, consultá la base con la herramienta \`consultar\`. Nunca inventes cifras ni nombres: si no está en la base ni en el conocimiento de abajo, decí que no lo sabés.
 - Podés hacer varias consultas seguidas. Si una falla, leé el error, corregí y reintentá. Si una pregunta es ambigua (dos peregrinas con el mismo nombre, dos caminos en abril), decilo y mostrá las opciones.
-- Solo podés LEER. Si te piden registrar, cambiar o borrar algo, explicá dónde se hace en la plataforma y poné el enlace.
+- Podés HACER algunas cosas, siempre en dos pasos: vos proponés con una herramienta \`proponer_*\` y la persona confirma tocando el botón de la tarjeta que aparece en el chat. **Nunca digas que algo se envió o se hizo**: queda propuesto hasta que confirme. Después de proponer, resumí en una o dos líneas qué va a pasar y quién se omite, y pedile que confirme con el botón.
+- Lo que hoy podés proponer: **enviar o reenviar contratos a firmar** (\`proponer_envio_contratos\`). Primero consultá para identificar a las personas exactas y usá sus \`registrations.id\` del camino correcto. Si alguien no tiene correo o ya firmó, la propuesta lo marca como omitido; decilo.
+- Cualquier otra cosa que cambie datos (registrar pagos, editar peregrinos, borrar), todavía no la podés hacer: explicá dónde se hace en la plataforma y poné el enlace.
 - No narres lo que vas a consultar ("voy a revisar…"): consultá y respondé.
 - Respondé en español colombiano, con voseo cercano, corto y al grano: primero la respuesta, después el detalle. Usá listas o tablas markdown cuando sean varias filas. Plata: euros como "1.234,56 €" y pesos como "$ 4.567.890 COP".
 - Nunca muestres cédulas del equipo, tokens, códigos de verificación ni llaves. Datos personales de peregrinos (teléfono, pasaporte) solo si te los piden explícitamente.
@@ -108,14 +114,19 @@ ${tablas}`;
 
 // --- La consulta -------------------------------------------------------------------------
 
-function servidorDeHerramientas(supabase: SupabaseClient, consultas: string[], avisar: (sql: string) => void) {
+function servidorDeHerramientas(
+  supabase: SupabaseClient,
+  conversacionId: string,
+  consultas: string[],
+  avisar: (ev: EventoAsistente) => void
+) {
   const consultar = tool(
     "consultar",
     "Corre UN SELECT (o WITH … SELECT) de solo lectura sobre la base de la plataforma y devuelve las filas en JSON (máximo 200). Sin punto y coma en el medio. Para agregados usá sum/count en la propia consulta.",
     { sql: z.string().describe("La consulta SELECT") },
     async ({ sql }) => {
       consultas.push(sql);
-      avisar(sql);
+      avisar({ t: "consulta", sql });
       // GET: PostgREST corre los GET en una transacción de solo lectura, y la función lo exige.
       const { data, error } = await supabase.rpc("asistente_consulta", { q: sql }, { get: true });
       if (error) {
@@ -130,7 +141,29 @@ function servidorDeHerramientas(supabase: SupabaseClient, consultas: string[], a
     },
     { annotations: { readOnlyHint: true }, alwaysLoad: true }
   );
-  return createSdkMcpServer({ name: "plataforma", version: "1.0.0", tools: [consultar] });
+  const proponerEnvioContratos = tool(
+    "proponer_envio_contratos",
+    "PROPONE enviar (o reenviar) el contrato a firmar a peregrinos de UN camino. No envía nada: deja una tarjeta con la lista exacta y un botón para que la persona confirme. Si el peregrino no tiene contrato, se genera; si ya tiene uno sin firmar, se le reenvía el enlace; si ya firmó o no tiene correo, se omite.",
+    {
+      departure_id: z.string().uuid().describe("departures.id del camino"),
+      registration_ids: z.array(z.string().uuid()).min(1).max(40).describe("registrations.id de cada peregrino (no pilgrims.id)"),
+    },
+    async ({ departure_id, registration_ids }) => {
+      const r = await prepararEnvioContratos(supabase, conversacionId, departure_id, registration_ids);
+      if ("error" in r) return { content: [{ type: "text" as const, text: r.error }], isError: true };
+      avisar({ t: "accion", accion: r.vista });
+      const v = r.vista;
+      const lineas = v.filas.map((f) => `- ${f.nombre}${f.email ? ` <${f.email}>` : ""}: ${f.hara}`).join("\n");
+      return {
+        content: [{
+          type: "text" as const,
+          text: `PROPUESTO, NO ENVIADO. La persona ve una tarjeta con el botón "${v.boton}".\n${v.detalle}\n${lineas}`,
+        }],
+      };
+    }
+  );
+
+  return createSdkMcpServer({ name: "plataforma", version: "1.0.0", tools: [consultar, proponerEnvioContratos] });
 }
 
 export type Turno = { role: "user" | "assistant"; content: string };
@@ -143,6 +176,7 @@ export type Turno = { role: "user" | "assistant"; content: string };
  */
 export async function* preguntar(opts: {
   supabase: SupabaseClient;
+  conversacionId: string;
   quien: string;
   pregunta: string;
   historial: Turno[];
@@ -181,8 +215,8 @@ export async function* preguntar(opts: {
         model: MODELO,
         maxTurns: 14,
         tools: [],
-        mcpServers: { plataforma: servidorDeHerramientas(opts.supabase, consultas, (sql) => pendientes.push({ t: "consulta", sql })) },
-        allowedTools: ["mcp__plataforma__consultar"],
+        mcpServers: { plataforma: servidorDeHerramientas(opts.supabase, opts.conversacionId, consultas, (ev) => pendientes.push(ev)) },
+        allowedTools: ["mcp__plataforma__consultar", "mcp__plataforma__proponer_envio_contratos"],
         permissionMode: "dontAsk",
         settingSources: [],
         includePartialMessages: true,

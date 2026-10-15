@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Chat, type Mensaje } from "@/components/asistente/chat";
 import { problemaDeConfiguracion } from "@/lib/asistente/config";
+import { vistaDeFila, type VistaAccion } from "@/lib/asistente/acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,22 @@ export default async function AsistentePage({ searchParams }: { searchParams: { 
       .select("id, role, content, tools, error")
       .eq("conversation_id", actual)
       .order("created_at");
+    const { data: filasAcciones } = await supabase
+      .from("assistant_actions")
+      .select("id, kind, status, preview, result, message_id")
+      .eq("conversation_id", actual)
+      .order("created_at");
+    const porMensaje = new Map<string, VistaAccion[]>();
+    for (const f of filasAcciones ?? []) {
+      if (!f.message_id) continue;
+      porMensaje.set(f.message_id, [...(porMensaje.get(f.message_id) ?? []), vistaDeFila(f as any)]);
+    }
     mensajes = (data ?? []).map((m) => ({
       id: m.id,
       role: m.role as Mensaje["role"],
       content: m.content,
       consultas: (m.tools as string[] | null) ?? [],
+      acciones: porMensaje.get(m.id) ?? [],
       error: m.error,
     }));
   }

@@ -69,19 +69,21 @@ export async function POST(request: Request) {
       let modelo: string | null = MODELO;
       let ms = 0;
       let error: string | null = null;
+      const acciones: string[] = [];
       const inicio = Date.now();
 
       // Sin `request.signal` a propósito: en el iPhone basta cambiar de app para cortar la
       // conexión, y la respuesta igual tiene que terminar y quedar guardada en la conversación.
-      for await (const ev of preguntar({ supabase, quien, pregunta, historial })) {
+      for await (const ev of preguntar({ supabase, conversacionId: conversacionId!, quien, pregunta, historial })) {
         if (ev.t === "texto") texto += ev.d;
         if (ev.t === "consulta") consultas.push(ev.sql);
+        if (ev.t === "accion") acciones.push(ev.accion.id);
         if (ev.t === "fin") ({ texto, consultas, modelo, ms } = { ...ev, modelo: ev.modelo ?? MODELO });
         if (ev.t === "error") error = ev.mensaje;
         enviar(ev);
       }
 
-      await supabase.from("assistant_messages").insert({
+      const { data: guardado } = await supabase.from("assistant_messages").insert({
         conversation_id: conversacionId,
         user_id: user.id,
         role: "assistant",
@@ -90,7 +92,11 @@ export async function POST(request: Request) {
         error,
         model: modelo,
         duration_ms: ms || Date.now() - inicio,
-      });
+      }).select("id").single();
+      // Las tarjetas de acción quedan colgadas de su respuesta, para verlas al reabrir la conversación.
+      if (guardado && acciones.length) {
+        await supabase.from("assistant_actions").update({ message_id: guardado.id }).in("id", acciones);
+      }
       await supabase.from("assistant_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversacionId);
       try {
         controller.close();

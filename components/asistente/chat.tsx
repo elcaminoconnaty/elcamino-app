@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Database, History, Plus, Sparkles, X } from "lucide-react";
+import { ArrowUp, Check, Database, History, Plus, Send, Sparkles, X } from "lucide-react";
+import type { VistaAccion } from "@/lib/asistente/acciones";
 import { cn } from "@/lib/utils";
 
 export type Mensaje = {
@@ -12,6 +13,7 @@ export type Mensaje = {
   role: "user" | "assistant";
   content: string;
   consultas: string[];
+  acciones?: VistaAccion[];
   error?: string | null;
   enCurso?: boolean;
 };
@@ -106,6 +108,7 @@ export function Chat({
             window.history.replaceState(null, "", `/asistente?c=${ev.id}`);
           } else if (ev.t === "texto") actualizar((m) => ({ ...m, content: m.content + ev.d }));
           else if (ev.t === "consulta") actualizar((m) => ({ ...m, consultas: [...m.consultas, ev.sql] }));
+          else if (ev.t === "accion") actualizar((m) => ({ ...m, acciones: [...(m.acciones ?? []), ev.accion] }));
           else if (ev.t === "error") actualizar((m) => ({ ...m, error: ev.mensaje }));
         }
       }
@@ -188,7 +191,7 @@ export function Chat({
           <div className="pt-6">
             <p className="text-muted-foreground mb-4">
               Preguntame lo que necesités de los caminos, los peregrinos, los contratos, los pagos o los proveedores.
-              Leo la plataforma en vivo; no cambio nada.
+              Leo la plataforma en vivo. Si me pedís mandar contratos, te muestro la lista exacta y vos confirmás con un botón.
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
               {SUGERENCIAS.map((s) => (
@@ -300,8 +303,107 @@ function Burbuja({ m }: { m: Mensaje }) {
           ))}
         </div>
       ) : null}
+      {(m.acciones ?? []).map((a) => (
+        <TarjetaAccion key={a.id} inicial={a} />
+      ))}
       {m.error && (
         <div className="rounded-lg border border-error-200 bg-error-50 px-3 py-2 text-sm text-error-800">{m.error}</div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Lo que el asistente propone hacer, con la lista exacta y el botón. Nada pasa hasta que la
+ * persona toca Confirmar; el servidor ejecuta exactamente esta lista (ver lib/asistente/acciones.ts).
+ */
+function TarjetaAccion({ inicial }: { inicial: VistaAccion }) {
+  const router = useRouter();
+  const [a, setA] = React.useState(inicial);
+  const [enviando, setEnviando] = React.useState<"confirmar" | "cancelar" | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function decidir(decision: "confirmar" | "cancelar") {
+    setEnviando(decision);
+    setError(null);
+    try {
+      const res = await fetch(`/api/asistente/acciones/${a.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.accion) setA(data.accion);
+      if (!res.ok && data.error) setError(data.error);
+      router.refresh();
+    } catch {
+      setError("No pude conectar. Revisá la conexión y volvé a intentar.");
+    } finally {
+      setEnviando(null);
+    }
+  }
+
+  const filas = a.resultado?.filas.length ? a.resultado.filas : a.filas;
+  const estado: Record<VistaAccion["status"], string> = {
+    propuesta: "Esperando tu confirmación",
+    ejecutando: "Ejecutando…",
+    ejecutada: "Hecho",
+    fallida: "Terminó con errores",
+    cancelada: "Cancelada",
+  };
+
+  return (
+    <div className={cn("rounded-xl border bg-background overflow-hidden", a.status === "propuesta" && "border-ocre")}>
+      <div className="px-4 py-3 border-b bg-piedra-suave/60">
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-medium text-sm text-noche">{a.titulo}</div>
+          <span
+            className={cn(
+              "text-[11px] rounded-full px-2 py-0.5 whitespace-nowrap",
+              a.status === "propuesta" && "bg-aviso-100 text-aviso-900",
+              a.status === "ejecutada" && "bg-ok-100 text-ok-900",
+              a.status === "fallida" && "bg-error-100 text-error-900",
+              (a.status === "cancelada" || a.status === "ejecutando") && "bg-muted text-muted-foreground"
+            )}
+          >
+            {estado[a.status]}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">{a.resultado?.resumen ?? a.detalle}</div>
+      </div>
+      <ul className="divide-y text-sm max-h-80 overflow-y-auto">
+        {filas.map((f, i) => (
+          <li key={i} className="px-4 py-2 flex gap-2">
+            {f.ok ? <Check className="h-4 w-4 mt-0.5 shrink-0 text-ok-500" /> : <X className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />}
+            <div className="min-w-0">
+              <div className="truncate">{f.nombre}</div>
+              <div className="text-xs text-muted-foreground break-words">
+                {f.email ? `${f.email} · ` : ""}
+                {f.hara}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {error && <div className="px-4 py-2 text-sm text-error-800 bg-error-50 border-t">{error}</div>}
+      {a.status === "propuesta" && (
+        <div className="px-4 py-3 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button
+            onClick={() => decidir("cancelar")}
+            disabled={!!enviando}
+            className="h-11 sm:h-9 px-4 rounded-md border text-sm hover:bg-piedra-suave disabled:opacity-50"
+          >
+            {enviando === "cancelar" ? "Cancelando…" : "Cancelar"}
+          </button>
+          <button
+            onClick={() => decidir("confirmar")}
+            disabled={!!enviando || a.ejecutables === 0}
+            className="h-11 sm:h-9 px-4 rounded-md bg-ocre-profundo text-alba text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {enviando === "confirmar" ? "Enviando…" : a.boton}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -23,6 +23,7 @@ const TABLAS: Record<string, string> = {
   expenses: "gasto", trm_rates: "TRM", routes: "ruta", route_stages: "etapa de ruta",
   route_template_items: "plantilla de ruta", registration_requests: "solicitud de inscripción",
   pilgrim_videos: "video", app_settings: "configuración", profiles: "cuenta del equipo",
+  assistant_actions: "acción del asistente",
 };
 const VERBO: Record<string, string> = { insert: "creó", update: "editó", delete: "borró" };
 const CAMPOS_NOMBRE = ["full_name", "name", "description", "label", "location", "concept", "accion"];
