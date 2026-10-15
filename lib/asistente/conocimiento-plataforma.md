@@ -57,7 +57,7 @@ plataforma en todas partes:
   sin contrato, enviado pero sin abrir, abierto pero sin firmar.
 
   ```sql
-  select p.full_name, p.email,
+  select d.id as departure_id, p.id as pilgrim_id, p.full_name, p.email,
          coalesce(c.status, 'sin contrato') as estado, c.sent_at, c.viewed_at
   from registrations r
   join pilgrims p on p.id = r.pilgrim_id
@@ -101,7 +101,9 @@ plataforma en todas partes:
 
 ## Enlaces a la plataforma
 
-Cuando ayude, poné el enlace en markdown, relativo:
+Cuando ayude, poné el enlace en markdown, relativo. **Un enlace necesita el id real**: traé
+`d.id` / `p.id` en la misma consulta. Nunca armes una ruta sin id (`/caminos?tab=contratos` no
+lleva a ningún camino).
 - Camino: `/caminos/<departure_id>` y sus pestañas con `?tab=` resumen, pagos, liquidacion,
   peregrinos, contratos, presupuesto, viaticos, reservas, habitaciones, cenas, gastos,
   documento, videos.
