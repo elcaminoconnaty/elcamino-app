@@ -33,7 +33,7 @@ const DialogContent = React.forwardRef<
         // Fullscreen en móvil; modal centrado en sm+. La columna es minmax(0,1fr): si no, un select
         // con una opción larga estiraba todo el diálogo fuera de la pantalla; content-start evita que
         // el alto sobrante se reparta como huecos entre las filas.
-        "fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] content-start gap-4 border-0 bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg overflow-y-auto w-full max-w-lg",
+        "fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] content-start gap-4 border-0 bg-background p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg overflow-y-auto w-full max-w-lg",
         "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
         "sm:max-h-[90vh] sm:rounded-lg sm:border sm:p-6",
         className
@@ -41,7 +41,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 h-9 w-9 sm:h-auto sm:w-auto rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring flex items-center justify-center">
+      <DialogPrimitive.Close className="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] sm:right-4 sm:top-4 h-9 w-9 sm:h-auto sm:w-auto rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring flex items-center justify-center">
         <X className="h-5 w-5 sm:h-4 sm:w-4" />
         <span className="sr-only">Cerrar</span>
       </DialogPrimitive.Close>

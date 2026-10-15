@@ -173,7 +173,7 @@ export default async function DepartureDetailPage({
         </Card>
       )}
 
-      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-14 z-20 bg-alba">
+      <div className="border-b -mx-4 sm:mx-0 px-4 sm:px-0 sticky top-[calc(3.5rem+env(safe-area-inset-top))] md:top-14 z-20 bg-alba">
         <div className="relative">
         <nav id="pestanas-camino" className="flex gap-0.5 sm:gap-1 overflow-x-auto -mb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => (

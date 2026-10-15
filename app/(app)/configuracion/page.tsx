@@ -5,6 +5,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { RouteQuickCreate } from "@/app/(app)/caminos/nuevo/route-quick-create";
 import { FirmaOrganizador } from "@/components/contracts/firma-organizador";
 import { EditorEtapas } from "@/components/routes/editor-etapas";
+import { Equipo, type Integrante } from "@/components/equipo/equipo";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,24 @@ export default async function ConfigPage() {
   for (const e of etapas ?? []) etapasPorRuta.set(e.route_id, (etapasPorRuta.get(e.route_id) ?? 0) + 1);
   const { data: firma } = await supabase
     .from("app_settings").select("value").eq("key", "org_signature").maybeSingle();
+
+  // El equipo. La última entrada vive en auth.users, que solo se lee con la llave de servicio.
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: perfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, app_role, cedula, password_set_at")
+    .not("app_role", "is", null)
+    .order("full_name");
+  const { data: cuentas } = await createAdminClient().auth.admin.listUsers({ perPage: 100 });
+  const ultima = new Map((cuentas?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null]));
+  const integrantes: Integrante[] = (perfiles ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.full_name ?? p.email ?? "Sin nombre",
+    rol: p.app_role,
+    conCedula: Boolean(p.cedula),
+    claveCreada: p.password_set_at,
+    ultimaEntrada: ultima.get(p.id) ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -92,14 +112,15 @@ export default async function ConfigPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Cuenta</CardTitle>
-          <CardDescription>Usuarios y roles se gestionan desde Supabase Auth.</CardDescription>
+          <CardTitle>Equipo</CardTitle>
+          <CardDescription>
+            Cada quien entra con su cédula, y lo que registra queda a su nombre en{" "}
+            <Link href="/actividad" className="text-ocre-profundo underline underline-offset-2">Actividad</Link>.
+            Las cuentas nuevas se crean con <code>scripts/crear-cuenta-equipo.mjs</code>.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Para invitar a Naty: en Supabase → Auth → Invite users con su email. Luego desde SQL editor actualizar su rol en <code>public.profiles</code> (desde la app nadie puede cambiarse el rol: las cuentas nuevas nacen sin acceso):</p>
-          <pre className="bg-piedra-suave p-3 rounded text-xs whitespace-pre-wrap break-all">
-{`update public.profiles set app_role = 'naty' where email = 'naty@correo.com';`}
-          </pre>
+        <CardContent>
+          <Equipo integrantes={integrantes} yo={user?.id ?? ""} />
         </CardContent>
       </Card>
     </div>

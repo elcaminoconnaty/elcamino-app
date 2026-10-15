@@ -23,15 +23,29 @@ const cinzel = Cinzel({
   display: "swap",
 });
 
+/** Pantallas de arranque de la app instalada en el iPhone (`scripts/generar-splash.py`).
+ *  iOS escoge la que coincide exactamente con el ancho, alto y densidad de la pantalla. */
+const SPLASH: [number, number, number][] = [
+  [440, 956, 3], [430, 932, 3], [428, 926, 3], [402, 874, 3], [393, 852, 3],
+  [390, 844, 3], [414, 896, 3], [414, 896, 2], [375, 812, 3], [375, 667, 2],
+];
+
 export const metadata: Metadata = {
   title: "El Camino con Naty",
   description: "Plataforma comercial de El Camino con Naty",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    // Instalada como app, la barra de estado queda transparente sobre la cabecera atlántico
+    // (en el celular la cabecera es de ese color y le reserva el alto con safe-area-inset-top).
+    statusBarStyle: "black-translucent",
     title: "El Camino",
+    startupImage: SPLASH.map(([w, h, r]) => ({
+      url: `/splash/splash-${w * r}x${h * r}.png`,
+      media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${r}) and (orientation: portrait)`,
+    })),
   },
+  formatDetection: { telephone: false },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },

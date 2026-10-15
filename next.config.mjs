@@ -21,7 +21,9 @@ const RUTAS_POR_TOKEN = [
 const nextConfig = {
   experimental: {
     // Next 14 todavía lo llama así; en 15 pasa a `serverExternalPackages` en la raíz.
-    serverComponentsExternalPackages: ["@react-pdf/renderer"],
+    // El SDK del asistente lanza el binario de Claude Code que trae como dependencia: tiene
+    // que quedar en node_modules con su ruta real, no empaquetado.
+    serverComponentsExternalPackages: ["@react-pdf/renderer", "@anthropic-ai/claude-agent-sdk"],
     serverActions: { bodySizeLimit: "15mb" },
   },
   async headers() {

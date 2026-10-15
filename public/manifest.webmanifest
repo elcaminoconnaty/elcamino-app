@@ -1,12 +1,16 @@
 {
+  "id": "/",
   "name": "El Camino con Naty",
   "short_name": "El Camino",
   "description": "Plataforma comercial El Camino con Naty",
+  "lang": "es-CO",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F5EEE3",
   "theme_color": "#3D5A6E",
   "orientation": "portrait",
+  "categories": ["business", "productivity", "travel"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -26,5 +30,10 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    { "name": "Asistente", "url": "/asistente", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Peregrinos", "url": "/peregrinos", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Caminos", "url": "/caminos", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

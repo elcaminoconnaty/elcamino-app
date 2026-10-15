@@ -59,5 +59,5 @@ export async function middleware(request: NextRequest) {
 const PUBLICAS = ["/carta", "/video", "/firmar", "/verificar", "/viaje", "/correo", "/menu", "/registro", "/api/pdf/contrato/publico", "/api/pdf/viaje", "/api/pdf/bienvenida/publico"];
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -13,6 +13,8 @@ import {
   CalendarClock,
   Banknote,
   ChevronRight,
+  Sparkles,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ type Item = { href: string; label: string; icon: LucideIcon; tree?: "caminos" | 
 
 const items: Item[] = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
+  { href: "/asistente", label: "Asistente", icon: Sparkles },
   { href: "/caminos", label: "Caminos", icon: Map, tree: "caminos" },
   { href: "/peregrinos", label: "Peregrinos", icon: Users, tree: "peregrinos" },
   { href: "/pagos", label: "Cobros a peregrinos", icon: CalendarClock },
@@ -30,6 +33,7 @@ const items: Item[] = [
   { href: "/proveedores", label: "Proveedores", icon: Building2 },
   { href: "/gastos", label: "Gastos", icon: Wallet },
   { href: "/trm", label: "TRM", icon: TrendingUp },
+  { href: "/actividad", label: "Actividad", icon: History },
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
