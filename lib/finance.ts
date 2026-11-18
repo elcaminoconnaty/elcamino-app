@@ -151,6 +151,56 @@ export const SCALING_LABELS: Record<string, { label: string; color: string; desc
  * nuevo entra con el precio de lista del camino (`departures.base_price_eur`), o con el
  * promedio si no hay precio de lista.
  */
+/**
+ * Caminos en alianza (primero: Francés Septiembre 2027 con Power the Muv, acordado con Nico el
+ * 2026-11-18). ECN cobra primero un % de agenciamiento sobre el costo del camino; lo que queda de
+ * utilidad se reparte entre ECN y el aliado. Con 15% y 70/30, sobre ingresos 60.000 y costo 30.000:
+ * agenciamiento 4.500 → ECN; a repartir 25.500 → ECN 17.850 y aliado 7.650; ECN en total 22.350.
+ */
+export type ConfigAlianza = { socio: string; agenciamientoPct: number; socioPct: number };
+
+export function configAlianza(d: {
+  alliance_partner?: string | null;
+  alliance_agency_fee_pct?: number | null;
+  alliance_partner_share_pct?: number | null;
+} | null | undefined): ConfigAlianza | null {
+  const socio = d?.alliance_partner?.trim();
+  if (!socio) return null;
+  return {
+    socio,
+    agenciamientoPct: Number(d?.alliance_agency_fee_pct ?? 0),
+    socioPct: Number(d?.alliance_partner_share_pct ?? 0),
+  };
+}
+
+export type RepartoAlianza = {
+  ingreso_eur: number;
+  costo_eur: number;
+  agenciamiento_eur: number;
+  /** Utilidad después del agenciamiento: lo que se reparte. */
+  a_repartir_eur: number;
+  ecn_parte_eur: number;
+  socio_eur: number;
+  /** Agenciamiento + la parte de ECN en el reparto. */
+  ecn_total_eur: number;
+};
+
+export function repartoAlianza(ingreso: number, costo: number, cfg: ConfigAlianza): RepartoAlianza {
+  const agenciamiento = costo * (cfg.agenciamientoPct / 100);
+  const aRepartir = ingreso - costo - agenciamiento;
+  const socio = aRepartir * (cfg.socioPct / 100);
+  const ecnParte = aRepartir - socio;
+  return {
+    ingreso_eur: ingreso,
+    costo_eur: costo,
+    agenciamiento_eur: agenciamiento,
+    a_repartir_eur: aRepartir,
+    ecn_parte_eur: ecnParte,
+    socio_eur: socio,
+    ecn_total_eur: agenciamiento + ecnParte,
+  };
+}
+
 export type FilaCupo = {
   pagantes: number;
   ingreso_eur: number;

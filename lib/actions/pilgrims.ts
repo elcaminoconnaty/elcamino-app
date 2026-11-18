@@ -89,19 +89,24 @@ export async function createRegistration(input: {
   paid_in_cop_originally: boolean;
   status?: string;
   notes?: string | null;
+  /** Camino en alianza: de parte de quién llega ("ecn" | "aliado"). */
+  referred_by?: "ecn" | "aliado" | null;
 }) {
   return intentar(async () => {
     const supabase = createClient();
+    const fila: Record<string, unknown> = {
+      pilgrim_id: input.pilgrim_id,
+      departure_id: input.departure_id,
+      total_eur: input.total_eur,
+      paid_in_cop_originally: input.paid_in_cop_originally,
+      status: input.status ?? "inscrito",
+      notes: input.notes ?? null,
+    };
+    // Solo se manda en caminos en alianza: así un camino propio no depende de esa columna.
+    if (input.referred_by) fila.referred_by = input.referred_by;
     const { data, error } = await supabase
       .from("registrations")
-      .insert({
-        pilgrim_id: input.pilgrim_id,
-        departure_id: input.departure_id,
-        total_eur: input.total_eur,
-        paid_in_cop_originally: input.paid_in_cop_originally,
-        status: input.status ?? "inscrito",
-        notes: input.notes ?? null,
-      })
+      .insert(fila)
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -293,4 +298,20 @@ async function asegurarSinAbonos(supabase: ReturnType<typeof createClient>, regI
   if ((count ?? 0) > 0) {
     throw new Error("Apareció un abono mientras se eliminaba: vuelve a abrir la ficha y decide qué hacer con él.");
   }
+}
+
+/** Camino en alianza: de parte de quién llegó el peregrino ("ecn" | "aliado" | null). */
+export async function setReferredBy(registrationId: string, referredBy: "ecn" | "aliado" | null) {
+  return intentar(async () => {
+    if (referredBy !== null && referredBy !== "ecn" && referredBy !== "aliado") throw new Error("Origen inválido");
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("registrations")
+      .update({ referred_by: referredBy })
+      .eq("id", registrationId)
+      .select("departure_id")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath(`/caminos/${data.departure_id}`);
+  });
 }

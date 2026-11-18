@@ -12,13 +12,15 @@ import { Plus } from "lucide-react";
 
 type P = { id: string; full_name: string; email: string | null; phone: string | null };
 
-export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: string; pilgrims: P[] }) {
+export function AddPilgrimToDeparture({ departureId, pilgrims, socio = null }: { departureId: string; pilgrims: P[]; socio?: string | null }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [pilgrimId, setPilgrimId] = useState("");
   const [total, setTotal] = useState("");
   const [cop, setCop] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Solo en caminos en alianza: de parte de quién llega.
+  const [origen, setOrigen] = useState<"" | "ecn" | "aliado">("");
   const router = useRouter();
 
   // Estados para nuevo peregrino
@@ -41,6 +43,10 @@ export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: 
     }
     if (mode === "new" && !newName.trim()) {
       toast({ title: "Error", description: "Escribe el nombre del peregrino", variant: "destructive" });
+      return;
+    }
+    if (socio && !origen) {
+      toast({ title: "Error", description: `Elegí si llega de parte de ECN o de ${socio}`, variant: "destructive" });
       return;
     }
     if (mode !== "new" && !pilgrimId) {
@@ -77,6 +83,7 @@ export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: 
           departure_id: departureId,
           total_eur: t,
           paid_in_cop_originally: cop,
+          referred_by: socio && origen ? origen : null,
         })
       );
       creado.current = null;
@@ -130,6 +137,16 @@ export function AddPilgrimToDeparture({ departureId, pilgrims }: { departureId: 
           <Label>Precio acordado (EUR) *</Label>
           <Input type="number" step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} placeholder="2700" />
         </div>
+        {socio && (
+          <div className="grid gap-2">
+            <Label>¿De parte de quién llega? *</Label>
+            <select value={origen} onChange={(e) => setOrigen(e.target.value as any)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">— Seleccionar —</option>
+              <option value="ecn">El Camino con Naty</option>
+              <option value="aliado">{socio}</option>
+            </select>
+          </div>
+        )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={cop} onChange={(e) => setCop(e.target.checked)} />
           Pagará en pesos colombianos (aplicará recálculo 1 mes antes)

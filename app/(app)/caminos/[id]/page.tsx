@@ -23,7 +23,8 @@ import { VideosTab } from "@/components/departures/tabs/videos-tab";
 import { PestanaVisible } from "@/components/departures/pestana-visible";
 import { contratadoPorCamino } from "@/lib/data/costos-contratados";
 import { MoneyPanorama } from "@/components/departures/money-panorama";
-import { type DepartureFinance } from "@/lib/finance";
+import { configAlianza, type DepartureFinance } from "@/lib/finance";
+import { AlianzaCard } from "@/components/departures/alianza-card";
 import { TrmProvider, TrmSelector } from "@/components/ui/eur-cop";
 import type { Departure } from "@/types/db";
 import { BedDouble, Users, UtensilsCrossed, FileSpreadsheet } from "lucide-react";
@@ -69,6 +70,26 @@ export default async function DepartureDetailPage({
   ]);
 
   const f = (finance as DepartureFinance) ?? null;
+
+  // Camino en alianza: el reparto con el aliado y de parte de quién llegó cada inscrito.
+  const alianza = configAlianza(d);
+  const origen = { ecn: 0, aliado: 0, sinDefinir: 0 };
+  if (alianza) {
+    const { data: regs } = await supabase
+      .from("registrations")
+      .select("referred_by, status, pilgrims(is_team)")
+      .eq("departure_id", params.id)
+      .neq("status", "cancelado");
+    for (const r of (regs ?? []) as any[]) {
+      if (r.pilgrims?.is_team) continue;
+      if (r.referred_by === "ecn") origen.ecn++;
+      else if (r.referred_by === "aliado") origen.aliado++;
+      else origen.sinDefinir++;
+    }
+  }
+  const alianzaCard = alianza && f
+    ? <AlianzaCard finance={f} config={alianza} precioLista={d.base_price_eur ?? null} origen={origen} />
+    : null;
   const defaultTrm = Number(d.trm_frozen_value ?? latestTrm?.eur_cop ?? 0);
   const days = d.start_date ? daysUntil(d.start_date) : null;
   // Solo tiene sentido recordar la tasa de cierre si el camino liquida con recálculo.
@@ -131,6 +152,7 @@ export default async function DepartureDetailPage({
         <>
           <div className="hidden sm:block">
             <MoneyPanorama finance={f} contratado={contratadoMap.get(params.id) ?? null} capacity={d.capacity ?? null} />
+            {alianzaCard && <div className="mt-3">{alianzaCard}</div>}
           </div>
           {/* En el celular la plata va plegada: si no, las pestañas quedaban tres pantallas más abajo. */}
           <details className="sm:hidden group rounded-xl border bg-background">
@@ -142,6 +164,7 @@ export default async function DepartureDetailPage({
             </summary>
             <div className="px-3 pb-3">
               <MoneyPanorama finance={f} contratado={contratadoMap.get(params.id) ?? null} capacity={d.capacity ?? null} />
+              {alianzaCard && <div className="mt-3">{alianzaCard}</div>}
             </div>
           </details>
         </>

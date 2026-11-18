@@ -26,6 +26,12 @@ export type Departure = {
   trm_frozen_value: number | null;
   /** Cómo se liquida el saldo final — ver lib/settlement.ts. */
   settlement_mode: SettlementMode;
+  /** Camino en alianza: nombre del aliado (null = camino propio). Ver `configAlianza` en lib/finance.ts. */
+  alliance_partner?: string | null;
+  /** % de agenciamiento que ECN cobra sobre el costo antes de repartir. */
+  alliance_agency_fee_pct?: number | null;
+  /** % de la utilidad (después del agenciamiento) que le toca al aliado. */
+  alliance_partner_share_pct?: number | null;
 };
 
 export type Pilgrim = {

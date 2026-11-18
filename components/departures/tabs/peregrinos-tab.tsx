@@ -13,6 +13,8 @@ import { armarCarta } from "@/lib/bienvenida/datos";
 import { AlertTriangle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { compararNombres } from "@/lib/passport/nombres";
+import { configAlianza } from "@/lib/finance";
+import { OrigenInscritoSelect } from "@/components/departures/origen-inscrito-select";
 
 export async function PeregrinosTab({ departureId }: { departureId: string }) {
   const supabase = createClient();
@@ -27,12 +29,20 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
     supabase.from("registration_requests").select("id, full_name, email, phone, payload, created_at").eq("departure_id", departureId).eq("status", "pendiente").order("created_at"),
     registroDelCamino(departureId),
     armarCarta(departureId).catch((e: any) => ({ pendientes: [String(e?.message ?? e)] })),
-    supabase.from("departures").select("welcome_letter").eq("id", departureId).maybeSingle(),
+    supabase.from("departures").select("*").eq("id", departureId).maybeSingle(),
   ]);
   const filasRegistro = registro?.filas ?? [];
   const pasaporteMal = new Set(filasRegistro.filter((x) => x.avisos.some((a) => a.nivel === "error")).map((x) => x.registrationId));
   const ajustesCarta = ((dep as any)?.welcome_letter ?? {}) as { encuentro_lugar?: string | null; encuentro_hora?: string | null };
   const formularioDe = new Map<string, string | null>((formularios ?? []).map((f: any) => [f.id, f.registration_form_submitted_at ?? null]));
+  // Camino en alianza: de parte de quién llegó cada inscrito. Se lee aparte para que un camino
+  // propio no dependa de la columna `referred_by`.
+  const alianza = configAlianza(dep as any);
+  const origenDe = new Map<string, "ecn" | "aliado" | null>();
+  if (alianza) {
+    const { data: origenes } = await supabase.from("registrations").select("id, referred_by").eq("departure_id", departureId);
+    for (const o of (origenes ?? []) as any[]) origenDe.set(o.id, o.referred_by ?? null);
+  }
 
   // Alfabético en español, igual que la lista general y el menú lateral.
   const porNombre = (a: any, b: any) => compararNombres(a.pilgrim_name, b.pilgrim_name);
@@ -44,7 +54,7 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
-        <AddPilgrimToDeparture departureId={departureId} pilgrims={allPilgrims ?? []} />
+        <AddPilgrimToDeparture departureId={departureId} pilgrims={allPilgrims ?? []} socio={alianza?.socio ?? null} />
       </div>
       <BienvenidaRegistroCamino
         departureId={departureId}
@@ -67,6 +77,7 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                 <TableRow>
                   <TableHead>Peregrino</TableHead>
                   <TableHead>Estado</TableHead>
+                  {alianza && <TableHead>De parte de</TableHead>}
                   <TableHead>Formulario</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Pagado</TableHead>
@@ -86,6 +97,11 @@ export async function PeregrinosTab({ departureId }: { departureId: string }) {
                         <Link href={rutaPeregrino(r.pilgrim_id, departureId)} className="hover:underline font-medium">{r.pilgrim_name}</Link>
                       </TableCell>
                       <TableCell><Badge variant="muted">{r.status}</Badge></TableCell>
+                      {alianza && (
+                        <TableCell>
+                          <OrigenInscritoSelect registrationId={r.registration_id} value={origenDe.get(r.registration_id) ?? null} socio={alianza.socio} />
+                        </TableCell>
+                      )}
                       <TableCell>
                         {formularioDe.get(r.registration_id) ? (
                           <Badge variant="success" title="Llenó el formulario de inscripción">{formatDate(String(formularioDe.get(r.registration_id)).slice(0, 10))}</Badge>
