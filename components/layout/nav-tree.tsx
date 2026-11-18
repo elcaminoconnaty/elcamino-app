@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { NavCamino } from "@/lib/data/nav-caminos";
+import { caminoPasado, etiquetaCamino, type NavCamino } from "@/lib/data/nav-caminos";
 import { rutaCamino, rutaPeregrino, rutaPeregrinosDeCamino } from "@/lib/rutas";
 
 type Item = { href: string; label: string; icon: LucideIcon; tree?: "caminos" | "peregrinos" };
@@ -68,6 +68,12 @@ export function NavTree({ caminos, compact = false }: { caminos: NavCamino[]; co
       if (caminoParam) abiertos.add(`peregrinos:${caminoParam}`);
       else for (const c of caminos) if (c.peregrinos.some((p) => p.id === peregrinoActual)) abiertos.add(`peregrinos:${c.id}`);
     }
+    // Si lo que se está viendo es un camino del historial, el historial se abre solo.
+    for (const c of caminos) {
+      if (!caminoPasado(c)) continue;
+      if (caminoActual === c.id) abiertos.add("caminos:historial");
+      if (abiertos.has(`peregrinos:${c.id}`)) abiertos.add("peregrinos:historial");
+    }
     return abiertos;
   }, [pathname, tab, caminoParam, caminos]);
 
@@ -81,6 +87,58 @@ export function NavTree({ caminos, compact = false }: { caminos: NavCamino[]; co
   const peregrinoActual = pathname.match(/^\/peregrinos\/([^/]+)/)?.[1] ?? null;
 
   const py = compact ? "py-2.5" : "py-2";
+
+  const vigentes = caminos.filter((c) => !caminoPasado(c));
+  const pasados = caminos.filter((c) => caminoPasado(c));
+
+  const renderCamino = (c: NavCamino, tree: "caminos" | "peregrinos") => {
+                  if (tree === "caminos") {
+                    return (
+                      <Fila
+                        key={c.id}
+                        href={rutaCamino(c.id)}
+                        active={caminoActual === c.id}
+                        className={cn("px-2 text-[13px]", compact ? "py-2" : "py-1.5")}
+                      >
+                        <NombreCamino camino={c} />
+                        <Contador n={c.peregrinos.length} />
+                      </Fila>
+                    );
+                  }
+                  const key = `peregrinos:${c.id}`;
+                  const activo =
+                    (caminoActual === c.id && tab === "peregrinos") || (!!peregrinoActual && caminoParam === c.id);
+                  return (
+                    <div key={c.id}>
+                      <Fila
+                        href={rutaPeregrinosDeCamino(c.id)}
+                        active={activo}
+                        className={cn("px-2 text-[13px]", compact ? "py-2" : "py-1.5")}
+                        abierto={c.peregrinos.length > 0 ? abierto(key) : undefined}
+                        onAlternar={c.peregrinos.length > 0 ? () => alternar(key) : undefined}
+                        titulo={abierto(key) ? "Ocultar peregrinos" : "Ver peregrinos"}
+                      >
+                        <NombreCamino camino={c} />
+                        <Contador n={c.peregrinos.length} />
+                      </Fila>
+                      {abierto(key) && c.peregrinos.length > 0 && (
+                        <div className="ml-2 pl-3 border-l border-piedra-suave space-y-0.5 mt-0.5">
+                          {c.peregrinos.map((p) => (
+                            <Fila
+                              key={p.id}
+                              href={rutaPeregrino(p.id, c.id)}
+                              active={peregrinoActual === p.id}
+                              className={cn("px-2 text-xs", compact ? "py-1.5" : "py-1")}
+                            >
+                              <span className="truncate">{p.full_name}</span>
+                            </Fila>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+  };
+
 
   return (
     <div className="space-y-1">
@@ -104,59 +162,52 @@ export function NavTree({ caminos, compact = false }: { caminos: NavCamino[]; co
 
             {conArbol && abierto(it.tree!) && (
               <div className="mt-0.5 ml-4 pl-3 border-l border-piedra-suave space-y-0.5">
-                {caminos.map((c) => {
-                  if (it.tree === "caminos") {
-                    return (
-                      <Fila
-                        key={c.id}
-                        href={rutaCamino(c.id)}
-                        active={caminoActual === c.id}
-                        className={cn("px-2 text-[13px]", compact ? "py-2" : "py-1.5")}
-                      >
-                        <span className="truncate">{c.name}</span>
-                        <Contador n={c.peregrinos.length} />
-                      </Fila>
-                    );
-                  }
-                  const key = `peregrinos:${c.id}`;
-                  const activo =
-                    (caminoActual === c.id && tab === "peregrinos") || (!!peregrinoActual && caminoParam === c.id);
-                  return (
-                    <div key={c.id}>
-                      <Fila
-                        href={rutaPeregrinosDeCamino(c.id)}
-                        active={activo}
-                        className={cn("px-2 text-[13px]", compact ? "py-2" : "py-1.5")}
-                        abierto={c.peregrinos.length > 0 ? abierto(key) : undefined}
-                        onAlternar={c.peregrinos.length > 0 ? () => alternar(key) : undefined}
-                        titulo={abierto(key) ? "Ocultar peregrinos" : "Ver peregrinos"}
-                      >
-                        <span className="truncate">{c.name}</span>
-                        <Contador n={c.peregrinos.length} />
-                      </Fila>
-                      {abierto(key) && c.peregrinos.length > 0 && (
-                        <div className="ml-2 pl-3 border-l border-piedra-suave space-y-0.5 mt-0.5">
-                          {c.peregrinos.map((p) => (
-                            <Fila
-                              key={p.id}
-                              href={rutaPeregrino(p.id, c.id)}
-                              active={peregrinoActual === p.id}
-                              className={cn("px-2 text-xs", compact ? "py-1.5" : "py-1")}
-                            >
-                              <span className="truncate">{p.full_name}</span>
-                            </Fila>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {vigentes.map((c) => renderCamino(c, it.tree!))}
+                {pasados.length > 0 && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => alternar(`${it.tree}:historial`)}
+                      aria-expanded={abierto(`${it.tree}:historial`)}
+                      className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground hover:text-foreground hover:bg-piedra-suave"
+                    >
+                      <History className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1 text-left">Historial caminos</span>
+                      <span className="text-[10px] tabular-nums">{pasados.length}</span>
+                      <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", abierto(`${it.tree}:historial`) && "rotate-90")} />
+                    </button>
+                    {abierto(`${it.tree}:historial`) && (
+                      <div className="mt-0.5 ml-2 pl-2 border-l border-dashed border-piedra-suave space-y-0.5">
+                        {pasados.map((c) => renderCamino(c, it.tree!))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+/** Ruta corta + aliado arriba y fechas abajo; los caminos que ya pasaron, más tenues. */
+function NombreCamino({ camino }: { camino: NavCamino }) {
+  const { ruta, aliado, fechas } = etiquetaCamino(camino);
+  const pasado = caminoPasado(camino);
+  return (
+    <span className={cn("min-w-0 flex-1 leading-tight", pasado && "opacity-60")} title={camino.name}>
+      <span className="flex items-center gap-1.5 min-w-0">
+        <span className="truncate">{ruta}</span>
+        {aliado && (
+          <span className="shrink-0 rounded bg-ocre/25 px-1 py-px text-[9px] font-medium uppercase tracking-wide text-noche">
+            {aliado}
+          </span>
+        )}
+      </span>
+      {fechas && <span className="block truncate text-[11px] font-normal text-muted-foreground">{fechas}</span>}
+    </span>
   );
 }
 
